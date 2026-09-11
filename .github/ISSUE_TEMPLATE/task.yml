@@ -1,0 +1,39 @@
+name: Задача
+description: Реализация функции, исследования или документации
+title: "[Task]: "
+labels: []
+body:
+  - type: textarea
+    id: result
+    attributes:
+      label: Результат
+      description: Какой наблюдаемый результат должен появиться?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии приёмки
+      description: Перечислите проверяемые условия завершения.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Область изменений
+      description: Какие компоненты или файлы планируется менять?
+  - type: dropdown
+    id: executor
+    attributes:
+      label: Исполнитель
+      options:
+        - Человек
+        - Codex
+        - Claude
+        - Человек и агент
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Зависимости и риски
