@@ -9,22 +9,12 @@ permissions:
   contents: read
 
 jobs:
-  hygiene:
+  repository-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Check committed secrets files
-        shell: bash
-        run: |
-          forbidden="$(git ls-files | grep -E '(^|/)\.env($|\.)|\.(pem|key)$' | grep -vE '(^|/)\.env\.example$' || true)"
-          if [ -n "$forbidden" ]; then
-            echo "Forbidden credential files are tracked:"
-            echo "$forbidden"
-            exit 1
-          fi
-
-      - name: Check whitespace errors in the latest commit
-        run: git show --check --oneline --format=medium HEAD
+      - name: Run repository tests
+        run: ./scripts/verify-repository.sh
