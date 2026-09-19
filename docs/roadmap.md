@@ -356,7 +356,8 @@ docs/                 документация и решения
 | Доступность | Label `ready` ставится, когда закрыты все блокеры; GitHub Actions ([work-package-status.yml](../.github/workflows/work-package-status.yml)) снимает и выставляет его сам |
 | Метки | `wp`, `epic`, `ready`, `in-progress`, `needs-review`, `critical-path`, `contract-change`, `question`, `stage:*`, `size:S/M/L`, `area:*`, `research`, `agent:*` |
 | Работа агентов | Помощник `scripts/wp.sh` (взять поток, блокеры и результаты, статус, результат, освободить), метки PR (`pr-status.yml`), формы вопроса и запроса изменения контракта; промпты — [start-prompts.md](agents/start-prompts.md) |
-| Доска | GitHub Project «MAX Hackathon — MVP»: канбан по статусу, виды «Доступно сейчас», «Критический путь», «Ядро», дорожная карта по сроку (Target date); поля Этап, Слой, Поток, Критический путь, Size, Priority, Area, Agent |
+| Доска | GitHub Project «MAX Hackathon — MVP»: канбан по статусу, виды «Доступно сейчас», «Критический путь», «Ядро», дорожная карта; поля Этап, Слой, Поток, Критический путь, Size, Priority, Area, Agent |
+| Даты Roadmap | Start date и Target date — условное расписание по зависимостям от 19.09 при неограниченном числе исполнителей (S — 1 день, M — 2, L — 3). Этап 4 не раньше фиксации сданной версии, этап 5 после этапа 4. Показывает порядок и параллельность потоков, а не сроки |
 | Зависимости целиком | [plan-dependencies.md](plan-dependencies.md): слои, критический путь, что кого разблокирует |
 
 Как изменить план: правьте таблицы в этом файле с сохранением формата, затем `python3 scripts/work_packages.py report`. CI отклонит изменение без пересчёта отчёта. Новые потоки в GitHub создаёт `python3 scripts/work_packages.py sync --apply` (повторный запуск не дублирует Issue).
