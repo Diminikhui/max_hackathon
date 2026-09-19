@@ -4,6 +4,7 @@
   validate            проверить таблицы и граф зависимостей
   report [--check]    сформировать docs/plan-dependencies.md (или проверить, что он актуален)
   sync [--apply]      создать labels, milestones, эпики, Issues, sub-issues и зависимости
+  project [--apply]   создать GitHub Project: поля, канбан, виды, карточки (нужен scope `project`)
 """
 from __future__ import annotations
 
@@ -278,6 +279,10 @@ def gh(*args: str, data=None, write=False) -> str:
         if r.returncode == 0:
             return r.stdout
         err = r.stderr.lower()
+        network = any(s in err for s in ("i/o timeout", "connection reset", "eof", "tls handshake", "no such host"))
+        if network and not write:
+            time.sleep(5 * (attempt + 1))
+            continue
         if any(s in err for s in ("rate limit", "abuse", "secondary", "429", "502", "503")):
             wait = 30 * (attempt + 1)
             print(f"  … ограничение GitHub, пауза {wait} с", file=sys.stderr)
@@ -470,7 +475,159 @@ def cmd_sync(args: argparse.Namespace) -> int:
     return 0
 
 
+# ---------- GitHub Project ----------
+
+PROJECT_TITLE = "MAX Hackathon — план реализации"
+PROJECT_README = (
+    "Канбан потоков дорожной карты. Источник правды — docs/roadmap.md, зависимости — docs/plan-dependencies.md.\n\n"
+    "Берите карточки из вида «Доступно сейчас» (label ready). Статус двигайте по ходу работы: "
+    "Backlog → In progress → In review → Done."
+)
+STATUS_OPTIONS = [
+    ("Backlog", "GRAY", "Ждёт закрытия зависимостей"),
+    ("Ready", "GREEN", "Все зависимости закрыты, поток можно брать"),
+    ("In progress", "YELLOW", "Поток в работе"),
+    ("In review", "ORANGE", "PR открыт, идёт проверка"),
+    ("Done", "PURPLE", "Поток завершён"),
+]
+VIEWS = [
+    ("Канбан", "BOARD_LAYOUT", None),
+    ("Доступно сейчас", "TABLE_LAYOUT", "is:open label:ready"),
+    ("Критический путь", "TABLE_LAYOUT", "label:critical-path"),
+    ("Ядро", "TABLE_LAYOUT", 'label:"stage:core"'),
+]
+SIZE_OPTIONS = ["S", "M", "L"]
+
+
+def gql(query: str, **variables) -> dict:
+    args = ["api", "graphql", "-f", f"query={query}"]
+    for k, v in variables.items():
+        if v is None:
+            continue
+        args += ["-F" if isinstance(v, int) and not isinstance(v, bool) else "-f", f"{k}={v}"]
+    out = json.loads(gh(*args, write=True))
+    if out.get("errors"):
+        raise RuntimeError(json.dumps(out["errors"], ensure_ascii=False))
+    return out["data"]
+
+
+def options_literal(options: list[tuple[str, str, str]]) -> str:
+    return "[" + ",".join(
+        '{name:%s,color:%s,description:%s}' % (json.dumps(n, ensure_ascii=False), c, json.dumps(d, ensure_ascii=False))
+        for n, c, d in options) + "]"
+
+
+def cmd_project(args: argparse.Namespace) -> int:
+    wps, ordered = load()
+    repo = repo_name()
+    owner, name = repo.split("/")
+    print(f"Проект «{PROJECT_TITLE}» для {repo}; карточек: {len(wps)} потоков + эпики")
+    if not args.apply:
+        print("Пробный запуск. Для выполнения добавьте --apply (нужен scope `project`: gh auth refresh -s project).")
+        return 0
+
+    data = gql("query($login:String!,$name:String!){user(login:$login){id projectsV2(first:50){nodes{id number title url}}}"
+               " repository(owner:$login,name:$name){id}}", login=owner, name=name)
+    owner_id, repo_id = data["user"]["id"], data["repository"]["id"]
+    project = next((n for n in data["user"]["projectsV2"]["nodes"] if n["title"] == PROJECT_TITLE), None)
+    created = project is None
+    if created:
+        project = gql("mutation($o:ID!,$t:String!){createProjectV2(input:{ownerId:$o,title:$t}){projectV2{id number url}}}",
+                      o=owner_id, t=PROJECT_TITLE)["createProjectV2"]["projectV2"]
+        gql("mutation($p:ID!,$r:ID!){linkProjectV2ToRepository(input:{projectId:$p,repositoryId:$r}){clientMutationId}}",
+            p=project["id"], r=repo_id)
+        gql("mutation($p:ID!,$r:String!){updateProjectV2(input:{projectId:$p,readme:$r,shortDescription:\"План реализации MAX Hackathon\"}){projectV2{id}}}",
+            p=project["id"], r=PROJECT_README)
+        print(f"  создан проект #{project['number']}: {project['url']}")
+    pid = project["id"]
+
+    def fields() -> dict[str, dict]:
+        d = gql("query($p:ID!){node(id:$p){... on ProjectV2{fields(first:50){nodes{"
+                "... on ProjectV2FieldCommon{id name dataType}"
+                "... on ProjectV2SingleSelectField{id name dataType options{id name}}}}}}}", p=pid)
+        return {f["name"]: f for f in d["node"]["fields"]["nodes"] if f}
+
+    have = fields()
+    if created:
+        gql("mutation($f:ID!){updateProjectV2Field(input:{fieldId:$f,singleSelectOptions:%s}){clientMutationId}}"
+            % options_literal(STATUS_OPTIONS), f=have["Status"]["id"])
+    wanted = {
+        "Этап": ("SINGLE_SELECT", [(STAGE_TITLE[k], "BLUE", "") for k in STAGES]),
+        "Размер": ("SINGLE_SELECT", [(x, "GRAY", "") for x in SIZE_OPTIONS]),
+        "Критический путь": ("SINGLE_SELECT", [("Да", "RED", ""), ("Нет", "GRAY", "")]),
+        "Слой": ("NUMBER", None),
+        "Поток": ("TEXT", None),
+    }
+    for fname, (kind, opts) in wanted.items():
+        if fname in have:
+            continue
+        extra = f",singleSelectOptions:{options_literal(opts)}" if opts else ""
+        gql("mutation($p:ID!,$n:String!){createProjectV2Field(input:{projectId:$p,dataType:%s,name:$n%s}){clientMutationId}}"
+            % (kind, extra), p=pid, n=fname)
+        print(f"  поле {fname}")
+    have = fields()
+    opt = {f: {o["name"]: o["id"] for o in have[f]["options"]} for f in ("Status", "Этап", "Размер", "Критический путь")}
+
+    views = gql("query($p:ID!){node(id:$p){... on ProjectV2{views(first:30){nodes{id name}}}}}", p=pid)["node"]["views"]["nodes"]
+    have_views = {v["name"] for v in views}
+    if created and views:
+        gql("mutation($v:ID!){updateProjectV2View(input:{viewId:$v,name:\"Все потоки\",layout:TABLE_LAYOUT}){clientMutationId}}", v=views[0]["id"])
+        have_views = {"Все потоки"}
+    for vname, layout, flt in VIEWS:
+        if vname in have_views:
+            continue
+        v = gql("mutation($p:ID!,$n:String!){createProjectV2View(input:{projectId:$p,name:$n,layout:%s}){projectV2View{id}}}"
+                % layout, p=pid, n=vname)["createProjectV2View"]["projectV2View"]
+        if flt:
+            gql("mutation($v:ID!,$f:String!){updateProjectV2View(input:{viewId:$v,filter:$f}){clientMutationId}}", v=v["id"], f=flt)
+        print(f"  вид {vname}")
+
+    present: set[int] = set()
+    cursor = None
+    while True:
+        d = gql("query($p:ID!,$c:String){node(id:$p){... on ProjectV2{items(first:100,after:$c){pageInfo{hasNextPage endCursor}"
+                "nodes{content{... on Issue{number}}}}}}}", p=pid, c=cursor)["node"]["items"]
+        present |= {n["content"]["number"] for n in d["nodes"] if n["content"]}
+        if not d["pageInfo"]["hasNextPage"]:
+            break
+        cursor = d["pageInfo"]["endCursor"]
+
+    issues = api_list(f"repos/{repo}/issues?state=all&per_page=100&labels=wp") + \
+        api_list(f"repos/{repo}/issues?state=all&per_page=100&labels=epic")
+    by_id = {}
+    for it in issues:
+        m = re.match(r"\[([^\]]+)\]", it["title"])
+        by_id[m.group(1) if m and not it["title"].startswith("[Эпик]") else it["title"]] = it
+    added = 0
+    for key, it in sorted(by_id.items(), key=lambda kv: kv[1]["number"]):
+        if it["number"] in present:
+            continue
+        item = gql("mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}",
+                   p=pid, c=it["node_id"])["addProjectV2ItemById"]["item"]["id"]
+        labels = {l["name"] for l in it["labels"]}
+        w = wps.get(key)
+        stage = w.stage if w else next((l.split(":", 1)[1] for l in labels if l.startswith("stage:")), "core")
+        status = "Done" if it["state"] == "closed" else ("Ready" if "ready" in labels else "Backlog")
+        sets = [("Status", "singleSelectOptionId", opt["Status"][status]),
+                ("Этап", "singleSelectOptionId", opt["Этап"][STAGE_TITLE[stage]])]
+        if w:
+            sets += [("Размер", "singleSelectOptionId", opt["Размер"][w.size]),
+                     ("Критический путь", "singleSelectOptionId", opt["Критический путь"]["Да" if w.critical else "Нет"]),
+                     ("Слой", "number", w.level), ("Поток", "text", w.id)]
+        parts = []
+        for n, (fname, vkind, val) in enumerate(sets):
+            lit = str(val) if vkind == "number" else json.dumps(val, ensure_ascii=False)
+            parts.append('m%d:updateProjectV2ItemFieldValue(input:{projectId:"%s",itemId:"%s",fieldId:"%s",value:{%s:%s}}){clientMutationId}'
+                         % (n, pid, item, have[fname]["id"], vkind, lit))
+        gql("mutation{%s}" % " ".join(parts))
+        added += 1
+        print(f"  карточка #{it['number']} {key}")
+    print(f"Добавлено карточек: {added}\nПроект: {project['url']}")
+    return 0
+
+
 def main() -> int:
+    sys.stdout.reconfigure(line_buffering=True)
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("validate").set_defaults(fn=cmd_validate)
@@ -480,6 +637,9 @@ def main() -> int:
     s = sub.add_parser("sync")
     s.add_argument("--apply", action="store_true")
     s.set_defaults(fn=cmd_sync)
+    pr = sub.add_parser("project")
+    pr.add_argument("--apply", action="store_true")
+    pr.set_defaults(fn=cmd_project)
     args = p.parse_args()
     try:
         return args.fn(args)
