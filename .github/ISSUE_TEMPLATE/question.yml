@@ -1,0 +1,29 @@
+name: Вопрос по потоку
+description: Агенту или участнику нужно решение, ответ или уточнение, чтобы продолжить поток
+title: "[Вопрос]: "
+labels: ["question"]
+body:
+  - type: input
+    id: work_package
+    attributes:
+      label: Поток
+      description: ID потока и номер Issue, например K-16a (#75).
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Что нужно решить
+      description: Сформулируйте вопрос так, чтобы на него можно было ответить без чтения переписки.
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Варианты и рекомендация
+      description: Какие варианты рассматривались и какой вы предлагаете.
+  - type: textarea
+    id: blocked
+    attributes:
+      label: Что заблокировано
+      description: Какие потоки и результаты ждут ответа.

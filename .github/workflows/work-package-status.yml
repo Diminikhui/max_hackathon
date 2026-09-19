@@ -1,0 +1,22 @@
+name: Work package status
+
+on:
+  issues:
+    types: [closed, reopened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  update-ready:
+    if: contains(github.event.issue.labels.*.name, 'wp')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update ready labels on dependent work packages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: ./scripts/update-ready-labels.sh "$ISSUE_NUMBER"

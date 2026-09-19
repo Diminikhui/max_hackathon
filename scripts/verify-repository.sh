@@ -12,6 +12,12 @@ required_files=(
   .env.example
   .github/PULL_REQUEST_TEMPLATE.md
   .github/ISSUE_TEMPLATE/config.yml
+  docs/roadmap.md
+  docs/plan-dependencies.md
+  docs/agents/work-packages.md
+  docs/agents/start-prompts.md
+  scripts/wp.sh
+  scripts/work_packages.py
 )
 
 missing_files=()
@@ -37,6 +43,9 @@ if git grep -nE '^(<<<<<<< |=======|>>>>>>> )' -- .; then
   echo 'Unresolved merge-conflict markers found.'
   exit 1
 fi
+
+python3 scripts/work_packages.py validate
+python3 scripts/work_packages.py report --check
 
 git diff --check HEAD
 

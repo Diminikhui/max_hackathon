@@ -1,0 +1,31 @@
+name: Запрос изменения контракта
+description: Нужно изменить схему или порт в contracts/ (после слияния K-02)
+title: "[Контракт]: "
+labels: ["contract-change"]
+body:
+  - type: input
+    id: work_package
+    attributes:
+      label: Поток-инициатор
+      description: ID потока и номер Issue.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Что изменить
+      description: Какая схема или порт, какое поле или метод.
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Зачем
+      description: Что не получается сделать без этого изменения.
+    validations:
+      required: true
+  - type: textarea
+    id: affected
+    attributes:
+      label: Затронутые потоки
+      description: Перечислите потоки и Issue, которые используют этот контракт. После слияния повысьте contractVersion.
