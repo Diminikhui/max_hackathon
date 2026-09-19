@@ -21,6 +21,7 @@ has_label() { [[ ",$1," == *",$2,"* ]]; }
 candidates() {
   gh issue list -R "$repo" -l wp -l ready --state open --limit 200 --json number,title,labels,assignees --jq '
     [.[] | select(.assignees | length == 0)
+         | select([.labels[].name] | (index("agent:human") == null and index("blocked") == null))
          | {number, title,
             crit: ([.labels[].name] | index("critical-path") != null),
             core: ([.labels[].name] | index("stage:core") != null)}]
@@ -47,7 +48,7 @@ set_status() {
 section() { awk -v h="## $2" '$0 == h {f=1; next} /^## / {f=0} f' <<<"$1" | sed '/./,$!d'; }
 
 cmd_next() {
-  echo "Доступные потоки (сначала критический путь, затем ядро):"
+  echo "Доступные потоки (сначала критический путь, затем ядро; без agent:human и blocked):"
   candidates | head -15 | jq -r '"  #\(.number)\t\(.title)"'
 }
 

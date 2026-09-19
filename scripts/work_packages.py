@@ -45,6 +45,8 @@ WAVE_TITLE = {
     3: "Волна 3. Сборка, качество, сдача",
 }
 SIZE_DAYS = {"S": 0.5, "M": 1.0, "L": 2.0}
+HUMAN_ONLY = {"K-00", "4-17b", "5-01", "5-06"}
+STAGE_START = {"core": "2026-09-19", "2": "2026-09-21", "3": "2026-09-24", "4": "2026-10-15", "5": None}
 DEP_OVERRIDES = {
     "K-26": ["K-10a", "K-10b", "K-16a", "K-16b", "K-16c", "K-17a"],
     "K-33a": ["K-07"],
@@ -448,6 +450,8 @@ def cmd_sync(args: argparse.Namespace) -> int:
             labels.append("critical-path")
         if not w.deps:
             labels.append("ready")
+        if i in HUMAN_ONLY:
+            labels.append("agent:human")
         if w.name.startswith("Разведка") or (i.startswith("K-05") or i == "K-18c"):
             labels.append("research")
         it = api("POST", f"repos/{repo}/issues", {
@@ -492,6 +496,7 @@ EXTRA_FIELDS = {
     "Этап": ("SINGLE_SELECT", [(STAGE_TITLE[k], "BLUE", "") for k in STAGES]),
     "Критический путь": ("SINGLE_SELECT", [("Да", "RED", ""), ("Нет", "GRAY", "")]),
     "Слой": ("NUMBER", None),
+    "Start date": ("DATE", None),
     "Поток": ("TEXT", None),
 }
 
@@ -588,9 +593,14 @@ def cmd_project(args: argparse.Namespace) -> int:
         want = "Done" if issue["state"] == "closed" else ("Ready" if "ready" in labels else "Backlog")
         if not cur_status or ("Done" in cur_status and issue["state"] == "open"):
             setv(iid, "Status", "select", option("Status", want))
-        setv(iid, "Этап", "select", option("Этап", STAGE_TITLE[stage]))
+        if STAGE_START[stage]:
+            setv(iid, "Start date", "date", STAGE_START[stage])
         if MILESTONES[stage][1]:
             setv(iid, "Target date", "date", MILESTONES[stage][1])
+        if args.dates:
+            touched += 1
+            continue
+        setv(iid, "Этап", "select", option("Этап", STAGE_TITLE[stage]))
         if not it.get("agent"):
             setv(iid, "Agent", "select", option("Agent", "Без агента"))
         if w:
@@ -628,6 +638,7 @@ def main() -> int:
     s.set_defaults(fn=cmd_sync)
     pr = sub.add_parser("project")
     pr.add_argument("--number", type=int, default=1, help="номер существующего проекта пользователя")
+    pr.add_argument("--dates", action="store_true", help="обновить только Start date и Target date")
     pr.add_argument("--apply", action="store_true")
     pr.set_defaults(fn=cmd_project)
     args = p.parse_args()
