@@ -21,6 +21,7 @@
 - [Дорожная карта: ядро и этапы](docs/roadmap.md)
 - [План реализации: зависимости потоков](docs/plan-dependencies.md)
 - [Работа над потоками: инструкция для агентов и людей](docs/agents/work-packages.md)
+- [Стартовые промпты для агентов](docs/agents/start-prompts.md)
 - [Решения команды](docs/decisions/README.md)
 - [Правила совместной работы](CONTRIBUTING.md)
 - [Правила для людей и агентов](TEAM_GUIDE.md)

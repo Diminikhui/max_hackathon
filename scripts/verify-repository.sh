@@ -15,6 +15,8 @@ required_files=(
   docs/roadmap.md
   docs/plan-dependencies.md
   docs/agents/work-packages.md
+  docs/agents/start-prompts.md
+  scripts/wp.sh
   scripts/work_packages.py
 )
 
