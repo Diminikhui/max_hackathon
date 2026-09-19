@@ -3,7 +3,7 @@
 
   validate            проверить таблицы и граф зависимостей
   report [--check]    сформировать docs/plan-dependencies.md (или проверить, что он актуален)
-  sync [--apply]      создать labels, milestones, эпики, Issues, sub-issues и зависимости
+  sync [--apply [--refresh]]   создать labels, milestones, эпики, Issues, sub-issues и зависимости; --refresh обновляет тексты созданных Issue
   project [--number N] [--apply]   заполнить поля существующего GitHub Project и добавить виды (нужен scope `project`)
 """
 from __future__ import annotations
@@ -452,6 +452,21 @@ def cmd_sync(args: argparse.Namespace) -> int:
         m = re.match(r"\[([^\]]+)\]", it["title"])
         if m:
             existing[m.group(1)] = it
+    if args.refresh:
+        known = {i: it["number"] for i, it in existing.items()}
+        changed = 0
+        for i in ordered:
+            it = existing.get(i)
+            if not it:
+                continue
+            body = issue_body(wps[i], known)
+            if it["title"] != wps[i].title or (it.get("body") or "") != body:
+                api("PATCH", f"repos/{repo}/issues/{it['number']}", {"title": wps[i].title, "body": body})
+                changed += 1
+                print(f"  обновлён #{it['number']} {wps[i].title}")
+        print(f"Обновлено Issues: {changed}")
+        return 0
+
     epic_existing = {it["title"]: it for it in api_list(f"repos/{repo}/issues?state=all&per_page=100&labels=epic")}
 
     epic_issue: dict[tuple, dict] = {}
@@ -671,6 +686,7 @@ def main() -> int:
     r.set_defaults(fn=cmd_report)
     s = sub.add_parser("sync")
     s.add_argument("--apply", action="store_true")
+    s.add_argument("--refresh", action="store_true", help="обновить заголовки и тексты уже созданных Issue из roadmap.md")
     s.set_defaults(fn=cmd_sync)
     pr = sub.add_parser("project")
     pr.add_argument("--number", type=int, default=1, help="номер существующего проекта пользователя")
