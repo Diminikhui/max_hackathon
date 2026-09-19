@@ -15,6 +15,7 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -46,7 +47,8 @@ WAVE_TITLE = {
 }
 SIZE_DAYS = {"S": 0.5, "M": 1.0, "L": 2.0}
 HUMAN_ONLY = {"K-00", "4-17b", "5-01", "5-06"}
-STAGE_START = {"core": "2026-09-19", "2": "2026-09-21", "3": "2026-09-24", "4": "2026-10-15", "5": None}
+VIS_DAYS = {"S": 1, "M": 2, "L": 3}
+BASE_DATE = date(2026, 9, 19)
 DEP_OVERRIDES = {
     "K-26": ["K-10a", "K-10b", "K-16a", "K-16b", "K-16c", "K-17a"],
     "K-33a": ["K-07"],
@@ -193,6 +195,33 @@ def critical_path(wps: dict[str, Wp]) -> tuple[list[str], float]:
     return path[::-1], finish[end]
 
 
+def schedule(wps: dict[str, Wp]) -> dict[str, tuple[date, date]]:
+    """Условное расписание: ранний старт при неограниченном числе исполнителей.
+
+    Этап 4 не начинается до фиксации сданной версии (3-11b), этап 5 — после этапа 4.
+    Даты показывают порядок и параллельность потоков, а не сроки.
+    """
+    fin: dict[str, int] = {}
+
+    def floors(w: Wp) -> list[str]:
+        if w.stage == "4":
+            return ["3-11b"]
+        if w.stage == "5":
+            return [i for i, x in wps.items() if x.stage == "4"]
+        return []
+
+    def finish(i: str) -> int:
+        if i not in fin:
+            w = wps[i]
+            w.start_day = max([finish(d) for d in w.deps + floors(w)] or [0])
+            fin[i] = w.start_day + VIS_DAYS.get(w.size, 2)
+        return fin[i]
+
+    for i in wps:
+        finish(i)
+    return {i: (BASE_DATE + timedelta(days=w.start_day), BASE_DATE + timedelta(days=fin[i] - 1)) for i, w in wps.items()}
+
+
 def load() -> tuple[dict[str, Wp], list[str]]:
     wps = parse()
     if not wps:
@@ -248,8 +277,10 @@ def build_report(wps: dict[str, Wp], ordered: list[str]) -> str:
 def cmd_validate(_: argparse.Namespace) -> int:
     wps, ordered = load()
     path, days = critical_path(wps)
+    sched = schedule(wps)
+    horizon = (max(b for _, b in sched.values()) - BASE_DATE).days + 1
     print(f"OK: {len(wps)} потоков, слоёв {max(w.level for w in wps.values()) + 1}, "
-          f"путь {len(path)} потоков (~{days:g} дн.)")
+          f"путь {len(path)} потоков (~{days:g} дн.), условное расписание {horizon} дн.")
     return 0
 
 
@@ -565,6 +596,11 @@ def cmd_project(args: argparse.Namespace) -> int:
         gql("mutation($v:ID!,$f:String!){updateProjectV2View(input:{viewId:$v,filter:$f}){clientMutationId}}", v=v["id"], f=flt)
         print(f"  вид {vname}")
 
+    sched = schedule(wps)
+    epic_range: dict[str, tuple[date, date]] = {}
+    for key in {epic_key(w) for w in wps.values()}:
+        rng = [sched[w.id] for w in wps.values() if epic_key(w) == key]
+        epic_range[epic_title(key)] = (min(a for a, _ in rng), max(b for _, b in rng))
     issues = {it["number"]: it for it in api_list(f"repos/{repo}/issues?state=all&per_page=100&labels=wp")
               + api_list(f"repos/{repo}/issues?state=all&per_page=100&labels=epic")}
     items = json.loads(gh("project", "item-list", str(args.number), "--owner", owner, "--limit", "500", "--format", "json"))["items"]
@@ -593,10 +629,10 @@ def cmd_project(args: argparse.Namespace) -> int:
         want = "Done" if issue["state"] == "closed" else ("Ready" if "ready" in labels else "Backlog")
         if not cur_status or ("Done" in cur_status and issue["state"] == "open"):
             setv(iid, "Status", "select", option("Status", want))
-        if STAGE_START[stage]:
-            setv(iid, "Start date", "date", STAGE_START[stage])
-        if MILESTONES[stage][1]:
-            setv(iid, "Target date", "date", MILESTONES[stage][1])
+        span = sched[w.id] if w else epic_range.get(issue["title"])
+        if span:
+            setv(iid, "Start date", "date", span[0].isoformat())
+            setv(iid, "Target date", "date", span[1].isoformat())
         if args.dates:
             touched += 1
             continue
