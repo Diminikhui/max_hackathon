@@ -42,7 +42,7 @@ git worktree add ../max-<id> -b <участник>/<исполнитель>/<т�
 
 - Один поток — один Issue, одна ветка, один исполнитель, один worktree.
 - Если Issue уже назначен, поток занят.
-- Тип ветки: `feat`, `fix`, `docs`, `test`, `chore`, `research`. Пример: `dima/claude/feat-k16a-condition-evaluator`.
+- Тип ветки: `feat`, `fix`, `docs`, `test`, `chore`, `research`. Пример: `dima/claude/feat-k-16a-condition-evaluator`.
 
 ## 4. Работать в своей зоне
 
