@@ -47,6 +47,13 @@ fi
 python3 scripts/work_packages.py validate
 python3 scripts/work_packages.py report --check
 
+tls_bypass="$(git grep -nE 'NODE_TLS_REJECT_UNAUTHORIZED[= ]+.?0|rejectUnauthorized: *false|verify *= *False|InsecureSkipVerify' -- . ':!docs' ':!*.md' ':!scripts/verify-repository.sh' || true)"
+if [[ -n "$tls_bypass" ]]; then
+  echo 'TLS certificate verification must not be disabled:'
+  echo "$tls_bypass"
+  exit 1
+fi
+
 git diff --check HEAD
 
 echo 'Repository checks passed.'
