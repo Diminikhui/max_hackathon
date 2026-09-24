@@ -1,0 +1,553 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/rulepack/conditions/condition.schema.json",
+  "title": "Condition",
+  "description": "Условие применимости записи пакета правил (K-15a). Дерево узлов; вычисляется трёхзначно (yes / no / unknown), семантика — contracts/rulepack/conditions/README.md.",
+  "$ref": "#/$defs/Condition",
+  "$defs": {
+    "Condition": {
+      "description": "Узел условия. Поле type определяет остальные поля.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "always",
+            "all",
+            "any",
+            "not",
+            "okved_prefix",
+            "region",
+            "msp_category",
+            "has_employees",
+            "headcount",
+            "tax_regime",
+            "fact_equals",
+            "fact_in",
+            "fact_range"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "always"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/Always"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "all"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/All"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "any"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/Any"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "not"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/Not"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "okved_prefix"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/OkvedPrefix"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "region"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/Region"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "msp_category"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/MspCategory"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "has_employees"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/HasEmployees"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "headcount"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/Headcount"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "tax_regime"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/TaxRegime"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "fact_equals"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/FactEquals"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "fact_in"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/FactIn"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "fact_range"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/FactRange"
+          }
+        }
+      ]
+    },
+    "Always": {
+      "description": "Применяется ко всем, кто попал в пакет. Всегда yes.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "always"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "All": {
+      "description": "Все условия: no, если хотя бы одно no; yes, если все yes; иначе unknown.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "all"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Condition"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "Any": {
+      "description": "Хотя бы одно условие: yes, если хотя бы одно yes; no, если все no; иначе unknown.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "any"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Condition"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "Not": {
+      "description": "Отрицание: yes ↔ no, unknown остаётся unknown.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "not"
+        },
+        "item": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "type",
+        "item"
+      ],
+      "additionalProperties": false
+    },
+    "OkvedPrefix": {
+      "description": "ОКВЭД начинается с prefix (строковый префикс по иерархии: 56 → 56.1 → 56.10 → 56.10.1). Факты: activity.okved_main; при scope = main_or_additional также activity.okved_additional.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "okved_prefix"
+        },
+        "prefix": {
+          "type": "string",
+          "pattern": "^[0-9]{2}(\\.[0-9]{1,2}){0,2}$"
+        },
+        "scope": {
+          "enum": [
+            "main",
+            "main_or_additional"
+          ],
+          "default": "main"
+        }
+      },
+      "required": [
+        "type",
+        "prefix"
+      ],
+      "additionalProperties": false
+    },
+    "Region": {
+      "description": "Код субъекта РФ входит в codes. Факт: location.region_code.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "region"
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]{2}$"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "type",
+        "codes"
+      ],
+      "additionalProperties": false
+    },
+    "MspCategory": {
+      "description": "Категория МСП входит в in. Факт: scale.msp_category.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "msp_category"
+        },
+        "in": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "micro",
+              "small",
+              "medium"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "type",
+        "in"
+      ],
+      "additionalProperties": false
+    },
+    "HasEmployees": {
+      "description": "Наличие работников равно value. Факт: employment.has_employees.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "has_employees"
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Headcount": {
+      "description": "Численность в границах [min, max] включительно. Факт: employment.headcount.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "headcount"
+        },
+        "min": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "min"
+          ]
+        },
+        {
+          "required": [
+            "max"
+          ]
+        }
+      ]
+    },
+    "TaxRegime": {
+      "description": "Налоговый режим входит в in; если в факте несколько режимов — достаточно пересечения. Факт: tax.regime.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "tax_regime"
+        },
+        "in": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "osno",
+              "usn_income",
+              "usn_income_expenses",
+              "psn",
+              "eshn",
+              "ausn",
+              "npd"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "type",
+        "in"
+      ],
+      "additionalProperties": false
+    },
+    "FactEquals": {
+      "description": "Факт key равен value.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "fact_equals"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+          "description": "Ключ факта (contracts/README.md)."
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "key",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "FactIn": {
+      "description": "Факт key входит в values; для факта-массива достаточно пересечения.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "fact_in"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+          "description": "Ключ факта (contracts/README.md)."
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "type",
+        "key",
+        "values"
+      ],
+      "additionalProperties": false
+    },
+    "FactRange": {
+      "description": "Числовой факт key в границах [min, max] включительно.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "fact_range"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+          "description": "Ключ факта (contracts/README.md)."
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "key"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "min"
+          ]
+        },
+        {
+          "required": [
+            "max"
+          ]
+        }
+      ]
+    }
+  }
+}

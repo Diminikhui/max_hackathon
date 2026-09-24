@@ -1,0 +1,6 @@
+{
+  "type": "fact_range",
+  "key": "employment.headcount",
+  "min": 1,
+  "max": 15
+}

@@ -1,0 +1,4 @@
+{
+  "type": "not",
+  "item": { "type": "has_employees", "value": true }
+}

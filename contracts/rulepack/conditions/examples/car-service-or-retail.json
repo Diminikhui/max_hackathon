@@ -1,0 +1,7 @@
+{
+  "type": "any",
+  "items": [
+    { "type": "okved_prefix", "prefix": "45.2" },
+    { "type": "okved_prefix", "prefix": "47" }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "type": "all",
+  "items": [
+    { "type": "okved_prefix", "prefix": "56" },
+    { "type": "fact_equals", "key": "sales.alcohol", "value": "strong" }
+  ]
+}

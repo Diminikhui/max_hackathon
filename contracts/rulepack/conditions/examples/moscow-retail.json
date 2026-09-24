@@ -1,0 +1,7 @@
+{
+  "type": "all",
+  "items": [
+    { "type": "okved_prefix", "prefix": "47", "scope": "main_or_additional" },
+    { "type": "region", "codes": ["77"] }
+  ]
+}
