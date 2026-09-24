@@ -34,6 +34,22 @@
 - **Условие применимости** (`Requirement.condition`) в v1 — объект с полем `type`; полный формат задаёт K-15a в `contracts/rulepack/conditions/`. `Requirement.coverage`: `full`, `partial` (результат не выше `needs_review`), `none` (`out_of_coverage`).
 - **Лента изменений** даёт только ранний сигнал: кандидат `early_signal` имеет статус не выше `needs_review`. Сферы regulation.gov.ru (`sphereIds`) — не коды ОКВЭД.
 
+## Как определяется статус
+
+`assessRequirement` / `determineStatus` из `@max-hackathon/rules` (K-16b). Правила по порядку, первое подходящее:
+
+| # | Условие | Статус |
+|---|---|---|
+| 1 | `coverage: none` | `out_of_coverage`, условие не вычисляется |
+| 2 | запись не действует на дату расчёта (`Requirement.validity`) | `not_applies` («Норма не действует на …») |
+| 3 | условие `yes`, `coverage: full` | `applies` |
+| 3a | условие `yes`, `coverage: partial` | `needs_review`: формализована только часть условий |
+| 4 | условие `no` (при любом покрытии) | `not_applies`: не выполнено формализованное необходимое условие |
+| 5 | условие `unknown`, есть недостающие факты | `insufficient_data` + `missingFactKeys` |
+| 5a | условие `unknown` только из-за ошибки данных | `needs_review` |
+
+Следствие для авторов пакетов (K-06, K-17): при `coverage: partial` формализуйте только **необходимые** условия — их невыполнение сразу даёт `not_applies`. Дата расчёта по умолчанию — дата из `evaluatedAt`; от неё зависят и срок действия записи, и срок действия фактов.
+
 ## Известные ключи фактов v1
 
 Ключ — сегменты в нижнем регистре через точку. Список открыт: новый ключ добавьте сюда и в `FACT_KEYS` (`packages/domain/src/contracts.ts`) в своём PR.
