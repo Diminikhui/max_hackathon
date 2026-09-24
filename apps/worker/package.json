@@ -6,6 +6,17 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
+    "test": "vitest run",
     "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@max-hackathon/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@max-hackathon/storage": "workspace:*",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "vitest": "^5.0.1"
   }
 }
