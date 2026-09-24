@@ -11,6 +11,13 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@max-hackathon/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.1"
   }
 }
