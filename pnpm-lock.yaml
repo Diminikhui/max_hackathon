@@ -44,7 +44,15 @@ importers:
 
   apps/miniapp-api: {}
 
-  apps/worker: {}
+  apps/worker:
+    dependencies:
+      '@max-hackathon/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+    devDependencies:
+      vitest:
+        specifier: ^5.0.1
+        version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6))
 
   packages/adapters:
     dependencies:
