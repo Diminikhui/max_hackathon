@@ -1,3 +1,4 @@
 // Механизм применимости: условия, статусы, объяснение, загрузка пакетов правил.
 export * from "./conditions/index.js";
 export * from "./explain/index.js";
+export * from "./status/index.js";
