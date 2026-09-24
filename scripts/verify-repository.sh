@@ -17,6 +17,7 @@ required_files=(
   docs/agents/work-packages.md
   docs/agents/start-prompts.md
   scripts/wp.sh
+  scripts/check-pr-overlap.sh
   scripts/work_packages.py
 )
 

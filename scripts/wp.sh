@@ -2,8 +2,12 @@
 # Помощник работы с потоками (work packages). Требует gh и jq.
 #
 #   wp.sh next                              показать доступные потоки (label ready, без исполнителя)
-#   wp.sh claim [N] [--agent codex|claude|human] [--slug кратко] [--no-worktree] [--force]
-#                                           взять поток N или следующий по приоритету
+#   wp.sh claim [N] [--agent codex|claude|human] [--slug кратко] [--no-worktree] [--no-pr] [--force]
+#                                           взять поток N или следующий по приоритету; открывает черновой PR
+#   wp.sh active                            кто что сейчас делает: открытые PR, потоки в работе, заметки
+#   wp.sh overlap                           файлы текущей ветки, которые правятся и в других открытых PR
+#   wp.sh sync                              подтянуть origin/main в текущую ветку
+#   wp.sh note N "текст"                    короткая заметка в Issue потока для соседей
 #   wp.sh deps N                            блокеры потока и их комментарии «Результат»
 #   wp.sh result N [файл]                   оставить в Issue комментарий «Результат» (из файла, stdin или шаблон)
 #   wp.sh status N <Backlog|Ready|In progress|In review|Done>   статус карточки в проекте
@@ -17,6 +21,8 @@ project_number="${WP_PROJECT_NUMBER:-1}"
 
 die() { echo "Ошибка: $*" >&2; exit 1; }
 has_label() { [[ ",$1," == *",$2,"* ]]; }
+ignored='^(docs/plan-dependencies\.md|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$'
+zone_list() { awk '/^## Область изменений/{f=1;next} /^## /{f=0} f' <<<"$1" | grep -oE '`[^`]+`' | tr -d '`' || true; }
 
 candidates() {
   gh issue list -R "$repo" -l wp -l ready --state open --limit 200 --json number,title,labels,assignees --jq '
@@ -67,12 +73,13 @@ cmd_deps() {
 }
 
 cmd_claim() {
-  local num="" agent="${WP_AGENT:-human}" slug="work" worktree=1 force=0
+  local num="" agent="${WP_AGENT:-human}" slug="work" worktree=1 force=0 draft_pr=1
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --agent) agent="${2:?}"; shift 2 ;;
       --slug) slug="${2:?}"; shift 2 ;;
       --no-worktree) worktree=0; shift ;;
+      --no-pr) draft_pr=0; shift ;;
       --force) force=1; shift ;;
       [0-9]*) num="$1"; shift ;;
       *) die "неизвестный аргумент: $1" ;;
@@ -127,10 +134,39 @@ cmd_claim() {
   fi
   set_status "$num" "In progress"
 
+  local pr_url="" pt mz n obody z1 z2
+  if (( worktree == 1 && draft_pr == 1 )); then
+    pt="$(jq -Rr '.[0:90]' <<<"${title#*] }")"
+    if git -C "$path" commit -q --allow-empty -m "chore: start ${id:-$num}" && git -C "$path" push -q -u origin "$branch" 2>/dev/null; then
+      pr_url="$(gh pr create -R "$repo" --draft --base main --head "$branch" --title "[${id:-$num}] $pt" --body "Closes #$num
+
+Черновой PR создан командой \`wp.sh claim\`, чтобы другие исполнители видели, какие файлы вы правите. Перед \`gh pr ready\` замените название на \`feat: …\` (оно станет сообщением коммита) и заполните шаблон PR." 2>/dev/null | tail -1)"
+    else
+      echo "Предупреждение: не удалось открыть черновой PR; откройте его вручную после первого коммита." >&2
+    fi
+  fi
+
+  mz="$(zone_list "$body")"
+  for n in $(gh issue list -R "$repo" -l in-progress --state open --json number --jq '.[].number'); do
+    [[ "$n" != "$num" ]] || continue
+    obody="$(gh api "repos/$repo/issues/$n" --jq '.body // ""')"
+    while IFS= read -r z1; do
+      [[ -n "$z1" ]] || continue
+      while IFS= read -r z2; do
+        [[ -n "$z2" ]] || continue
+        if [[ "$z1" == "$z2"* || "$z2" == "$z1"* ]]; then
+          echo "Внимание: зона $z1 пересекается с потоком #$n (зона $z2). Согласуйте правки: ./scripts/wp.sh note $n \"...\"" >&2
+        fi
+      done <<<"$(zone_list "$obody")"
+    done <<<"$mz"
+  done
+
   echo
   echo "Поток взят: #$num $title"
   echo "Ветка:     $branch"
   (( worktree == 1 )) && echo "Worktree:  $path"
+  [[ -z "$pr_url" ]] || echo "Черновой PR: $pr_url"
+  echo "Что делают соседи: ./scripts/wp.sh active"
   echo
   echo "=== Область изменений"; section "$body" "Область изменений (зона файлов)"
   echo; echo "=== Критерии приёмки"; section "$body" "Критерии приёмки"
@@ -174,16 +210,87 @@ cmd_release() {
     gh api -X DELETE "repos/$repo/issues/comments/$id" >/dev/null
   done
   gh issue comment "$num" -R "$repo" --body "Поток освобождён: его может взять другой исполнитель." >/dev/null
+  local pr
+  for pr in $(gh pr list -R "$repo" --state open --json number,isDraft,commits,body --jq ".[] | select((.body // \"\") | test(\"#$num([^0-9]|\$)\")) | select(.isDraft and (.commits | length) == 1) | .number"); do
+    if gh pr close "$pr" -R "$repo" --delete-branch --comment "Поток освобождён: закрываю пустой черновик." >/dev/null 2>&1; then
+      echo "Пустой черновой PR #$pr закрыт"
+    else
+      echo "Черновой PR #$pr закрыт, ветку удалите вручную (git push origin --delete <ветка>)"
+    fi
+  done
+  for pr in $(gh pr list -R "$repo" --state open --json number,isDraft,commits,body --jq ".[] | select((.body // \"\") | test(\"#$num([^0-9]|\$)\")) | select((.isDraft | not) or (.commits | length) > 1) | .number"); do
+    echo "Внимание: с потоком связан PR #$pr с работой. Закройте его или передайте вручную."
+  done
   if has_label "$labels" ready; then set_status "$num" Ready; else set_status "$num" Backlog; fi
   echo "#$num освобождён"
 }
 
+cmd_active() {
+  echo "Открытые PR (работа в процессе и на проверке):"
+  gh pr list -R "$repo" --state open --limit 50 --json number,title,isDraft,headRefName,updatedAt,files,body --jq '
+    .[] | (((.body // "") | capture("(close[sd]?|fix(e[sd])?|resolve[sd]?) +#(?<i>[0-9]+)"; "i") | .i) // "-") as $i
+    | "  #\(.number) [\(if .isDraft then "черновик" else "на проверке" end)] \(.title[0:64])\n      ветка \(.headRefName) · Issue #\($i) · обновлён \(.updatedAt[0:16]) · файлов: \(.files | length) · каталоги: \([.files[].path | split("/") | .[0:2] | join("/")] | unique | join(", "))"'
+  echo
+  echo "Потоки в работе (label in-progress):"
+  local n
+  for n in $(gh issue list -R "$repo" -l in-progress --state open --json number --jq '.[].number'); do
+    gh issue view "$n" -R "$repo" --json number,title,assignees,labels --jq '"  #\(.number) \(.title[0:64]) - \([.assignees[].login] | join(",")) / \([.labels[].name | select(startswith("agent:"))] | join(","))"'
+    gh api "repos/$repo/issues/$n/comments?per_page=100" --jq '[.[] | select(.body | startswith("## Заметка"))] | last | .body // empty' | sed '1d; s/^/      заметка: /' | head -3
+  done
+}
+
+cmd_overlap() {
+  git rev-parse --git-dir >/dev/null 2>&1 || die "запустите внутри репозитория"
+  git fetch origin -q
+  local branch tmp found
+  branch="$(git rev-parse --abbrev-ref HEAD)"
+  tmp="$(mktemp)"
+  { git diff --name-only origin/main...HEAD; git diff --name-only; git diff --name-only --cached; git ls-files --others --exclude-standard; } | sort -u | grep -vE "$ignored" >"$tmp" || true
+  if [[ ! -s "$tmp" ]]; then echo "В ветке $branch пока нет изменений относительно origin/main."; rm -f "$tmp"; return 0; fi
+  echo "Ветка $branch: изменённых файлов - $(wc -l <"$tmp" | tr -d ' ')"
+  found="$(gh pr list -R "$repo" --state open --limit 50 --json number,title,isDraft,headRefName,files --jq ".[] | select(.headRefName != \"$branch\") | .number as \$n | .title as \$t | (if .isDraft then \"черновик\" else \"на проверке\" end) as \$d | .files[].path | [\$n, \$d, \$t, .] | @tsv" | awk -F'\t' 'NR==FNR{m[$0]=1; next} ($4 in m)' "$tmp" -)"
+  rm -f "$tmp"
+  if [[ -z "$found" ]]; then echo "Пересечений с открытыми PR нет."; return 0; fi
+  echo "Те же файлы правятся в других открытых PR:"
+  echo "$found" | awk -F'\t' '{k="#"$1" ["$2"] "$3; if (k != p) {print "  " k; p = k} print "      " $4}'
+  echo "Договоритесь через ./scripts/wp.sh note <Issue> \"...\" или слейте один PR первым и выполните ./scripts/wp.sh sync."
+}
+
+cmd_sync() {
+  git rev-parse --git-dir >/dev/null 2>&1 || die "запустите внутри репозитория"
+  [[ -z "$(git status --porcelain --untracked-files=no)" ]] || die "сначала закоммитьте или отложите изменения"
+  git fetch origin -q
+  if git merge --no-edit origin/main >/dev/null 2>&1; then echo "Ветка обновлена: origin/main подтянут."; return 0; fi
+  local conflicts
+  conflicts="$(git diff --name-only --diff-filter=U)"
+  if [[ "$conflicts" == "docs/plan-dependencies.md" ]]; then
+    python3 scripts/work_packages.py report >/dev/null && git add docs/plan-dependencies.md && git commit -q --no-edit &&
+      echo "Конфликт в docs/plan-dependencies.md разрешён пересборкой отчёта." && return 0
+  fi
+  echo "Конфликты слияния в файлах:"; echo "$conflicts" | sed 's/^/  /'
+  echo "Разрешите их (или git merge --abort) и повторите. Если файл вне вашей зоны, оставьте заметку владельцу потока: ./scripts/wp.sh note <Issue> \"...\""
+  return 1
+}
+
+cmd_note() {
+  local num="${1:?Укажите номер Issue}"; shift
+  local text="$*"
+  [[ -n "$text" ]] || die "пустая заметка"
+  gh issue comment "$num" -R "$repo" --body "## Заметка
+$text" >/dev/null
+  echo "Заметка добавлена в #$num"
+}
+
 case "${1:-}" in
+  active) shift; cmd_active "$@" ;;
+  overlap) shift; cmd_overlap "$@" ;;
+  sync) shift; cmd_sync "$@" ;;
+  note) shift; cmd_note "$@" ;;
   next) shift; cmd_next "$@" ;;
   claim) shift; cmd_claim "$@" ;;
   deps) shift; cmd_deps "$@" ;;
   result) shift; cmd_result "$@" ;;
   status) shift; cmd_status "$@" ;;
   release) shift; cmd_release "$@" ;;
-  *) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac
