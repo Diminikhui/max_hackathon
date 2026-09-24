@@ -21,18 +21,12 @@
     },
     "source": {
       "description": "Происхождение пакета; URL обязателен для проверки источника. Модельный источник отмечается isModel.",
-      "allOf": [
-        { "$ref": "../../v1/common.schema.json#/$defs/SourceRef" },
-        { "type": "object", "required": ["url"] }
-      ]
+      "allOf": [{ "$ref": "../../v1/common.schema.json#/$defs/SourceRef" }, { "type": "object", "required": ["url"] }]
     },
     "publishedAt": { "$ref": "../../v1/common.schema.json#/$defs/DateTime" },
     "validity": {
       "description": "Период действия версии пакета; хотя бы одна граница обязательна.",
-      "allOf": [
-        { "$ref": "../../v1/common.schema.json#/$defs/Period" },
-        { "type": "object", "minProperties": 1 }
-      ]
+      "allOf": [{ "$ref": "../../v1/common.schema.json#/$defs/Period" }, { "type": "object", "minProperties": 1 }]
     },
     "isModel": {
       "description": "Модельный пакет помечается в интерфейсе и документации.",
@@ -55,6 +49,17 @@
       }
     }
   },
-  "required": ["contractVersion", "packId", "packVersion", "title", "owner", "source", "publishedAt", "validity", "isModel", "requirements"],
+  "required": [
+    "contractVersion",
+    "packId",
+    "packVersion",
+    "title",
+    "owner",
+    "source",
+    "publishedAt",
+    "validity",
+    "isModel",
+    "requirements"
+  ],
   "additionalProperties": false
 }

@@ -2,18 +2,18 @@
 // ApplicabilityResult проходит схему контракта на модельных данных из contracts/v1/examples.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Ajv2020 } from "ajv/dist/2020.js";
-import addFormats from "ajv-formats";
 import {
   APPLICABILITY_STATUSES,
-  CONTRACT_VERSION,
   type ApplicabilityStatus,
+  CONTRACT_VERSION,
   type CompanyProfile,
   type ConditionNode,
   type Fact,
   type FactValue,
   type Requirement,
 } from "@max-hackathon/domain";
+import { Ajv2020 } from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 import { assessRequirement, determineStatus, evaluateCondition, REASONS } from "../../src/index.js";
 
@@ -55,7 +55,11 @@ const employees = (value: FactValue) => fact("f-employees", "employment.has_empl
 const asOf = "2026-09-25";
 
 const decide = (req: Requirement, facts: Fact[]) =>
-  determineStatus({ requirement: req, asOf, evaluation: evaluateCondition(req.condition as ConditionNode, facts, { asOf }) });
+  determineStatus({
+    requirement: req,
+    asOf,
+    evaluation: evaluateCondition(req.condition as ConditionNode, facts, { asOf }),
+  });
 
 describe("determineStatus", () => {
   it("applies — условие выполнено, покрытие полное", () => {
@@ -82,7 +86,10 @@ describe("determineStatus", () => {
   });
 
   it("needs_review — ошибка данных без недостающих фактов", () => {
-    expect(decide(requirement(), [okved("56.10"), employees("да")])).toEqual({ status: "needs_review", statusReason: REASONS.dataIssue });
+    expect(decide(requirement(), [okved("56.10"), employees("да")])).toEqual({
+      status: "needs_review",
+      statusReason: REASONS.dataIssue,
+    });
   });
 
   it("partial + не выполнено → not_applies; partial + нехватка → insufficient_data", () => {
@@ -99,7 +106,10 @@ describe("determineStatus", () => {
 
   it("not_applies — норма не действует на дату расчёта", () => {
     const future = requirement({ validity: { from: "2027-03-01" } });
-    expect(decide(future, [okved("56.10"), employees(true)])).toEqual({ status: "not_applies", statusReason: "Норма не действует на 2026-09-25" });
+    expect(decide(future, [okved("56.10"), employees(true)])).toEqual({
+      status: "not_applies",
+      statusReason: "Норма не действует на 2026-09-25",
+    });
     const expired = requirement({ validity: { to: "2025-12-31" } });
     expect(decide(expired, [okved("56.10"), employees(true)]).status).toBe("not_applies");
     const current = requirement({ validity: { from: "2026-09-25", to: "2026-09-25" } });
@@ -127,7 +137,11 @@ describe("assessRequirement", () => {
       evaluatedAt: "2026-09-25T09:00:00Z",
     });
     expect(result.trace?.outcome).toBe("yes");
-    expect(result.explanation.at(-1)).toEqual({ kind: "source", text: "Федеральный закон № 426-ФЗ", url: "http://pravo.gov.ru/" });
+    expect(result.explanation.at(-1)).toEqual({
+      kind: "source",
+      text: "Федеральный закон № 426-ФЗ",
+      url: "http://pravo.gov.ru/",
+    });
   });
 
   it("asOf по умолчанию — дата из evaluatedAt: факт с истёкшим сроком не учитывается", () => {
@@ -144,14 +158,19 @@ describe("assessRequirement", () => {
   });
 
   it("сценарный режим учитывает сценарные факты", () => {
-    const scenario = { companyId: "model-company", facts: [okved("56.10"), employees(false), fact("f-s", "employment.has_employees", true, { kind: "scenario" })] };
+    const scenario = {
+      companyId: "model-company",
+      facts: [okved("56.10"), employees(false), fact("f-s", "employment.has_employees", true, { kind: "scenario" })],
+    };
     expect(assessRequirement(requirement(), scenario, options).status).toBe("not_applies");
     expect(assessRequirement(requirement(), scenario, { ...options, mode: "scenario" }).status).toBe("applies");
   });
 
   it("воспроизводим: одинаковый вход — одинаковый результат", () => {
     const reversed = { ...profile, facts: [...profile.facts].reverse() };
-    expect(assessRequirement(requirement(), profile, options)).toEqual(assessRequirement(requirement(), reversed, options));
+    expect(assessRequirement(requirement(), profile, options)).toEqual(
+      assessRequirement(requirement(), reversed, options),
+    );
   });
 });
 
@@ -163,13 +182,21 @@ describe("ApplicabilityResult проходит схему контракта д�
     ajv.addSchema(JSON.parse(readFileSync(join(contractsDir, file), "utf8")));
   }
   const validate = ajv.getSchema("https://contracts.max-hackathon.invalid/v1/applicability-result.schema.json")!;
-  const cafe = JSON.parse(readFileSync(join(contractsDir, "examples/company-profile.cafe.json"), "utf8")) as CompanyProfile;
-  const sout = JSON.parse(readFileSync(join(contractsDir, "examples/requirement.obligation.json"), "utf8")) as Requirement;
+  const cafe = JSON.parse(
+    readFileSync(join(contractsDir, "examples/company-profile.cafe.json"), "utf8"),
+  ) as CompanyProfile;
+  const sout = JSON.parse(
+    readFileSync(join(contractsDir, "examples/requirement.obligation.json"), "utf8"),
+  ) as Requirement;
   const options = { evaluatedAt: "2026-09-25T09:00:00Z" };
 
   const scenarios: [ApplicabilityStatus, Requirement, Pick<CompanyProfile, "companyId" | "facts">][] = [
     ["applies", sout, cafe],
-    ["not_applies", sout, { ...cafe, facts: cafe.facts.map((f) => (f.key === "activity.okved_main" ? { ...f, value: "47.11" } : f)) }],
+    [
+      "not_applies",
+      sout,
+      { ...cafe, facts: cafe.facts.map((f) => (f.key === "activity.okved_main" ? { ...f, value: "47.11" } : f)) },
+    ],
     ["insufficient_data", sout, { ...cafe, facts: cafe.facts.filter((f) => f.key !== "employment.has_employees") }],
     ["needs_review", { ...sout, coverage: "partial" }, cafe],
     ["out_of_coverage", { ...sout, coverage: "none" }, cafe],

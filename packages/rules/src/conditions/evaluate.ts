@@ -2,15 +2,15 @@
 // Семантика узлов — contracts/rulepack/conditions/README.md. Детерминирован, без ИИ.
 
 import {
-  FACT_KEYS,
   type ConditionNode,
   type ConditionOutcome,
   type ConditionResult,
+  FACT_KEYS,
   type Fact,
   type FactValue,
 } from "@max-hackathon/domain";
 import { describeExpected, formatValue } from "./describe.js";
-import { selectFacts, type FactSelectionOptions } from "./facts.js";
+import { type FactSelectionOptions, selectFacts } from "./facts.js";
 
 export type EvaluationOptions = FactSelectionOptions;
 
@@ -136,7 +136,11 @@ const leaf = (
   const passed = test(facts.map((fact) => fact.value));
   if (passed === undefined) {
     for (const fact of facts) {
-      context.issues.push({ path, factId: fact.id, message: `Тип значения факта ${fact.key} не подходит условию ${node.type}` });
+      context.issues.push({
+        path,
+        factId: fact.id,
+        message: `Тип значения факта ${fact.key} не подходит условию ${node.type}`,
+      });
     }
     return { ...base, actual, outcome: "unknown" };
   }
@@ -207,7 +211,7 @@ const collectMissing = (result: ConditionResult, missing: ReadonlyMap<string, st
   const keys = new Set<string>();
   const walk = (node: ConditionResult): void => {
     if (node.outcome !== "unknown") return;
-    missing.get(node.path)?.forEach((key) => keys.add(key));
+    for (const key of missing.get(node.path) ?? []) keys.add(key);
     node.children?.forEach(walk);
   };
   walk(result);

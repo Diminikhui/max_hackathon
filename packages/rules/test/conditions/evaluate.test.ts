@@ -2,9 +2,16 @@
 // логика Клини, missingFactKeys, выбор факта, ошибки типов, трасса по схеме контракта.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import type {
+  ConditionNode,
+  ConditionOutcome,
+  ConditionResult,
+  Fact,
+  FactKind,
+  FactValue,
+} from "@max-hackathon/domain";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import type { ConditionNode, ConditionOutcome, ConditionResult, Fact, FactKind, FactValue } from "@max-hackathon/domain";
 import { describe, expect, it } from "vitest";
 import { allOf, anyOf, evaluateCondition, negate } from "../../src/index.js";
 
@@ -26,15 +33,60 @@ const outcome = (condition: ConditionNode, facts: Fact[]): ConditionOutcome =>
 
 describe("листья: yes / no / unknown на каждый тип", () => {
   const cases: [string, ConditionNode, Fact[], Fact[]][] = [
-    ["okved_prefix", { type: "okved_prefix", prefix: "56" }, [fact("activity.okved_main", "56.10")], [fact("activity.okved_main", "47.11")]],
-    ["region", { type: "region", codes: ["77", "16"] }, [fact("location.region_code", "16")], [fact("location.region_code", "63")]],
-    ["msp_category", { type: "msp_category", in: ["micro", "small"] }, [fact("scale.msp_category", "micro")], [fact("scale.msp_category", "medium")]],
-    ["has_employees", { type: "has_employees", value: true }, [fact("employment.has_employees", true)], [fact("employment.has_employees", false)]],
-    ["headcount", { type: "headcount", min: 1, max: 15 }, [fact("employment.headcount", 15)], [fact("employment.headcount", 16)]],
-    ["tax_regime", { type: "tax_regime", in: ["usn_income"] }, [fact("tax.regime", ["psn", "usn_income"])], [fact("tax.regime", "osno")]],
-    ["fact_equals", { type: "fact_equals", key: "sales.alcohol", value: "strong" }, [fact("sales.alcohol", "strong")], [fact("sales.alcohol", "beer")]],
-    ["fact_in", { type: "fact_in", key: "sales.alcohol", values: ["beer", "strong"] }, [fact("sales.alcohol", "beer")], [fact("sales.alcohol", "none")]],
-    ["fact_range", { type: "fact_range", key: "employment.headcount", min: 16 }, [fact("employment.headcount", 16)], [fact("employment.headcount", 3)]],
+    [
+      "okved_prefix",
+      { type: "okved_prefix", prefix: "56" },
+      [fact("activity.okved_main", "56.10")],
+      [fact("activity.okved_main", "47.11")],
+    ],
+    [
+      "region",
+      { type: "region", codes: ["77", "16"] },
+      [fact("location.region_code", "16")],
+      [fact("location.region_code", "63")],
+    ],
+    [
+      "msp_category",
+      { type: "msp_category", in: ["micro", "small"] },
+      [fact("scale.msp_category", "micro")],
+      [fact("scale.msp_category", "medium")],
+    ],
+    [
+      "has_employees",
+      { type: "has_employees", value: true },
+      [fact("employment.has_employees", true)],
+      [fact("employment.has_employees", false)],
+    ],
+    [
+      "headcount",
+      { type: "headcount", min: 1, max: 15 },
+      [fact("employment.headcount", 15)],
+      [fact("employment.headcount", 16)],
+    ],
+    [
+      "tax_regime",
+      { type: "tax_regime", in: ["usn_income"] },
+      [fact("tax.regime", ["psn", "usn_income"])],
+      [fact("tax.regime", "osno")],
+    ],
+    [
+      "fact_equals",
+      { type: "fact_equals", key: "sales.alcohol", value: "strong" },
+      [fact("sales.alcohol", "strong")],
+      [fact("sales.alcohol", "beer")],
+    ],
+    [
+      "fact_in",
+      { type: "fact_in", key: "sales.alcohol", values: ["beer", "strong"] },
+      [fact("sales.alcohol", "beer")],
+      [fact("sales.alcohol", "none")],
+    ],
+    [
+      "fact_range",
+      { type: "fact_range", key: "employment.headcount", min: 16 },
+      [fact("employment.headcount", 16)],
+      [fact("employment.headcount", 3)],
+    ],
   ];
 
   it.each(cases)("%s", (_name, condition, yesFacts, noFacts) => {
@@ -116,7 +168,9 @@ describe("логика Клини", () => {
     const result = evaluateCondition({ type: "not", item: { type: "has_employees", value: true } }, []);
     expect(result.result.outcome).toBe("unknown");
     expect(result.missingFactKeys).toEqual(["employment.has_employees"]);
-    expect(outcome({ type: "not", item: { type: "has_employees", value: true } }, [fact("employment.has_employees", false)])).toBe("yes");
+    expect(
+      outcome({ type: "not", item: { type: "has_employees", value: true } }, [fact("employment.has_employees", false)]),
+    ).toBe("yes");
   });
 });
 
@@ -127,7 +181,13 @@ describe("missingFactKeys", () => {
       items: [
         { type: "okved_prefix", prefix: "56" },
         { type: "fact_in", key: "sales.alcohol", values: ["beer", "strong"] },
-        { type: "any", items: [{ type: "has_employees", value: true }, { type: "fact_equals", key: "sales.alcohol", value: "strong" }] },
+        {
+          type: "any",
+          items: [
+            { type: "has_employees", value: true },
+            { type: "fact_equals", key: "sales.alcohol", value: "strong" },
+          ],
+        },
       ],
     };
     const result = evaluateCondition(condition, [fact("activity.okved_main", "56.10")]);
@@ -136,7 +196,10 @@ describe("missingFactKeys", () => {
   });
 
   it("пусто, если результат известен", () => {
-    expect(evaluateCondition({ type: "has_employees", value: true }, [fact("employment.has_employees", true)]).missingFactKeys).toEqual([]);
+    expect(
+      evaluateCondition({ type: "has_employees", value: true }, [fact("employment.has_employees", true)])
+        .missingFactKeys,
+    ).toEqual([]);
   });
 });
 
@@ -153,7 +216,12 @@ describe("выбор факта", () => {
   });
 
   it("вычисленный важнее заявленного", () => {
-    expect(outcome(condition, [fact("employment.has_employees", false, "declared"), fact("employment.has_employees", true, "derived")])).toBe("yes");
+    expect(
+      outcome(condition, [
+        fact("employment.has_employees", false, "declared"),
+        fact("employment.has_employees", true, "derived"),
+      ]),
+    ).toBe("yes");
   });
 
   it("одного типа — более свежий; порядок фактов не влияет", () => {
@@ -172,7 +240,9 @@ describe("выбор факта", () => {
   });
 
   it("asOf отбрасывает факты вне периода действия", () => {
-    const expired = fact("employment.has_employees", true, "official", { validity: { from: "2025-01-01", to: "2025-12-31" } });
+    const expired = fact("employment.has_employees", true, "official", {
+      validity: { from: "2025-01-01", to: "2025-12-31" },
+    });
     expect(evaluateCondition(condition, [expired]).result.outcome).toBe("yes");
     expect(evaluateCondition(condition, [expired], { asOf: "2026-09-25" }).result.outcome).toBe("unknown");
     expect(evaluateCondition(condition, [expired], { asOf: "2025-06-01" }).result.outcome).toBe("yes");
@@ -189,7 +259,9 @@ describe("ошибки данных", () => {
   });
 
   it("fact_equals сравнивает с учётом типа", () => {
-    const result = evaluateCondition({ type: "fact_equals", key: "location.region_code", value: 77 }, [fact("location.region_code", "77")]);
+    const result = evaluateCondition({ type: "fact_equals", key: "location.region_code", value: 77 }, [
+      fact("location.region_code", "77"),
+    ]);
     expect(result.result.outcome).toBe("unknown");
     expect(result.issues).toHaveLength(1);
   });
@@ -205,7 +277,10 @@ describe("трасса", () => {
   const facts = [fact("activity.okved_main", "56.10"), fact("employment.has_employees", true, "derived")];
   const condition: ConditionNode = {
     type: "all",
-    items: [{ type: "okved_prefix", prefix: "56" }, { type: "not", item: { type: "region", codes: ["77"] } }],
+    items: [
+      { type: "okved_prefix", prefix: "56" },
+      { type: "not", item: { type: "region", codes: ["77"] } },
+    ],
   };
 
   it("повторяет дерево условия с путями $, $.items[i], $.item", () => {
