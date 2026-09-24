@@ -120,3 +120,15 @@ python3 scripts/work_packages.py project --apply   # заполнить поля
 - На бесплатном плане GitHub защита ветки `main` для приватного репозитория недоступна. Запрет прямых пушей в `main` и обязательная проверка держатся на правилах TEAM_GUIDE и этих инструкциях. Агент никогда не пушит в `main` и не сливает PR.
 - Все агенты одного участника работают под его аккаунтом GitHub: различайте их по label `agent:*` и комментариям, а не по автору.
 - Токены (MAX, GigaChat) хранятся только в локальном `.env` каждого участника и передаются вне Git.
+- **Лимит GitHub GraphQL — 5000 запросов в час на аккаунт, общий для всех его агентов.** При нескольких параллельных агентах он заканчивается («API rate limit already exceeded»), и тогда падают `gh pr create`, `gh pr view`, `gh pr checks`, `gh issue list` и `wp.sh` (он тоже использует GraphQL). REST API считается отдельно. Не повторяйте упавшую команду в цикле: проверьте сброс (`gh api rate_limit --jq .resources.graphql` — поле `reset` в секундах Unix) и продолжайте через REST:
+
+  ```bash
+  # PR
+  gh api repos/Diminikhui/max_hackathon/pulls -f title="feat: …" -f head="<ветка>" -f base=main -F body=@pr.md --jq .html_url
+  # проверки CI по коммиту
+  gh api repos/Diminikhui/max_hackathon/commits/$(git rev-parse HEAD)/check-runs --jq '.check_runs[] | "\(.name) \(.status) \(.conclusion)"'
+  # комментарий «Результат» в Issue
+  gh api repos/Diminikhui/max_hackathon/issues/<N>/comments -F body=@result.md --jq .html_url
+  ```
+
+  Карточки доски (`wp.sh status`) работают только через GraphQL — переведите карточку после сброса лимита. Опрашивайте CI не чаще раза в 15–20 секунд.
