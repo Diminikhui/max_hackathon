@@ -1,0 +1,88 @@
+{
+  "fixtureVersion": 1,
+  "isModel": true,
+  "warning": "Модельные данные. Не являются сведениями ЕРКНМ, результатом проверки или юридическим основанием.",
+  "sourceShape": {
+    "schema": "structure-20220125.xsd",
+    "url": "https://proverki.gov.ru/blob/erknm-opendata/structure-20220125.xsd",
+    "mapping": "Подмножество полей XML представлено в JSON только для исследования маппинга."
+  },
+  "records": [
+    {
+      "ERPID": "K03B-MODEL-2026-0001",
+      "STATUS": "Модельное мероприятие завершено",
+      "STATUS_KEY": "model_completed",
+      "START_DATE": "2026-09-10",
+      "STOP_DATE": "2026-09-10",
+      "IS_REMOTE": true,
+      "KIND_CONTROL": {
+        "DICT_ID": "model-sanitary-control",
+        "DICT_VERSION_ID": "1",
+        "VALUE": "Модельный санитарно-эпидемиологический контроль"
+      },
+      "KIND_KNM": {
+        "DICT_ID": "model-documentary-inspection",
+        "DICT_VERSION_ID": "1",
+        "VALUE": "Модельная документарная проверка"
+      },
+      "SUBJECT": [
+        {
+          "INN": "7700000009",
+          "NAME": "Модельная кофейня",
+          "TYPE": "MODEL_LEGAL_ENTITY",
+          "OKVEDS": [{ "CODE": "56.10", "NAME": "Модельная деятельность общепита" }]
+        }
+      ],
+      "CHECKLIST": [
+        {
+          "GUID": "model-checklist-foodservice-1",
+          "CHECKLIST": {
+            "DICT_ID": "model-checklist-foodservice",
+            "DICT_VERSION_ID": "1",
+            "VALUE": "Модельный проверочный лист общепита"
+          }
+        }
+      ],
+      "REQUIREMENT_VALUE": [
+        {
+          "GUID": "model-requirement-result-1",
+          "IS_OBSERVED": true,
+          "NOTE": "Модельный результат. Нельзя переносить на другие компании.",
+          "REQUIREMENT": {
+            "GUID": "model-requirement-foodservice-1",
+            "VALUE": "Модельный контрольный вопрос",
+            "NPA_NAME": "Модельный акт",
+            "NPA_NUMBER": "MODEL-1"
+          }
+        }
+      ]
+    },
+    {
+      "ERPID": "K03B-MODEL-2026-0002",
+      "STATUS": "Модельное мероприятие ожидает проведения",
+      "STATUS_KEY": "model_scheduled",
+      "START_DATE": "2026-10-15",
+      "IS_REMOTE": false,
+      "KIND_CONTROL": {
+        "DICT_ID": "model-fire-control",
+        "DICT_VERSION_ID": "1",
+        "VALUE": "Модельный пожарный надзор"
+      },
+      "KIND_KNM": {
+        "DICT_ID": "model-onsite-inspection",
+        "DICT_VERSION_ID": "1",
+        "VALUE": "Модельная выездная проверка"
+      },
+      "SUBJECT": [
+        {
+          "INN": "7700000009",
+          "NAME": "Модельная кофейня",
+          "TYPE": "MODEL_LEGAL_ENTITY",
+          "OKVEDS": [{ "CODE": "56.10", "NAME": "Модельная деятельность общепита" }]
+        }
+      ],
+      "CHECKLIST": [],
+      "REQUIREMENT_VALUE": []
+    }
+  ]
+}
