@@ -58,6 +58,18 @@ importers:
         specifier: workspace:*
         version: link:../../packages/domain
     devDependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.5.8
+        version: 0.5.8
+      '@max-hackathon/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.20.0)
       vitest:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6))
@@ -120,6 +132,18 @@ importers:
         specifier: workspace:*
         version: link:../domain
     devDependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.5.8
+        version: 0.5.8
+      '@max-hackathon/adapters':
+        specifier: workspace:*
+        version: link:../adapters
+      '@max-hackathon/rules':
+        specifier: workspace:*
+        version: link:../rules
+      '@max-hackathon/storage':
+        specifier: workspace:*
+        version: link:../storage
       vitest:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6))
