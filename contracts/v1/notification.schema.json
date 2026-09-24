@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/v1/notification.schema.json",
+  "title": "Notification",
+  "description": "Сообщение, которое бот отправляет сам, и статус его доставки.",
+  "type": "object",
+  "properties": {
+    "contractVersion": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "id": { "$ref": "common.schema.json#/$defs/Id" },
+    "candidateId": { "$ref": "common.schema.json#/$defs/Id" },
+    "companyId": { "$ref": "common.schema.json#/$defs/Id" },
+    "recipient": {
+      "type": "object",
+      "properties": {
+        "channel": { "const": "max_bot" },
+        "chatId": {
+          "description": "Идентификатор чата MAX. Не логировать вместе с ИНН.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["channel", "chatId"],
+      "additionalProperties": false
+    },
+    "text": { "type": "string", "minLength": 1 },
+    "buttons": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Button" }
+    },
+    "sourceUrls": {
+      "description": "Ссылки на официальные первоисточники (TEAM_GUIDE, правило 7).",
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/Url" },
+      "minItems": 1
+    },
+    "automated": {
+      "description": "Текст сформирован автоматически — в сообщении есть пометка об автоматической обработке.",
+      "type": "boolean"
+    },
+    "isModel": { "type": "boolean" },
+    "idempotencyKey": {
+      "description": "Повторная отправка с тем же ключом не создаёт дубль (K-21a).",
+      "type": "string",
+      "minLength": 1
+    },
+    "status": { "enum": ["queued", "sent", "failed", "suppressed"] },
+    "attempts": { "type": "integer", "minimum": 0 },
+    "createdAt": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "sentAt": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "Код из таксономии ошибок K-27.",
+          "type": "string",
+          "minLength": 1
+        },
+        "message": { "type": "string" }
+      },
+      "required": ["code"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["contractVersion", "id", "candidateId", "companyId", "recipient", "text", "sourceUrls", "automated", "isModel", "idempotencyKey", "status", "attempts", "createdAt"],
+  "additionalProperties": false,
+  "allOf": [
+    { "if": { "properties": { "status": { "const": "sent" } } }, "then": { "required": ["sentAt"] } },
+    { "if": { "properties": { "status": { "const": "failed" } } }, "then": { "required": ["error"] } }
+  ],
+  "$defs": {
+    "Button": {
+      "description": "Кнопка: либо ссылка (url, в том числе deep link мини-приложения), либо команда боту (payload).",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "url": { "$ref": "common.schema.json#/$defs/Url" },
+        "payload": { "type": "string", "minLength": 1 }
+      },
+      "required": ["text"],
+      "additionalProperties": false,
+      "oneOf": [
+        { "required": ["url"] },
+        { "required": ["payload"] }
+      ]
+    }
+  }
+}

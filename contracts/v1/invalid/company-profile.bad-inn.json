@@ -1,0 +1,9 @@
+{
+  "contractVersion": 1,
+  "companyId": "c1",
+  "inn": "77000",
+  "entityType": "legal_entity",
+  "facts": [],
+  "isModel": true,
+  "updatedAt": "2026-09-25T09:00:00Z"
+}

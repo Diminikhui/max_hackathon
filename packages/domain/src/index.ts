@@ -1,3 +1,3 @@
 // Доменная модель, порты и справочники (ОКВЭД, регионы).
-// Пустой пакет из K-01a: содержимое добавляют потоки из docs/roadmap.md.
-export {};
+export * from "./contracts.js";
+export * from "./ports.js";

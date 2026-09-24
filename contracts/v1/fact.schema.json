@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/v1/fact.schema.json",
+  "title": "Fact",
+  "description": "Один регуляторно значимый факт о компании с происхождением. Отсутствие факта означает «неизвестно»; значение null не используется.",
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/Id" },
+    "companyId": { "$ref": "common.schema.json#/$defs/Id" },
+    "key": {
+      "description": "Ключ факта: сегменты в нижнем регистре через точку. Известные ключи v1 — contracts/README.md.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+    },
+    "value": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    },
+    "kind": { "$ref": "common.schema.json#/$defs/FactKind" },
+    "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+    "observedAt": {
+      "description": "На какую дату значение верно по данным источника.",
+      "$ref": "common.schema.json#/$defs/DateTime"
+    },
+    "validity": { "$ref": "common.schema.json#/$defs/Period" },
+    "derivedFrom": {
+      "description": "Для kind = derived: идентификаторы исходных фактов.",
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/Id" },
+      "minItems": 1
+    }
+  },
+  "required": ["id", "companyId", "key", "value", "kind", "source", "observedAt"],
+  "additionalProperties": false,
+  "if": { "properties": { "kind": { "const": "derived" } } },
+  "then": { "required": ["derivedFrom"] }
+}

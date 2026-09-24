@@ -1,0 +1,12 @@
+{
+  "contractVersion": 1,
+  "id": "n1",
+  "companyId": "c1",
+  "changeEventId": "e1",
+  "reason": "became_applicable",
+  "newStatus": "applies",
+  "matchedFactKeys": [],
+  "dedupKey": "k",
+  "isModel": true,
+  "createdAt": "2026-09-25T12:00:00Z"
+}

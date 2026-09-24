@@ -1,0 +1,13 @@
+{
+  "contractVersion": 1,
+  "id": "cand-cafe-water",
+  "companyId": "model-company-cafe-msk",
+  "changeEventId": "event-a-fed-v2",
+  "reason": "became_applicable",
+  "requirementId": "a.fed.water-marking",
+  "newStatus": "applies",
+  "matchedFactKeys": ["activity.okved_main", "location.region_code"],
+  "dedupKey": "model-company-cafe-msk:a.fed.water-marking:applies",
+  "isModel": true,
+  "createdAt": "2026-09-25T12:00:05Z"
+}

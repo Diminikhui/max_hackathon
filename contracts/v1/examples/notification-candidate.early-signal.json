@@ -1,0 +1,12 @@
+{
+  "contractVersion": 1,
+  "id": "cand-cafe-doc-1",
+  "companyId": "model-company-cafe-msk",
+  "changeEventId": "event-doc-model-1",
+  "reason": "early_signal",
+  "newStatus": "needs_review",
+  "matchedFactKeys": ["activity.okved_main"],
+  "dedupKey": "model-company-cafe-msk:doc:model-1",
+  "isModel": true,
+  "createdAt": "2026-09-25T03:00:10Z"
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/v1/company-profile.schema.json",
+  "title": "CompanyProfile",
+  "description": "Профиль компании — набор фактов с происхождением. Заявленный факт хранится рядом с официальным и не затирает его (K-25b).",
+  "type": "object",
+  "properties": {
+    "contractVersion": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "companyId": { "$ref": "common.schema.json#/$defs/Id" },
+    "inn": { "$ref": "common.schema.json#/$defs/Inn" },
+    "entityType": {
+      "description": "legal_entity — организация; individual_entrepreneur — ИП.",
+      "enum": ["legal_entity", "individual_entrepreneur"]
+    },
+    "displayName": {
+      "description": "Название для интерфейса. Для ИП это ФИО — персональные данные: не логировать.",
+      "type": "string"
+    },
+    "facts": {
+      "type": "array",
+      "items": { "$ref": "fact.schema.json" }
+    },
+    "isModel": {
+      "description": "Модельная компания (тестовые данные).",
+      "type": "boolean"
+    },
+    "updatedAt": { "$ref": "common.schema.json#/$defs/DateTime" }
+  },
+  "required": ["contractVersion", "companyId", "inn", "entityType", "facts", "isModel", "updatedAt"],
+  "additionalProperties": false
+}

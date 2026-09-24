@@ -1,0 +1,15 @@
+{
+  "contractVersion": 1,
+  "id": "n1",
+  "candidateId": "c1",
+  "companyId": "co1",
+  "recipient": { "channel": "max_bot", "chatId": "chat" },
+  "text": "Без первоисточника",
+  "sourceUrls": [],
+  "automated": true,
+  "isModel": true,
+  "idempotencyKey": "k",
+  "status": "queued",
+  "attempts": 0,
+  "createdAt": "2026-09-25T12:00:00Z"
+}

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/v1/common.schema.json",
+  "title": "Общие типы контрактов v1",
+  "$defs": {
+    "ContractVersion": {
+      "description": "Версия контрактов. Повышается отдельным PR `contract: …`.",
+      "const": 1
+    },
+    "Id": {
+      "description": "Непрозрачный идентификатор. Потребители не разбирают его структуру.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "Inn": {
+      "description": "ИНН: 10 цифр у организации, 12 у ИП. Контрольную сумму проверяет K-25a.",
+      "type": "string",
+      "pattern": "^[0-9]{10}([0-9]{2})?$"
+    },
+    "DateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "Date": {
+      "type": "string",
+      "format": "date"
+    },
+    "Url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://"
+    },
+    "Period": {
+      "description": "Период действия. Отсутствие границы — без ограничения с этой стороны.",
+      "type": "object",
+      "properties": {
+        "from": { "$ref": "#/$defs/Date" },
+        "to": { "$ref": "#/$defs/Date" }
+      },
+      "additionalProperties": false
+    },
+    "FactKind": {
+      "description": "Тип факта (концепт 8.8): official — из государственного источника; declared — сообщён предпринимателем; derived — вычислен из других фактов; scenario — только для режима «что будет, если…».",
+      "enum": ["official", "declared", "derived", "scenario"]
+    },
+    "ApplicabilityStatus": {
+      "description": "Пять статусов применимости: применяется, не применяется, недостаточно данных, требуется проверка, вне покрытия.",
+      "enum": ["applies", "not_applies", "insufficient_data", "needs_review", "out_of_coverage"]
+    },
+    "SourceRef": {
+      "description": "Откуда получены данные. `isModel = true` — тестовые, синтетические или смоделированные данные; такие данные помечаются модельными в интерфейсе.",
+      "type": "object",
+      "properties": {
+        "system": {
+          "description": "Система-источник: `rmsp.nalog.ru`, `egrul.nalog.ru`, `ot.gov.ru`, `regulation.gov.ru`, `user`, `fixture` и т. п.",
+          "type": "string",
+          "minLength": 1
+        },
+        "url": { "$ref": "#/$defs/Url" },
+        "recordId": {
+          "description": "Идентификатор записи в системе-источнике.",
+          "type": "string"
+        },
+        "retrievedAt": { "$ref": "#/$defs/DateTime" },
+        "isModel": { "type": "boolean" }
+      },
+      "required": ["system", "retrievedAt", "isModel"],
+      "additionalProperties": false
+    },
+    "LegalBasis": {
+      "description": "Основание: акт и ссылка на официальный первоисточник (TEAM_GUIDE, правило 7).",
+      "type": "object",
+      "properties": {
+        "act": {
+          "description": "Название акта, например «Федеральный закон от 28.12.2013 № 426-ФЗ».",
+          "type": "string",
+          "minLength": 1
+        },
+        "article": {
+          "description": "Статья, пункт, часть.",
+          "type": "string"
+        },
+        "url": { "$ref": "#/$defs/Url" }
+      },
+      "required": ["act", "url"],
+      "additionalProperties": false
+    }
+  }
+}

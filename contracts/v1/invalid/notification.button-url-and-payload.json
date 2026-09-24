@@ -1,0 +1,16 @@
+{
+  "contractVersion": 1,
+  "id": "n1",
+  "candidateId": "c1",
+  "companyId": "co1",
+  "recipient": { "channel": "max_bot", "chatId": "chat" },
+  "text": "Кнопка с двумя действиями",
+  "buttons": [{ "text": "Открыть", "url": "https://example.org/", "payload": "open" }],
+  "sourceUrls": ["http://pravo.gov.ru/"],
+  "automated": true,
+  "isModel": true,
+  "idempotencyKey": "k",
+  "status": "queued",
+  "attempts": 0,
+  "createdAt": "2026-09-25T12:00:00Z"
+}
