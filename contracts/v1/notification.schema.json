@@ -61,7 +61,21 @@
       "additionalProperties": false
     }
   },
-  "required": ["contractVersion", "id", "candidateId", "companyId", "recipient", "text", "sourceUrls", "automated", "isModel", "idempotencyKey", "status", "attempts", "createdAt"],
+  "required": [
+    "contractVersion",
+    "id",
+    "candidateId",
+    "companyId",
+    "recipient",
+    "text",
+    "sourceUrls",
+    "automated",
+    "isModel",
+    "idempotencyKey",
+    "status",
+    "attempts",
+    "createdAt"
+  ],
   "additionalProperties": false,
   "allOf": [
     { "if": { "properties": { "status": { "const": "sent" } } }, "then": { "required": ["sentAt"] } },
@@ -78,10 +92,7 @@
       },
       "required": ["text"],
       "additionalProperties": false,
-      "oneOf": [
-        { "required": ["url"] },
-        { "required": ["payload"] }
-      ]
+      "oneOf": [{ "required": ["url"] }, { "required": ["payload"] }]
     }
   }
 }

@@ -132,9 +132,10 @@ const conditionSteps = (trace: ConditionResult | undefined, leaves: DecisiveLeaf
   const steps = leaves.map(
     ({ node, negations }): ExplanationStep => ({
       kind: "condition",
-      text: negations % 2 === 1
-        ? `Исключение «${node.expected ?? node.conditionType}» — ${OUTCOME_TEXT[node.outcome]}`
-        : `${node.expected ?? node.conditionType} — ${OUTCOME_TEXT[node.outcome]}`,
+      text:
+        negations % 2 === 1
+          ? `Исключение «${node.expected ?? node.conditionType}» — ${OUTCOME_TEXT[node.outcome]}`
+          : `${node.expected ?? node.conditionType} — ${OUTCOME_TEXT[node.outcome]}`,
       refId: node.path,
     }),
   );

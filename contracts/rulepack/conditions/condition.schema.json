@@ -27,15 +27,11 @@
           ]
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "allOf": [
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "always"
@@ -48,9 +44,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "all"
@@ -63,9 +57,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "any"
@@ -78,9 +70,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "not"
@@ -93,9 +83,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "okved_prefix"
@@ -108,9 +96,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "region"
@@ -123,9 +109,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "msp_category"
@@ -138,9 +122,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "has_employees"
@@ -153,9 +135,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "headcount"
@@ -168,9 +148,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "tax_regime"
@@ -183,9 +161,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "fact_equals"
@@ -198,9 +174,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "fact_in"
@@ -213,9 +187,7 @@
         },
         {
           "if": {
-            "required": [
-              "type"
-            ],
+            "required": ["type"],
             "properties": {
               "type": {
                 "const": "fact_range"
@@ -236,9 +208,7 @@
           "const": "always"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "additionalProperties": false
     },
     "All": {
@@ -256,10 +226,7 @@
           "minItems": 1
         }
       },
-      "required": [
-        "type",
-        "items"
-      ],
+      "required": ["type", "items"],
       "additionalProperties": false
     },
     "Any": {
@@ -277,10 +244,7 @@
           "minItems": 1
         }
       },
-      "required": [
-        "type",
-        "items"
-      ],
+      "required": ["type", "items"],
       "additionalProperties": false
     },
     "Not": {
@@ -294,10 +258,7 @@
           "$ref": "#/$defs/Condition"
         }
       },
-      "required": [
-        "type",
-        "item"
-      ],
+      "required": ["type", "item"],
       "additionalProperties": false
     },
     "OkvedPrefix": {
@@ -312,17 +273,11 @@
           "pattern": "^[0-9]{2}(\\.[0-9]{1,2}){0,2}$"
         },
         "scope": {
-          "enum": [
-            "main",
-            "main_or_additional"
-          ],
+          "enum": ["main", "main_or_additional"],
           "default": "main"
         }
       },
-      "required": [
-        "type",
-        "prefix"
-      ],
+      "required": ["type", "prefix"],
       "additionalProperties": false
     },
     "Region": {
@@ -342,10 +297,7 @@
           "uniqueItems": true
         }
       },
-      "required": [
-        "type",
-        "codes"
-      ],
+      "required": ["type", "codes"],
       "additionalProperties": false
     },
     "MspCategory": {
@@ -358,20 +310,13 @@
         "in": {
           "type": "array",
           "items": {
-            "enum": [
-              "micro",
-              "small",
-              "medium"
-            ]
+            "enum": ["micro", "small", "medium"]
           },
           "minItems": 1,
           "uniqueItems": true
         }
       },
-      "required": [
-        "type",
-        "in"
-      ],
+      "required": ["type", "in"],
       "additionalProperties": false
     },
     "HasEmployees": {
@@ -385,10 +330,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "type",
-        "value"
-      ],
+      "required": ["type", "value"],
       "additionalProperties": false
     },
     "Headcount": {
@@ -407,20 +349,14 @@
           "minimum": 0
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "additionalProperties": false,
       "anyOf": [
         {
-          "required": [
-            "min"
-          ]
+          "required": ["min"]
         },
         {
-          "required": [
-            "max"
-          ]
+          "required": ["max"]
         }
       ]
     },
@@ -434,24 +370,13 @@
         "in": {
           "type": "array",
           "items": {
-            "enum": [
-              "osno",
-              "usn_income",
-              "usn_income_expenses",
-              "psn",
-              "eshn",
-              "ausn",
-              "npd"
-            ]
+            "enum": ["osno", "usn_income", "usn_income_expenses", "psn", "eshn", "ausn", "npd"]
           },
           "minItems": 1,
           "uniqueItems": true
         }
       },
-      "required": [
-        "type",
-        "in"
-      ],
+      "required": ["type", "in"],
       "additionalProperties": false
     },
     "FactEquals": {
@@ -467,18 +392,10 @@
           "description": "Ключ факта (contracts/README.md)."
         },
         "value": {
-          "type": [
-            "string",
-            "number",
-            "boolean"
-          ]
+          "type": ["string", "number", "boolean"]
         }
       },
-      "required": [
-        "type",
-        "key",
-        "value"
-      ],
+      "required": ["type", "key", "value"],
       "additionalProperties": false
     },
     "FactIn": {
@@ -496,20 +413,13 @@
         "values": {
           "type": "array",
           "items": {
-            "type": [
-              "string",
-              "number"
-            ]
+            "type": ["string", "number"]
           },
           "minItems": 1,
           "uniqueItems": true
         }
       },
-      "required": [
-        "type",
-        "key",
-        "values"
-      ],
+      "required": ["type", "key", "values"],
       "additionalProperties": false
     },
     "FactRange": {
@@ -531,21 +441,14 @@
           "type": "number"
         }
       },
-      "required": [
-        "type",
-        "key"
-      ],
+      "required": ["type", "key"],
       "additionalProperties": false,
       "anyOf": [
         {
-          "required": [
-            "min"
-          ]
+          "required": ["min"]
         },
         {
-          "required": [
-            "max"
-          ]
+          "required": ["max"]
         }
       ]
     }

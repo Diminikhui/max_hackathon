@@ -28,12 +28,24 @@
     },
     "evaluatedAt": { "$ref": "common.schema.json#/$defs/DateTime" }
   },
-  "required": ["contractVersion", "companyId", "requirementId", "packId", "packVersion", "status", "explanation", "evaluatedAt"],
+  "required": [
+    "contractVersion",
+    "companyId",
+    "requirementId",
+    "packId",
+    "packVersion",
+    "status",
+    "explanation",
+    "evaluatedAt"
+  ],
   "additionalProperties": false,
   "allOf": [
     {
       "if": { "properties": { "status": { "const": "insufficient_data" } } },
-      "then": { "required": ["missingFactKeys"], "properties": { "missingFactKeys": { "type": "array", "minItems": 1 } } }
+      "then": {
+        "required": ["missingFactKeys"],
+        "properties": { "missingFactKeys": { "type": "array", "minItems": 1 } }
+      }
     },
     {
       "if": { "properties": { "status": { "enum": ["applies", "not_applies", "insufficient_data"] } } },
