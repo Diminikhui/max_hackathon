@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/v1/applicability-result.schema.json",
+  "title": "ApplicabilityResult",
+  "description": "Применимость одной записи пакета к одной компании: статус, трасса и цепочка объяснения «факт → условие → правило → результат → источник».",
+  "type": "object",
+  "properties": {
+    "contractVersion": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "companyId": { "$ref": "common.schema.json#/$defs/Id" },
+    "requirementId": { "$ref": "common.schema.json#/$defs/Id" },
+    "packId": { "$ref": "common.schema.json#/$defs/Id" },
+    "packVersion": { "type": "integer", "minimum": 1 },
+    "status": { "$ref": "common.schema.json#/$defs/ApplicabilityStatus" },
+    "statusReason": {
+      "description": "Короткая причина статуса: какого факта не хватает, почему нужна проверка, что вне покрытия.",
+      "type": "string"
+    },
+    "missingFactKeys": {
+      "description": "Для insufficient_data: ключи фактов, которые нужно уточнить у пользователя.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "trace": { "$ref": "condition-result.schema.json" },
+    "explanation": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ExplanationStep" },
+      "minItems": 1
+    },
+    "evaluatedAt": { "$ref": "common.schema.json#/$defs/DateTime" }
+  },
+  "required": ["contractVersion", "companyId", "requirementId", "packId", "packVersion", "status", "explanation", "evaluatedAt"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "insufficient_data" } } },
+      "then": { "required": ["missingFactKeys"], "properties": { "missingFactKeys": { "type": "array", "minItems": 1 } } }
+    },
+    {
+      "if": { "properties": { "status": { "enum": ["applies", "not_applies", "insufficient_data"] } } },
+      "then": { "required": ["trace"] }
+    }
+  ],
+  "$defs": {
+    "ExplanationStep": {
+      "description": "Шаг детерминированной цепочки объяснения. LLM может только переформулировать текст шага.",
+      "type": "object",
+      "properties": {
+        "kind": { "enum": ["fact", "condition", "rule", "result", "source"] },
+        "text": { "type": "string", "minLength": 1 },
+        "refId": {
+          "description": "Идентификатор факта, узла условия (path) или записи.",
+          "type": "string"
+        },
+        "url": {
+          "description": "Для kind = source — ссылка на первоисточник.",
+          "$ref": "common.schema.json#/$defs/Url"
+        }
+      },
+      "required": ["kind", "text"],
+      "additionalProperties": false,
+      "if": { "properties": { "kind": { "const": "source" } } },
+      "then": { "required": ["url"] }
+    }
+  }
+}

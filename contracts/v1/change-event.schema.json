@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/v1/change-event.schema.json",
+  "title": "ChangeEvent",
+  "description": "Событие, после которого нужно пересчитать применимость: новая версия пакета правил, новый документ из ленты или изменение профиля компании (концепт 8.6).",
+  "type": "object",
+  "properties": {
+    "contractVersion": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "id": { "$ref": "common.schema.json#/$defs/Id" },
+    "kind": { "enum": ["rulepack_version", "regulation_document", "profile_change"] },
+    "occurredAt": { "$ref": "common.schema.json#/$defs/DateTime" },
+    "isModel": {
+      "description": "Модельное изменение (например, демо-триггер). Уведомление по нему помечается модельным.",
+      "type": "boolean"
+    },
+    "rulepack": { "$ref": "#/$defs/RulepackChange" },
+    "document": { "$ref": "#/$defs/RegulationDocument" },
+    "profile": { "$ref": "#/$defs/ProfileChange" }
+  },
+  "required": ["contractVersion", "id", "kind", "occurredAt", "isModel"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "rulepack_version" } } },
+      "then": { "required": ["rulepack"], "not": { "anyOf": [{ "required": ["document"] }, { "required": ["profile"] }] } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "regulation_document" } } },
+      "then": { "required": ["document"], "not": { "anyOf": [{ "required": ["rulepack"] }, { "required": ["profile"] }] } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "profile_change" } } },
+      "then": { "required": ["profile"], "not": { "anyOf": [{ "required": ["rulepack"] }, { "required": ["document"] }] } }
+    }
+  ],
+  "$defs": {
+    "RulepackChange": {
+      "type": "object",
+      "properties": {
+        "packId": { "$ref": "common.schema.json#/$defs/Id" },
+        "fromVersion": {
+          "description": "Отсутствует при первой публикации пакета.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "toVersion": { "type": "integer", "minimum": 1 },
+        "addedRequirementIds": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Id" } },
+        "changedRequirementIds": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Id" } },
+        "removedRequirementIds": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Id" } }
+      },
+      "required": ["packId", "toVersion", "addedRequirementIds", "changedRequirementIds", "removedRequirementIds"],
+      "additionalProperties": false
+    },
+    "RegulationDocument": {
+      "description": "Проект акта из ленты (regulation.gov.ru). Это ранний сигнал: применимость по нему не выше needs_review.",
+      "type": "object",
+      "properties": {
+        "documentId": { "$ref": "common.schema.json#/$defs/Id" },
+        "title": { "type": "string", "minLength": 1 },
+        "url": { "$ref": "common.schema.json#/$defs/Url" },
+        "publishedAt": { "$ref": "common.schema.json#/$defs/DateTime" },
+        "stage": {
+          "description": "Стадия проекта в формулировке источника.",
+          "type": "string"
+        },
+        "sphereIds": {
+          "description": "Сферы regulation.gov.ru (поле okveds в API). Это не коды ОКВЭД.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      },
+      "required": ["documentId", "title", "url", "publishedAt", "source"],
+      "additionalProperties": false
+    },
+    "ProfileChange": {
+      "type": "object",
+      "properties": {
+        "companyId": { "$ref": "common.schema.json#/$defs/Id" },
+        "changedFactKeys": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      },
+      "required": ["companyId", "changedFactKeys"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/v1/condition-result.schema.json",
+  "title": "ConditionResult",
+  "description": "Результат проверки одного узла условия на фактах с трёхзначной логикой. Дерево результатов — трасса вычисления.",
+  "type": "object",
+  "properties": {
+    "path": {
+      "description": "Путь узла в дереве условия, например `$`, `$.all[1]`.",
+      "type": "string",
+      "minLength": 1
+    },
+    "conditionType": {
+      "description": "Тип узла условия из формата K-15a: all, any, not, okved_prefix, region и т. п.",
+      "type": "string",
+      "minLength": 1
+    },
+    "outcome": {
+      "description": "yes — выполнено; no — не выполнено; unknown — не хватает факта.",
+      "enum": ["yes", "no", "unknown"]
+    },
+    "factKeys": {
+      "description": "Ключи фактов, которые проверял узел (в том числе отсутствующие — для outcome = unknown).",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "factIds": {
+      "description": "Идентификаторы фактов, которые использованы.",
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/Id" }
+    },
+    "expected": {
+      "description": "Что требует условие, в читаемом виде: «ОКВЭД начинается с 56».",
+      "type": "string"
+    },
+    "actual": {
+      "description": "Что найдено в фактах, в читаемом виде: «56.10».",
+      "type": "string"
+    },
+    "children": {
+      "type": "array",
+      "items": { "$ref": "#" }
+    }
+  },
+  "required": ["path", "conditionType", "outcome", "factKeys", "factIds"],
+  "additionalProperties": false
+}

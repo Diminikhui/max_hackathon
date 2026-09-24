@@ -1,0 +1,11 @@
+{
+  "contractVersion": 1,
+  "companyId": "c1",
+  "requirementId": "r1",
+  "packId": "p1",
+  "packVersion": 1,
+  "status": "insufficient_data",
+  "trace": { "path": "$", "conditionType": "fact_in", "outcome": "unknown", "factKeys": ["sales.alcohol"], "factIds": [] },
+  "explanation": [{ "kind": "result", "text": "Недостаточно данных" }],
+  "evaluatedAt": "2026-09-25T09:10:00Z"
+}

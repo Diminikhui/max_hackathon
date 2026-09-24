@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/v1/notification-candidate.schema.json",
+  "title": "NotificationCandidate",
+  "description": "Результат планировщика (K-20a): компании нужно сообщить об изменении. Политика частоты (K-20b) решает, станет ли кандидат уведомлением.",
+  "type": "object",
+  "properties": {
+    "contractVersion": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "id": { "$ref": "common.schema.json#/$defs/Id" },
+    "companyId": { "$ref": "common.schema.json#/$defs/Id" },
+    "changeEventId": { "$ref": "common.schema.json#/$defs/Id" },
+    "reason": {
+      "description": "became_applicable — запись стала применяться; no_longer_applicable — перестала; status_changed — другой переход статуса; early_signal — проект акта, который может касаться компании.",
+      "enum": ["became_applicable", "no_longer_applicable", "status_changed", "early_signal"]
+    },
+    "requirementId": {
+      "description": "Запись пакета; для early_signal отсутствует.",
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "previousStatus": { "$ref": "common.schema.json#/$defs/ApplicabilityStatus" },
+    "newStatus": { "$ref": "common.schema.json#/$defs/ApplicabilityStatus" },
+    "matchedFactKeys": {
+      "description": "Факты профиля, из-за которых изменение касается компании («почему это вас касается»).",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "dedupKey": {
+      "description": "Одинаковый ключ — одно и то же сообщение для компании; повтор не отправляется.",
+      "type": "string",
+      "minLength": 1
+    },
+    "isModel": { "type": "boolean" },
+    "createdAt": { "$ref": "common.schema.json#/$defs/DateTime" }
+  },
+  "required": ["contractVersion", "id", "companyId", "changeEventId", "reason", "matchedFactKeys", "dedupKey", "isModel", "createdAt"],
+  "additionalProperties": false,
+  "if": { "properties": { "reason": { "const": "early_signal" } } },
+  "then": { "properties": { "newStatus": { "const": "needs_review" } } },
+  "else": { "required": ["requirementId", "newStatus"] }
+}

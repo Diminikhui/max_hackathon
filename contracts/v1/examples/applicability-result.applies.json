@@ -1,0 +1,28 @@
+{
+  "contractVersion": 1,
+  "companyId": "model-company-cafe-msk",
+  "requirementId": "a.fed.sout",
+  "packId": "a-fed",
+  "packVersion": 1,
+  "status": "applies",
+  "trace": {
+    "path": "$",
+    "conditionType": "all",
+    "outcome": "yes",
+    "factKeys": [],
+    "factIds": [],
+    "children": [
+      { "path": "$.items[0]", "conditionType": "okved_prefix", "outcome": "yes", "factKeys": ["activity.okved_main"], "factIds": ["fact-cafe-okved"], "expected": "ОКВЭД начинается с 56", "actual": "56.10" },
+      { "path": "$.items[1]", "conditionType": "fact_equals", "outcome": "yes", "factKeys": ["employment.has_employees"], "factIds": ["fact-cafe-has-employees"], "expected": "есть работники", "actual": "да" }
+    ]
+  },
+  "explanation": [
+    { "kind": "fact", "text": "Основной ОКВЭД 56.10 (модельные данные)", "refId": "fact-cafe-okved" },
+    { "kind": "fact", "text": "Есть работники: 12 человек", "refId": "fact-cafe-has-employees" },
+    { "kind": "condition", "text": "ОКВЭД начинается с 56 и есть работники", "refId": "$" },
+    { "kind": "rule", "text": "Провести специальную оценку условий труда", "refId": "a.fed.sout" },
+    { "kind": "result", "text": "Применяется" },
+    { "kind": "source", "text": "426-ФЗ, ст. 8", "url": "http://pravo.gov.ru/" }
+  ],
+  "evaluatedAt": "2026-09-25T09:10:00Z"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "fact-cafe-okved",
+  "companyId": "model-company-cafe-msk",
+  "key": "activity.okved_main",
+  "value": "56.10",
+  "kind": "official",
+  "source": { "system": "rmsp.nalog.ru", "recordId": "model", "retrievedAt": "2026-09-25T09:00:00Z", "isModel": true },
+  "observedAt": "2026-09-10T00:00:00Z"
+}

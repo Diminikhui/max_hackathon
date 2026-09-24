@@ -1,0 +1,11 @@
+{
+  "contractVersion": 1,
+  "id": "event-profile-cafe-1",
+  "kind": "profile_change",
+  "occurredAt": "2026-09-25T09:05:00Z",
+  "isModel": true,
+  "profile": {
+    "companyId": "model-company-cafe-msk",
+    "changedFactKeys": ["sales.alcohol"]
+  }
+}

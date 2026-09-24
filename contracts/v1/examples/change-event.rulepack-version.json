@@ -1,0 +1,15 @@
+{
+  "contractVersion": 1,
+  "id": "event-a-fed-v2",
+  "kind": "rulepack_version",
+  "occurredAt": "2026-09-25T12:00:00Z",
+  "isModel": true,
+  "rulepack": {
+    "packId": "a-fed",
+    "fromVersion": 1,
+    "toVersion": 2,
+    "addedRequirementIds": ["a.fed.water-marking"],
+    "changedRequirementIds": [],
+    "removedRequirementIds": []
+  }
+}

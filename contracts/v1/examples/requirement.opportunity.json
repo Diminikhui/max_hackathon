@@ -1,0 +1,14 @@
+{
+  "contractVersion": 1,
+  "id": "a.fed.reduced-insurance-rate",
+  "packId": "a-fed",
+  "packVersion": 1,
+  "kind": "opportunity",
+  "title": "Пониженный тариф страховых взносов (модельная запись, условия не проверены)",
+  "basis": [
+    { "act": "Налоговый кодекс Российской Федерации", "article": "ст. 427", "url": "http://pravo.gov.ru/" }
+  ],
+  "condition": { "type": "okved_prefix", "prefix": "56" },
+  "coverage": "partial",
+  "source": { "system": "fixture", "recordId": "k02-example", "retrievedAt": "2026-09-25T09:00:00Z", "isModel": true }
+}

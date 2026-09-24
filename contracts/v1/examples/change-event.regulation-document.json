@@ -1,0 +1,16 @@
+{
+  "contractVersion": 1,
+  "id": "event-doc-model-1",
+  "kind": "regulation_document",
+  "occurredAt": "2026-09-25T03:00:00Z",
+  "isModel": true,
+  "document": {
+    "documentId": "model-1",
+    "title": "Проект изменений в санитарные правила для общепита (модельный документ)",
+    "url": "https://regulation.gov.ru/",
+    "publishedAt": "2026-09-24T15:00:00Z",
+    "stage": "Обсуждение",
+    "sphereIds": ["23"],
+    "source": { "system": "fixture", "retrievedAt": "2026-09-25T03:00:00Z", "isModel": true }
+  }
+}

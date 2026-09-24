@@ -1,0 +1,24 @@
+{
+  "contractVersion": 1,
+  "companyId": "model-company-cafe-msk",
+  "requirementId": "a.fed.egais",
+  "packId": "a-fed",
+  "packVersion": 1,
+  "status": "insufficient_data",
+  "statusReason": "Неизвестно, продаёт ли компания алкоголь",
+  "missingFactKeys": ["sales.alcohol"],
+  "trace": {
+    "path": "$",
+    "conditionType": "fact_in",
+    "outcome": "unknown",
+    "factKeys": ["sales.alcohol"],
+    "factIds": [],
+    "expected": "продаёт пиво или крепкий алкоголь"
+  },
+  "explanation": [
+    { "kind": "condition", "text": "Нужно знать, продаёт ли компания алкоголь", "refId": "$" },
+    { "kind": "result", "text": "Недостаточно данных" },
+    { "kind": "source", "text": "171-ФЗ", "url": "http://pravo.gov.ru/" }
+  ],
+  "evaluatedAt": "2026-09-25T09:10:00Z"
+}

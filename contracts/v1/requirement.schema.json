@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/v1/requirement.schema.json",
+  "title": "Requirement",
+  "description": "Запись пакета правил: обязанность или возможность, основание и условие применимости.",
+  "type": "object",
+  "properties": {
+    "contractVersion": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "id": {
+      "description": "Устойчивый идентификатор записи; не меняется между версиями пакета.",
+      "$ref": "common.schema.json#/$defs/Id"
+    },
+    "packId": { "$ref": "common.schema.json#/$defs/Id" },
+    "packVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "kind": {
+      "description": "obligation — обязанность; opportunity — возможность (мера поддержки, льгота).",
+      "enum": ["obligation", "opportunity"]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": {
+      "description": "Что нужно сделать или что можно получить — простым языком.",
+      "type": "string"
+    },
+    "basis": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/LegalBasis" },
+      "minItems": 1
+    },
+    "deadline": {
+      "description": "Срок или периодичность в свободной форме, например «ежегодно до 25 января».",
+      "type": "string"
+    },
+    "validity": { "$ref": "common.schema.json#/$defs/Period" },
+    "condition": {
+      "description": "Условие применимости. Формат задаёт K-15a (contracts/rulepack/conditions/); в v1 проверяется только наличие поля type.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "minLength": 1 }
+      },
+      "required": ["type"]
+    },
+    "coverage": {
+      "description": "full — условие формализовано полностью; partial — часть условий не формализована (результат не выше needs_review); none — запись вне покрытия (out_of_coverage).",
+      "enum": ["full", "partial", "none"]
+    },
+    "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+  },
+  "required": ["contractVersion", "id", "packId", "packVersion", "kind", "title", "basis", "condition", "coverage", "source"],
+  "additionalProperties": false
+}

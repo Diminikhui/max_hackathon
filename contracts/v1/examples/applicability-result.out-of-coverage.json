@@ -1,0 +1,13 @@
+{
+  "contractVersion": 1,
+  "companyId": "model-company-cafe-kzn",
+  "requirementId": "a.region.other",
+  "packId": "a-fed",
+  "packVersion": 1,
+  "status": "out_of_coverage",
+  "statusReason": "Региональные требования этого региона пока не проверяются",
+  "explanation": [
+    { "kind": "result", "text": "Вне покрытия системы" }
+  ],
+  "evaluatedAt": "2026-09-25T09:10:00Z"
+}

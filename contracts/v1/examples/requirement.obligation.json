@@ -1,0 +1,22 @@
+{
+  "contractVersion": 1,
+  "id": "a.fed.sout",
+  "packId": "a-fed",
+  "packVersion": 1,
+  "kind": "obligation",
+  "title": "Провести специальную оценку условий труда (модельная запись)",
+  "summary": "Работодатель проводит СОУТ на рабочих местах.",
+  "basis": [
+    { "act": "Федеральный закон от 28.12.2013 № 426-ФЗ «О специальной оценке условий труда»", "article": "ст. 8", "url": "http://pravo.gov.ru/" }
+  ],
+  "deadline": "не реже одного раза в 5 лет",
+  "condition": {
+    "type": "all",
+    "items": [
+      { "type": "okved_prefix", "prefix": "56" },
+      { "type": "fact_equals", "key": "employment.has_employees", "value": true }
+    ]
+  },
+  "coverage": "full",
+  "source": { "system": "fixture", "recordId": "k02-example", "retrievedAt": "2026-09-25T09:00:00Z", "isModel": true }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "fact-cafe-scenario-headcount",
+  "companyId": "model-company-cafe-msk",
+  "key": "employment.headcount",
+  "value": 16,
+  "kind": "scenario",
+  "source": { "system": "user", "retrievedAt": "2026-09-25T10:00:00Z", "isModel": true },
+  "observedAt": "2026-09-25T10:00:00Z"
+}
