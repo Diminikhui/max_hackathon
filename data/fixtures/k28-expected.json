@@ -1,0 +1,245 @@
+{
+  "description": "Ожидаемые результаты K-28 (модельные данные). Статусы — assessRequirement из @max-hackathon/rules с evaluatedAt ниже.",
+  "isModel": true,
+  "evaluatedAt": "2026-09-25T09:00:00Z",
+  "statuses": {
+    "1": {
+      "k28-cafe-msk": {
+        "k28.employer-duty": {
+          "status": "applies"
+        },
+        "k28.alcohol-accounting": {
+          "status": "applies"
+        },
+        "k28.moscow-retail-fee": {
+          "status": "applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "needs_review"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        }
+      },
+      "k28-cafe-kzn": {
+        "k28.employer-duty": {
+          "status": "insufficient_data",
+          "missingFactKeys": ["employment.has_employees"]
+        },
+        "k28.alcohol-accounting": {
+          "status": "insufficient_data",
+          "missingFactKeys": ["sales.alcohol"]
+        },
+        "k28.moscow-retail-fee": {
+          "status": "not_applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "needs_review"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        }
+      },
+      "k28-autoservice-msk": {
+        "k28.employer-duty": {
+          "status": "not_applies"
+        },
+        "k28.alcohol-accounting": {
+          "status": "not_applies"
+        },
+        "k28.moscow-retail-fee": {
+          "status": "not_applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "not_applies"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        }
+      },
+      "k28-retail-ip-msk": {
+        "k28.employer-duty": {
+          "status": "not_applies"
+        },
+        "k28.alcohol-accounting": {
+          "status": "not_applies"
+        },
+        "k28.moscow-retail-fee": {
+          "status": "applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "not_applies"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        }
+      },
+      "k28-cafe-bad-data": {
+        "k28.employer-duty": {
+          "status": "needs_review"
+        },
+        "k28.alcohol-accounting": {
+          "status": "not_applies"
+        },
+        "k28.moscow-retail-fee": {
+          "status": "not_applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "needs_review"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        }
+      }
+    },
+    "2": {
+      "k28-cafe-msk": {
+        "k28.employer-duty": {
+          "status": "applies"
+        },
+        "k28.alcohol-accounting": {
+          "status": "applies"
+        },
+        "k28.moscow-retail-fee": {
+          "status": "applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "needs_review"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        },
+        "k28.water-marking": {
+          "status": "applies"
+        }
+      },
+      "k28-cafe-kzn": {
+        "k28.employer-duty": {
+          "status": "insufficient_data",
+          "missingFactKeys": ["employment.has_employees"]
+        },
+        "k28.alcohol-accounting": {
+          "status": "insufficient_data",
+          "missingFactKeys": ["sales.alcohol"]
+        },
+        "k28.moscow-retail-fee": {
+          "status": "not_applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "needs_review"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        },
+        "k28.water-marking": {
+          "status": "not_applies"
+        }
+      },
+      "k28-autoservice-msk": {
+        "k28.employer-duty": {
+          "status": "not_applies"
+        },
+        "k28.alcohol-accounting": {
+          "status": "not_applies"
+        },
+        "k28.moscow-retail-fee": {
+          "status": "not_applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "not_applies"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        },
+        "k28.water-marking": {
+          "status": "not_applies"
+        }
+      },
+      "k28-retail-ip-msk": {
+        "k28.employer-duty": {
+          "status": "not_applies"
+        },
+        "k28.alcohol-accounting": {
+          "status": "not_applies"
+        },
+        "k28.moscow-retail-fee": {
+          "status": "applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "not_applies"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        },
+        "k28.water-marking": {
+          "status": "not_applies"
+        }
+      },
+      "k28-cafe-bad-data": {
+        "k28.employer-duty": {
+          "status": "needs_review"
+        },
+        "k28.alcohol-accounting": {
+          "status": "not_applies"
+        },
+        "k28.moscow-retail-fee": {
+          "status": "not_applies"
+        },
+        "k28.sanitary-partial": {
+          "status": "needs_review"
+        },
+        "k28.special-license": {
+          "status": "out_of_coverage"
+        },
+        "k28.micro-support": {
+          "status": "applies"
+        },
+        "k28.water-marking": {
+          "status": "applies"
+        }
+      }
+    }
+  },
+  "demoChange": {
+    "description": "Демо-триггер: публикация k28-rulepack-v2 поверх v1.",
+    "rulepackChange": {
+      "packId": "k28-model",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "addedRequirementIds": ["k28.water-marking"],
+      "changedRequirementIds": [],
+      "removedRequirementIds": []
+    },
+    "becameApplicable": {
+      "k28-cafe-msk": ["k28.water-marking"],
+      "k28-cafe-bad-data": ["k28.water-marking"]
+    }
+  }
+}
