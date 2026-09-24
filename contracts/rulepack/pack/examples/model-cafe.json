@@ -1,0 +1,48 @@
+{
+  "contractVersion": 1,
+  "packId": "a-fed",
+  "packVersion": 1,
+  "title": "Модельный пакет для общепита",
+  "owner": { "name": "Команда MAX Hackathon" },
+  "source": {
+    "system": "fixture",
+    "url": "https://example.invalid/model-rulepack/a-fed",
+    "recordId": "k-15b-example",
+    "retrievedAt": "2026-09-25T09:00:00Z",
+    "isModel": true
+  },
+  "publishedAt": "2026-09-25T09:00:00Z",
+  "validity": { "from": "2026-09-25" },
+  "isModel": true,
+  "requirements": [
+    {
+      "contractVersion": 1,
+      "id": "a.fed.demo-employer-check",
+      "packId": "a-fed",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Модельная обязанность работодателя",
+      "summary": "Иллюстрация формата; не является юридическим утверждением.",
+      "basis": [
+        {
+          "act": "Модельный правовой источник",
+          "url": "https://example.invalid/model-law"
+        }
+      ],
+      "condition": {
+        "type": "all",
+        "items": [
+          { "type": "okved_prefix", "prefix": "56" },
+          { "type": "has_employees", "value": true }
+        ]
+      },
+      "coverage": "full",
+      "source": {
+        "system": "fixture",
+        "url": "https://example.invalid/model-rulepack/a-fed",
+        "retrievedAt": "2026-09-25T09:00:00Z",
+        "isModel": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.max-hackathon.invalid/rulepack/pack/pack.schema.json",
+  "title": "RulePack",
+  "description": "Версионированный пакет правил. Записи совместимы с Requirement v1, а их условия проверяются форматом K-15a.",
+  "type": "object",
+  "properties": {
+    "contractVersion": { "$ref": "../../v1/common.schema.json#/$defs/ContractVersion" },
+    "packId": { "$ref": "../../v1/common.schema.json#/$defs/Id" },
+    "packVersion": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "owner": {
+      "description": "Команда или организация, ответственная за содержание и обновление пакета.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "contact": { "type": "string", "minLength": 1 }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "source": {
+      "description": "Происхождение пакета; URL обязателен для проверки источника. Модельный источник отмечается isModel.",
+      "allOf": [
+        { "$ref": "../../v1/common.schema.json#/$defs/SourceRef" },
+        { "type": "object", "required": ["url"] }
+      ]
+    },
+    "publishedAt": { "$ref": "../../v1/common.schema.json#/$defs/DateTime" },
+    "validity": {
+      "description": "Период действия версии пакета; хотя бы одна граница обязательна.",
+      "allOf": [
+        { "$ref": "../../v1/common.schema.json#/$defs/Period" },
+        { "type": "object", "minProperties": 1 }
+      ]
+    },
+    "isModel": {
+      "description": "Модельный пакет помечается в интерфейсе и документации.",
+      "type": "boolean"
+    },
+    "requirements": {
+      "description": "Записи Requirement v1. Каждое поле condition содержит дерево по схеме K-15a.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "allOf": [
+          { "$ref": "../../v1/requirement.schema.json" },
+          {
+            "type": "object",
+            "properties": {
+              "condition": { "$ref": "../conditions/condition.schema.json" }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "required": ["contractVersion", "packId", "packVersion", "title", "owner", "source", "publishedAt", "validity", "isModel", "requirements"],
+  "additionalProperties": false
+}
