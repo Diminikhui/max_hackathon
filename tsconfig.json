@@ -1,0 +1,17 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/domain" },
+    { "path": "packages/rules" },
+    { "path": "packages/adapters" },
+    { "path": "packages/classifier" },
+    { "path": "packages/storage" },
+    { "path": "packages/services" },
+    { "path": "packages/metrics" },
+    { "path": "packages/observability" },
+    { "path": "packages/security" },
+    { "path": "apps/bot" },
+    { "path": "apps/worker" },
+    { "path": "apps/miniapp-api" }
+  ]
+}

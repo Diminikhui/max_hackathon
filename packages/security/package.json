@@ -1,0 +1,16 @@
+{
+  "name": "@max-hackathon/security",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Проверка подписи initData, работа с секретами, минимизация персональных данных.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

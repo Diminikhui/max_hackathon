@@ -41,3 +41,6 @@ target/
 # Local agent work
 .claude/settings.local.json
 .codex/
+
+# TypeScript
+*.tsbuildinfo

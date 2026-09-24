@@ -1,0 +1,16 @@
+{
+  "name": "@max-hackathon/adapters",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Адаптеры внешних источников (профиль, требования, меры поддержки): real, fixture, synthetic.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

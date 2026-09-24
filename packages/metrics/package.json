@@ -1,0 +1,16 @@
+{
+  "name": "@max-hackathon/metrics",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Метрики продукта и их агрегация.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}
