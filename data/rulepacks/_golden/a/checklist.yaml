@@ -1,0 +1,547 @@
+contractVersion: 1
+id: golden-a-foodservice-2026-09-24
+title: "Эталонный чеклист: общепит (ОКВЭД 56), Москва и Республика Татарстан"
+status: human_curated_draft
+legalNotice: >-
+  Чеклист собран вручную по официальным источникам и не является юридической
+  консультацией. Применимость условных требований нужно подтвердить по фактам
+  конкретного объекта и по действующей редакции акта.
+scope:
+  okvedPrefixes: ["56"]
+  regionCodes: ["77", "16"]
+  segment: "ИП и микропредприятия, в том числе с работниками"
+verifiedAt: "2026-09-24"
+reviewBefore: "2026-12-01"
+review:
+  status: pending_second_participant
+  note: >-
+    Второй участник должен проверить основания, сроки и условия до перевода
+    набора из эталонного чеклиста в исполняемый пакет правил K-17a.
+
+requirements:
+  - contractVersion: 1
+    id: a.fed.start-notification
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Подать уведомление о начале деятельности общепита"
+    summary: >-
+      Подать через Госуслуги отдельное уведомление по каждому адресу, где
+      начинается оказание услуг общественного питания.
+    basis:
+      - act: "Постановление Правительства РФ от 27.05.2025 № 725"
+        article: "Правила и приложение № 1"
+        url: "https://publication.pravo.gov.ru/document/0001202505270025"
+    deadline: "До дня фактического начала деятельности по каждому адресу"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: partial
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://28.rospotrebnadzor.ru/content/1/18118/"
+      recordId: "pp-725-foodservice-notification"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.haccp-production-control
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Внедрить процедуры производственного контроля на принципах ХАССП"
+    summary: >-
+      Определить контролируемые этапы производства, документировать процедуры,
+      вести записи контроля и поддерживать их в работе предприятия.
+    basis:
+      - act: "ТР ТС 021/2011 «О безопасности пищевой продукции»"
+        article: "ст. 10, ч. 2–3"
+        url: "https://eec.eaeunion.org/comission/department/deptexreg/tr/PischevayaProd.php"
+      - act: "Федеральный закон от 30.03.1999 № 52-ФЗ"
+        article: "ст. 32"
+        url: "https://www.kremlin.ru/acts/bank/13636"
+    deadline: "До начала изготовления пищевой продукции; далее постоянно"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: full
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://zpp.rospotrebnadzor.ru/news/federal/574818"
+      recordId: "foodservice-2026-haccp"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.technical-documents
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Утвердить ассортимент и технологические документы"
+    summary: >-
+      Готовить блюда только по утверждённому руководителем ассортименту и
+      технологическим документам; фиксировать состав, процесс, выход и режимы.
+    basis:
+      - act: "СанПиН 2.3/2.4.3590-20"
+        article: "разд. II"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202011120001"
+    deadline: "До включения блюда в меню; актуализировать при изменении рецептуры"
+    validity:
+      to: "2026-12-31"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: full
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://zpp.rospotrebnadzor.ru/news/federal/574818"
+      recordId: "foodservice-2026-technical-documents"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.incoming-control-traceability
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Принимать сырьё только с маркировкой и документами прослеживаемости"
+    summary: >-
+      При приёмке проверять маркировку, срок годности, условия перевозки,
+      товаросопроводительные документы и сведения об оценке соответствия.
+    basis:
+      - act: "СанПиН 2.3/2.4.3590-20"
+        article: "разд. II"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202011120001"
+      - act: "ТР ТС 021/2011 «О безопасности пищевой продукции»"
+        article: "ст. 10"
+        url: "https://eec.eaeunion.org/comission/department/deptexreg/tr/PischevayaProd.php"
+    deadline: "При каждой поставке, до принятия сырья в оборот"
+    validity:
+      to: "2026-12-31"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: full
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://zpp.rospotrebnadzor.ru/news/federal/574818"
+      recordId: "foodservice-2026-incoming-control"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.storage-and-temperature-control
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Соблюдать сроки и температурные режимы хранения и реализации"
+    summary: >-
+      Контролировать температуру холодильного оборудования и условия складов,
+      не использовать просроченную продукцию, не переносить готовые блюда на
+      следующий день и вести предусмотренные журналы контроля.
+    basis:
+      - act: "СанПиН 2.3/2.4.3590-20"
+        article: "разд. II"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202011120001"
+    deadline: "Постоянно; записи — с периодичностью программы производственного контроля"
+    validity:
+      to: "2026-12-31"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: full
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://zpp.rospotrebnadzor.ru/news/federal/574818"
+      recordId: "foodservice-2026-temperature-control"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.staff-medical-and-hygiene
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Допускать персонал после медосмотров и гигиенической подготовки"
+    summary: >-
+      Организовать обязательные предварительные и периодические медосмотры,
+      профессиональную гигиеническую подготовку и аттестацию; обеспечить учёт
+      результатов в личных медицинских книжках.
+    basis:
+      - act: "Федеральный закон от 30.03.1999 № 52-ФЗ"
+        article: "ст. 34 и 36"
+        url: "https://www.kremlin.ru/acts/bank/13636"
+      - act: "Приказ Минздрава России от 28.01.2021 № 29н"
+        article: "Порядок обязательных предварительных и периодических медосмотров"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202101290043"
+      - act: "Приказ Минздрава России от 18.02.2022 № 90н"
+        article: "форма и порядок ведения личных медицинских книжек"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202202240002"
+    deadline: "Предварительный — до допуска к работе; периодические — по установленной периодичности"
+    condition:
+      type: all
+      items:
+        - type: okved_prefix
+          prefix: "56"
+        - type: has_employees
+          value: true
+    coverage: partial
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://elmk.rospotrebnadzor.ru/"
+      recordId: "foodservice-staff-elmk"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.staff-daily-health-check
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Проводить ежедневный осмотр контактирующих с пищей работников"
+    summary: >-
+      Назначенное ответственное лицо до смены осматривает работников на признаки
+      инфекционных и гнойничковых заболеваний и фиксирует результат в
+      гигиеническом журнале.
+    basis:
+      - act: "СанПиН 2.3/2.4.3590-20"
+        article: "п. 2.22"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202011120001"
+    deadline: "Ежедневно до начала смены"
+    validity:
+      to: "2026-12-31"
+    condition:
+      type: all
+      items:
+        - type: okved_prefix
+          prefix: "56"
+        - type: has_employees
+          value: true
+    coverage: full
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://zpp.rospotrebnadzor.ru/news/federal/574818"
+      recordId: "foodservice-2026-daily-health-check"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.cleaning-pest-control
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Обеспечить уборку, дезинфекцию и защиту от вредителей"
+    summary: >-
+      Проводить влажную уборку, применять и маркировать моющие и дезинфицирующие
+      растворы по инструкциям, исключить присутствие насекомых и грызунов и не
+      производить пищу во время дезинсекции или дератизации.
+    basis:
+      - act: "СанПиН 2.3/2.4.3590-20"
+        article: "разд. II"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202011120001"
+    deadline: "Уборка — ежедневно и после загрязнения; контроль — по программе производственного контроля"
+    validity:
+      to: "2026-12-31"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: full
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://zpp.rospotrebnadzor.ru/news/federal/574818"
+      recordId: "foodservice-2026-cleaning-pest-control"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.consumer-information-menu
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Раскрывать обязательную информацию в меню и на вывеске"
+    summary: >-
+      Указать исполнителя и режим работы, состав и способ приготовления блюд,
+      выход порции, цену и пищевую ценность; не добавлять без согласия клиента
+      комиссии, доплаты или чаевые сверх указанной цены.
+    basis:
+      - act: "Постановление Правительства РФ от 21.09.2020 № 1515"
+        article: "п. 8–12 и 19 Правил оказания услуг общественного питания"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202009280045"
+      - act: "Закон РФ от 07.02.1992 № 2300-1 «О защите прав потребителей»"
+        article: "ст. 8–10"
+        url: "https://www.kremlin.ru/acts/bank/830"
+    deadline: "До предложения блюда или услуги потребителю; поддерживать сведения актуальными"
+    validity:
+      to: "2026-12-31"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: full
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://13.rospotrebnadzor.ru/content/ob-utverzhdenii-pravil-okazaniya-uslug-obshchestvennogo-pitaniya-0"
+      recordId: "pp-1515-consumer-information"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.cash-register-before-payment
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Применять ККТ и выдавать бумажный чек до расчёта"
+    summary: >-
+      После согласия клиента оплатить заказ сформировать и выдать бумажный
+      кассовый чек с учётом предстоящего приёма денег, затем принять оплату.
+    basis:
+      - act: "Федеральный закон от 22.05.2003 № 54-ФЗ"
+        article: "ст. 1.2, п. 5.11"
+        url: "https://www.kremlin.ru/acts/bank/19607"
+    deadline: "При каждом расчёте: после согласия клиента и до приёма оплаты"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: full
+    source:
+      system: nalog.gov.ru
+      url: "https://www.nalog.gov.ru/rn08/news/activities_fts/16135323/"
+      recordId: "54-fz-1.2-5.11-foodservice"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.mercury-incoming-evsd
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Гасить входящие эВСД на подконтрольную продукцию в «Меркурии»"
+    summary: >-
+      Зарегистрировать площадку и погашать входящий ветеринарный
+      сопроводительный документ после доставки и приёмки подконтрольной партии.
+    basis:
+      - act: "Приказ Минсельхоза России от 13.12.2022 № 862"
+        article: "Порядок оформления ВСД в электронной форме"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202301250002"
+    deadline: "В течение 1 рабочего дня после доставки и приёмки подконтрольной партии"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: partial
+    source:
+      system: vetrf.ru
+      url: "https://www.fsvps.gov.ru/checks/forms/index?formId=3"
+      recordId: "mercury-incoming-evsd"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.fire-safety
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Установить и соблюдать противопожарный режим"
+    summary: >-
+      Утвердить инструкцию о мерах пожарной безопасности, назначить
+      ответственных, обеспечить эвакуационные пути, исправность систем защиты и
+      наличие подходящих огнетушителей.
+    basis:
+      - act: "Постановление Правительства РФ от 16.09.2020 № 1479"
+        article: "Правила противопожарного режима, п. 2–4 и применимые специальные пункты"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202009250010"
+    deadline: "До начала эксплуатации объекта; далее постоянно и по срокам обслуживания оборудования"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: partial
+    source:
+      system: mchs.gov.ru
+      url: "https://mchs.gov.ru/dokumenty/602"
+      recordId: "pp-1479-fire-safety"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.occupational-safety
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Организовать обучение по охране труда и провести СОУТ"
+    summary: >-
+      Обучить работников и проверить знания требований охраны труда; провести
+      специальную оценку условий труда на рабочих местах и актуализировать её в
+      предусмотренных законом случаях.
+    basis:
+      - act: "Постановление Правительства РФ от 24.12.2021 № 2464"
+        article: "Правила обучения по охране труда"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202112290004"
+      - act: "Федеральный закон от 28.12.2013 № 426-ФЗ"
+        article: "ст. 8 и 17"
+        url: "https://publication.pravo.gov.ru/Document/View/0001201312300056"
+    deadline: >-
+      Обучение — до самостоятельной работы и далее по установленной
+      периодичности; СОУТ — в течение 12 месяцев для вновь организованных
+      рабочих мест, затем не реже одного раза в 5 лет, если применимо
+    condition:
+      type: all
+      items:
+        - type: okved_prefix
+          prefix: "56"
+        - type: has_employees
+          value: true
+    coverage: partial
+    source:
+      system: publication.pravo.gov.ru
+      url: "https://publication.pravo.gov.ru/Document/View/0001202112290004"
+      recordId: "pp-2464-and-426-fz"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.no-smoking
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Запретить курение в помещениях общепита и разместить знак"
+    summary: >-
+      Не допускать курение табака и потребление никотинсодержащей продукции в
+      помещении оказания услуг общественного питания; разместить установленный
+      знак о запрете курения.
+    basis:
+      - act: "Федеральный закон от 23.02.2013 № 15-ФЗ"
+        article: "ст. 12"
+        url: "https://www.kremlin.ru/acts/bank/36838"
+      - act: "Приказ Минздрава России от 20.02.2021 № 129н"
+        article: "требования к знаку о запрете курения"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202103230041"
+    deadline: "До открытия объекта; соблюдать постоянно"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: full
+    source:
+      system: publication.pravo.gov.ru
+      url: "https://publication.pravo.gov.ru/Document/View/0001202103230041"
+      recordId: "15-fz-no-smoking-foodservice"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.alcohol-license-and-accounting
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Оформить продажу алкоголя и вести её по специальным правилам"
+    summary: >-
+      До продажи алкоголя проверить необходимость и получить лицензию для
+      розничной продажи при оказании услуг общепита, подключиться к ЕГАИС и
+      соблюдать ограничения по месту, объекту, возрасту покупателя и отпуску.
+      Пиво, сидр, пуаре и медовуха имеют отдельный режим и не делают все условия
+      для крепкого алкоголя применимыми автоматически.
+    basis:
+      - act: "Федеральный закон от 22.11.1995 № 171-ФЗ"
+        article: "ст. 14, 16 и 18"
+        url: "https://government.ru/docs/all/96025/"
+    deadline: "До первой продажи; учёт и ограничения — при каждой операции"
+    condition:
+      type: all
+      items:
+        - type: okved_prefix
+          prefix: "56"
+        - type: fact_in
+          key: sales.alcohol
+          values: [beer, strong]
+    coverage: partial
+    source:
+      system: government.ru
+      url: "https://government.ru/docs/all/96025/"
+      recordId: "171-fz-foodservice-alcohol"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.tatarstan.alcohol-regional-restrictions
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Учесть дополнительные ограничения продажи алкоголя в Татарстане"
+    summary: >-
+      Для объекта в Республике Татарстан до начала продаж проверить региональные
+      ограничения времени, условий и мест продажи, в том числе режим объекта
+      общепита с залом обслуживания и границы прилегающих территорий.
+    basis:
+      - act: "Закон Республики Татарстан от 06.03.2015 № 10-ЗРТ"
+        article: "ст. 2 в действующей редакции"
+        url: "https://pravo.tatarstan.ru/gossov/zakon.htm/?npa_id=72726"
+    deadline: "До первой продажи алкоголя и при каждом изменении адреса, формата объекта или региональных правил"
+    condition:
+      type: all
+      items:
+        - type: region
+          codes: ["16"]
+        - type: fact_in
+          key: sales.alcohol
+          values: [beer, strong]
+    coverage: partial
+    source:
+      system: pravo.tatarstan.ru
+      url: "https://pravo.tatarstan.ru/gossov/zakon.htm/?npa_id=72726"
+      recordId: "10-zrt-foodservice-alcohol"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.energy-drinks-minors
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Не продавать энергетические напитки несовершеннолетним"
+    summary: >-
+      При сомнении в совершеннолетии покупателя запросить документ и отказать в
+      продаже безалкогольного тонизирующего напитка, если возраст не подтверждён.
+      В Татарстане дополнительно проверить запреты по видам зданий и местам.
+    basis:
+      - act: "Федеральный закон от 08.08.2024 № 304-ФЗ"
+        article: "ст. 2"
+        url: "https://publication.pravo.gov.ru/document/0001202408080108"
+      - act: "Закон Республики Татарстан от 25.12.2025 № 107-ЗРТ"
+        article: "ст. 3"
+        url: "https://pravo.tatarstan.ru/file/npa/2026-01/1773670/npa_1773671.pdf"
+    deadline: "При каждой продаже; региональные ограничения проверить до начала продаж"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: partial
+    source:
+      system: publication.pravo.gov.ru
+      url: "https://publication.pravo.gov.ru/document/0001202408080108"
+      recordId: "304-fz-energy-drinks"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
+
+  - contractVersion: 1
+    id: a.fed.catering-delivery
+    packId: golden-a
+    packVersion: 1
+    kind: obligation
+    title: "Соблюдать специальные правила кейтеринга и доставки"
+    summary: >-
+      Для выездного обслуживания утвердить внутренний порядок прослеживаемости,
+      маркировать транспортные ёмкости, соблюдать температурные режимы и сроки,
+      а порционирование выполнять в выделенной зоне.
+    basis:
+      - act: "СанПиН 2.3/2.4.3590-20"
+        article: "п. 3.8"
+        url: "https://publication.pravo.gov.ru/Document/View/0001202011120001"
+    deadline: "До первого кейтерингового мероприятия; требования соблюдать при каждом выезде"
+    validity:
+      to: "2026-12-31"
+    condition:
+      type: okved_prefix
+      prefix: "56"
+    coverage: partial
+    source:
+      system: rospotrebnadzor.ru
+      url: "https://zpp.rospotrebnadzor.ru/news/federal/574818"
+      recordId: "foodservice-2026-catering"
+      retrievedAt: "2026-09-24T21:17:59Z"
+      isModel: false
