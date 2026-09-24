@@ -36,7 +36,7 @@ describe("формат условий", () => {
       node.items?.forEach(walk);
       if (node.item) walk(node.item);
     };
-    listJson("examples").forEach((file) => walk(readJson(join(conditionsDir, "examples", file))));
+    for (const file of listJson("examples")) walk(readJson(join(conditionsDir, "examples", file)));
     expect(CONDITION_TYPES.filter((type) => !seen.has(type))).toEqual([]);
   });
 

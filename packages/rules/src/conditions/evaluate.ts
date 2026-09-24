@@ -211,7 +211,7 @@ const collectMissing = (result: ConditionResult, missing: ReadonlyMap<string, st
   const keys = new Set<string>();
   const walk = (node: ConditionResult): void => {
     if (node.outcome !== "unknown") return;
-    missing.get(node.path)?.forEach((key) => keys.add(key));
+    for (const key of missing.get(node.path) ?? []) keys.add(key);
     node.children?.forEach(walk);
   };
   walk(result);

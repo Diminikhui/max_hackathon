@@ -91,11 +91,11 @@ export const decisiveLeaves = (root: ConditionResult): DecisiveLeaf[] => {
       return;
     }
     if (node.conditionType === "not") {
-      children.forEach((child) => walk(child, negations + 1));
+      for (const child of children) walk(child, negations + 1);
       return;
     }
     const matching = children.filter((child) => child.outcome === node.outcome);
-    (matching.length > 0 ? matching : children).forEach((child) => walk(child, negations));
+    for (const child of matching.length > 0 ? matching : children) walk(child, negations);
   };
   walk(root, 0);
   return result;
