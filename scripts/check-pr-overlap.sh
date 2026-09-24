@@ -7,7 +7,12 @@ set -euo pipefail
 
 target="${1:?Укажите номер PR или --all}"
 dry_run="${2:-}"
-repo="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}"
+if [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
+  repo="$GITHUB_REPOSITORY"
+else
+  repo="$(git config --get remote.origin.url 2>/dev/null | sed -E 's#^(git@github\.com:|https://github\.com/)##; s#\.git$##' || true)"
+  [[ "$repo" == */* ]] || repo="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+fi
 marker="<!-- pr-overlap -->"
 ignored='^(docs/plan-dependencies\.md|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$'
 closing='(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+'
