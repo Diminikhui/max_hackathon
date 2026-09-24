@@ -223,9 +223,7 @@ export interface NotificationCandidate {
   createdAt: DateTime;
 }
 
-export type NotificationButton =
-  | { text: string; url: string }
-  | { text: string; payload: string };
+export type NotificationButton = { text: string; url: string } | { text: string; payload: string };
 
 export interface Notification {
   contractVersion: ContractVersion;

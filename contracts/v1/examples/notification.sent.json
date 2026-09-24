@@ -5,9 +5,7 @@
   "companyId": "model-company-cafe-msk",
   "recipient": { "channel": "max_bot", "chatId": "model-chat-1" },
   "text": "🔔 Новое требование (модельное изменение)\nПередавать данные о продаже упакованной воды в систему маркировки.\nПочему это вас касается: ОКВЭД 56.10 · Москва\nСформировано автоматически.",
-  "buttons": [
-    { "text": "Открыть карточку", "payload": "open:a.fed.water-marking" }
-  ],
+  "buttons": [{ "text": "Открыть карточку", "payload": "open:a.fed.water-marking" }],
   "sourceUrls": ["http://pravo.gov.ru/"],
   "automated": true,
   "isModel": true,
