@@ -82,7 +82,7 @@ report() {
     fi
   fi
 
-  local body="" existing
+  local body="" existing_id existing_body
   if [[ -n "$overlap" ]]; then
     body+="**Те же файлы правятся в других открытых PR.** Договоритесь через комментарий в Issue потока или слейте один из PR первым и подтяните \`main\` (\`./scripts/wp.sh sync\`):"$'\n\n'"$overlap"$'\n'
   fi
@@ -98,10 +98,11 @@ report() {
   if [[ -n "$dry_run" ]]; then
     echo "=== PR #$pr"; echo "$body"; echo; return 0
   fi
-  existing="$(gh api "repos/$repo/issues/$pr/comments?per_page=100" --jq "[.[] | select(.body | contains(\"$marker\"))] | first | {id, body}" 2>/dev/null || true)"
-  if [[ -n "$existing" && "$existing" != "null" ]]; then
-    if [[ "$(jq -r .body <<<"$existing")" != "$body" ]]; then
-      gh api -X PATCH "repos/$repo/issues/comments/$(jq -r .id <<<"$existing")" -f body="$body" >/dev/null
+  existing_id="$(gh api "repos/$repo/issues/$pr/comments?per_page=100" --jq "[.[] | select(.body | contains(\"$marker\"))] | first | .id // empty" 2>/dev/null || true)"
+  if [[ -n "$existing_id" ]]; then
+    existing_body="$(gh api "repos/$repo/issues/comments/$existing_id" --jq .body 2>/dev/null || true)"
+    if [[ "$existing_body" != "$body" ]]; then
+      gh api -X PATCH "repos/$repo/issues/comments/$existing_id" -f body="$body" >/dev/null
     fi
   elif [[ -n "$overlap$outside" ]]; then
     gh api -X POST "repos/$repo/issues/$pr/comments" -f body="$body" >/dev/null

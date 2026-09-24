@@ -22,4 +22,4 @@ jobs:
       - name: Comment file overlaps between open pull requests and edits outside the work package zone
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash -x ./scripts/check-pr-overlap.sh --all
+        run: ./scripts/check-pr-overlap.sh --all
