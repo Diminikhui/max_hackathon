@@ -1,0 +1,201 @@
+{
+  "contractVersion": 1,
+  "packId": "k28-model",
+  "packVersion": 1,
+  "title": "Модельный пакет K-28 для пошаговой проверки",
+  "owner": {
+    "name": "Команда MAX Hackathon"
+  },
+  "source": {
+    "system": "fixture",
+    "url": "https://example.invalid/k28-model",
+    "recordId": "k28",
+    "retrievedAt": "2026-09-25T09:00:00Z",
+    "isModel": true
+  },
+  "publishedAt": "2026-09-25T09:00:00Z",
+  "validity": {
+    "from": "2026-09-25"
+  },
+  "isModel": true,
+  "requirements": [
+    {
+      "contractVersion": 1,
+      "id": "k28.employer-duty",
+      "packId": "k28-model",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Обязанность работодателя общепита (модельная запись)",
+      "basis": [
+        {
+          "act": "Модельный правовой источник — не юридическое утверждение",
+          "url": "http://pravo.gov.ru/"
+        }
+      ],
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "has_employees",
+            "value": true
+          }
+        ]
+      },
+      "coverage": "full",
+      "source": {
+        "system": "fixture",
+        "recordId": "k28",
+        "retrievedAt": "2026-09-25T09:00:00Z",
+        "isModel": true
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "k28.alcohol-accounting",
+      "packId": "k28-model",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Учёт продажи алкоголя (модельная запись)",
+      "basis": [
+        {
+          "act": "Модельный правовой источник — не юридическое утверждение",
+          "url": "http://pravo.gov.ru/"
+        }
+      ],
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "fact_in",
+            "key": "sales.alcohol",
+            "values": ["beer", "strong"]
+          }
+        ]
+      },
+      "coverage": "full",
+      "source": {
+        "system": "fixture",
+        "recordId": "k28",
+        "retrievedAt": "2026-09-25T09:00:00Z",
+        "isModel": true
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "k28.moscow-retail-fee",
+      "packId": "k28-model",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Региональный сбор для торговли в Москве (модельная запись)",
+      "basis": [
+        {
+          "act": "Модельный правовой источник — не юридическое утверждение",
+          "url": "http://pravo.gov.ru/"
+        }
+      ],
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "47",
+            "scope": "main_or_additional"
+          },
+          {
+            "type": "region",
+            "codes": ["77"]
+          }
+        ]
+      },
+      "coverage": "full",
+      "source": {
+        "system": "fixture",
+        "recordId": "k28",
+        "retrievedAt": "2026-09-25T09:00:00Z",
+        "isModel": true
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "k28.sanitary-partial",
+      "packId": "k28-model",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Санитарные требования общепита (условия формализованы частично) (модельная запись)",
+      "basis": [
+        {
+          "act": "Модельный правовой источник — не юридическое утверждение",
+          "url": "http://pravo.gov.ru/"
+        }
+      ],
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "56"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "fixture",
+        "recordId": "k28",
+        "retrievedAt": "2026-09-25T09:00:00Z",
+        "isModel": true
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "k28.special-license",
+      "packId": "k28-model",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Специальная лицензия (вне покрытия системы) (модельная запись)",
+      "basis": [
+        {
+          "act": "Модельный правовой источник — не юридическое утверждение",
+          "url": "http://pravo.gov.ru/"
+        }
+      ],
+      "condition": {
+        "type": "always"
+      },
+      "coverage": "none",
+      "source": {
+        "system": "fixture",
+        "recordId": "k28",
+        "retrievedAt": "2026-09-25T09:00:00Z",
+        "isModel": true
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "k28.micro-support",
+      "packId": "k28-model",
+      "packVersion": 1,
+      "kind": "opportunity",
+      "title": "Поддержка микро- и малого бизнеса (модельная запись)",
+      "basis": [
+        {
+          "act": "Модельный правовой источник — не юридическое утверждение",
+          "url": "http://pravo.gov.ru/"
+        }
+      ],
+      "condition": {
+        "type": "msp_category",
+        "in": ["micro", "small"]
+      },
+      "coverage": "full",
+      "source": {
+        "system": "fixture",
+        "recordId": "k28",
+        "retrievedAt": "2026-09-25T09:00:00Z",
+        "isModel": true
+      }
+    }
+  ]
+}
