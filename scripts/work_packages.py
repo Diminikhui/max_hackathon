@@ -4,7 +4,7 @@
   validate            проверить таблицы и граф зависимостей
   report [--check]    сформировать docs/plan-dependencies.md (или проверить, что он актуален)
   sync [--apply [--refresh]]   создать labels, milestones, эпики, Issues, sub-issues и зависимости; --refresh обновляет тексты созданных Issue
-  project [--number N] [--apply]   заполнить поля существующего GitHub Project и добавить виды (нужен scope `project`)
+  project [--number N] [--apply] [--dates] [--views]   заполнить поля существующего GitHub Project, пересчитать даты, настроить виды (нужен scope `project`)
 """
 from __future__ import annotations
 
@@ -195,12 +195,17 @@ def critical_path(wps: dict[str, Wp]) -> tuple[list[str], float]:
     return path[::-1], finish[end]
 
 
-def schedule(wps: dict[str, Wp]) -> dict[str, tuple[date, date]]:
+def schedule(wps: dict[str, Wp], done: dict[str, date] | None = None,
+             today: date | None = None) -> dict[str, tuple[date, date]]:
     """Условное расписание: ранний старт при неограниченном числе исполнителей.
 
-    Этап 4 не начинается до фиксации сданной версии (3-11b), этап 5 — после этапа 4.
-    Даты показывают порядок и параллельность потоков, а не сроки.
+    Без аргументов считает от BASE_DATE. Со `today` и `done` (закрытые потоки и даты закрытия)
+    считает скользящее расписание: закрытые потоки не задерживают открытые, открытые не начинаются
+    раньше сегодняшнего дня. Этап 4 не начинается до фиксации сданной версии (3-11b), этап 5 — после
+    этапа 4. Даты показывают порядок и параллельность потоков, а не сроки.
     """
+    done = done or {}
+    origin = today or BASE_DATE
     fin: dict[str, int] = {}
 
     def floors(w: Wp) -> list[str]:
@@ -213,13 +218,18 @@ def schedule(wps: dict[str, Wp]) -> dict[str, tuple[date, date]]:
     def finish(i: str) -> int:
         if i not in fin:
             w = wps[i]
-            w.start_day = max([finish(d) for d in w.deps + floors(w)] or [0])
-            fin[i] = w.start_day + VIS_DAYS.get(w.size, 2)
+            if i in done:
+                w.start_day, fin[i] = 0, 0
+            else:
+                w.start_day = max([finish(d) for d in w.deps + floors(w)] or [0])
+                fin[i] = w.start_day + VIS_DAYS.get(w.size, 2)
         return fin[i]
 
     for i in wps:
         finish(i)
-    return {i: (BASE_DATE + timedelta(days=w.start_day), BASE_DATE + timedelta(days=fin[i] - 1)) for i, w in wps.items()}
+    return {i: ((done[i], done[i]) if i in done else
+                (origin + timedelta(days=w.start_day), origin + timedelta(days=fin[i] - 1)))
+            for i, w in wps.items()}
 
 
 def load() -> tuple[dict[str, Wp], list[str]]:
@@ -535,6 +545,16 @@ VIEWS = [
     ("Критический путь", "TABLE_LAYOUT", "is:open label:critical-path"),
     ("Ядро", "TABLE_LAYOUT", 'is:open label:"stage:core"'),
 ]
+PROGRESS_VIEW = ("Прогресс этапов", "TABLE_LAYOUT", "label:epic")
+VIEW_FIELDS = {
+    "Канбан": ["Title", "Assignees", "Linked pull requests", "Priority", "Size", "Этап", "Sub-issues progress"],
+    "Бэклог": ["Title", "Assignees", "Priority", "Size", "Area", "Этап", "Слой", "Target date", "Sub-issues progress"],
+    "Моя работа": ["Title", "Status", "Linked pull requests", "Priority", "Size", "Этап", "Target date", "Sub-issues progress"],
+    "Доступно сейчас": ["Title", "Assignees", "Status", "Этап", "Size", "Priority", "Sub-issues progress"],
+    "Критический путь": ["Title", "Assignees", "Status", "Слой", "Size", "Sub-issues progress"],
+    "Ядро": ["Title", "Assignees", "Status", "Слой", "Size", "Критический путь", "Sub-issues progress"],
+    "Прогресс этапов": ["Title", "Этап", "Status", "Start date", "Target date", "Sub-issues progress"],
+}
 SIZE_MAP = {"S": "Small", "M": "Medium", "L": "Large"}
 AREA_MAP = {"area:frontend": "Mini app", "area:max": "MAX integration", "area:data": "Data",
             "area:backend": "Backend", "documentation": "Product"}
@@ -570,6 +590,18 @@ def cmd_project(args: argparse.Namespace) -> int:
     repo = repo_name()
     owner = repo.split("/")[0]
     print(f"Проект №{args.number} пользователя {owner}: заполнение полей для {len(wps)} потоков")
+    issues = {it["number"]: it for it in api_list(f"repos/{repo}/issues?state=all&per_page=100&labels=wp")
+              + api_list(f"repos/{repo}/issues?state=all&per_page=100&labels=epic")}
+    done: dict[str, date] = {}
+    for it in issues.values():
+        m = re.match(r"\[([^\]]+)\]", it["title"])
+        if m and m.group(1) in wps and it["state"] == "closed" and it.get("closed_at"):
+            done[m.group(1)] = date.fromisoformat(it["closed_at"][:10])
+    today = date.today()
+    sched = schedule(wps, done, today)
+    submit = [b for i, (_, b) in sched.items() if wps[i].stage in ("core", "2", "3") and i != "2-16"]
+    print(f"Закрыто потоков: {len(done)} из {len(wps)}. Условное расписание от {today}: "
+          f"ядро и этапы 2–3 заканчиваются {max(submit)} (при неограниченном числе исполнителей)")
     if not args.apply:
         print("Пробный запуск. Для выполнения добавьте --apply (нужен scope `project`).")
         return 0
@@ -595,6 +627,31 @@ def cmd_project(args: argparse.Namespace) -> int:
         print(f"  поле {fname}")
     have = fields()
 
+    def field_ids(names: list[str]) -> str:
+        return "[" + ",".join('"%s"' % have[n]["id"] for n in names if n in have) + "]"
+
+    def setup_views() -> None:
+        vs = gql("query($p:ID!){node(id:$p){... on ProjectV2{views(first:30){nodes{id name}}}}}", p=pid)["node"]["views"]["nodes"]
+        by_name = {v["name"]: v["id"] for v in vs}
+        vname, layout, flt = PROGRESS_VIEW
+        if vname not in by_name:
+            v = gql("mutation($p:ID!,$n:String!){createProjectV2View(input:{projectId:$p,name:$n,layout:%s}){projectV2View{id}}}"
+                    % layout, p=pid, n=vname)["createProjectV2View"]["projectV2View"]
+            gql("mutation($v:ID!,$f:String!){updateProjectV2View(input:{viewId:$v,filter:$f}){clientMutationId}}", v=v["id"], f=flt)
+            by_name[vname] = v["id"]
+            print(f"  вид {vname}")
+        for name, cols in VIEW_FIELDS.items():
+            if name in by_name:
+                gql("mutation($v:ID!){updateProjectV2View(input:{viewId:$v,configuration:{visibleFieldIds:%s}}){clientMutationId}}"
+                    % field_ids(cols), v=by_name[name])
+                print(f"  поля вида «{name}»: {', '.join(cols)}")
+
+    if args.views:
+        setup_views()
+        if not args.dates:
+            print(f"Готово: {project['url']}")
+            return 0
+
     def option(field: str, key: str) -> str:
         for o in have[field]["options"]:
             if key.lower() in o["name"].lower():
@@ -611,13 +668,10 @@ def cmd_project(args: argparse.Namespace) -> int:
         gql("mutation($v:ID!,$f:String!){updateProjectV2View(input:{viewId:$v,filter:$f}){clientMutationId}}", v=v["id"], f=flt)
         print(f"  вид {vname}")
 
-    sched = schedule(wps)
     epic_range: dict[str, tuple[date, date]] = {}
     for key in {epic_key(w) for w in wps.values()}:
         rng = [sched[w.id] for w in wps.values() if epic_key(w) == key]
         epic_range[epic_title(key)] = (min(a for a, _ in rng), max(b for _, b in rng))
-    issues = {it["number"]: it for it in api_list(f"repos/{repo}/issues?state=all&per_page=100&labels=wp")
-              + api_list(f"repos/{repo}/issues?state=all&per_page=100&labels=epic")}
     items = json.loads(gh("project", "item-list", str(args.number), "--owner", owner, "--limit", "500", "--format", "json"))["items"]
 
     def lit(kind: str, val) -> str:
@@ -690,7 +744,8 @@ def main() -> int:
     s.set_defaults(fn=cmd_sync)
     pr = sub.add_parser("project")
     pr.add_argument("--number", type=int, default=1, help="номер существующего проекта пользователя")
-    pr.add_argument("--dates", action="store_true", help="обновить только Start date и Target date")
+    pr.add_argument("--dates", action="store_true", help="обновить только Start date и Target date (скользящее расписание от сегодня)")
+    pr.add_argument("--views", action="store_true", help="настроить видимые поля видов и создать вид «Прогресс этапов»")
     pr.add_argument("--apply", action="store_true")
     pr.set_defaults(fn=cmd_project)
     args = p.parse_args()

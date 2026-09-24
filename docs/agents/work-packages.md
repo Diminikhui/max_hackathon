@@ -132,7 +132,9 @@ python3 scripts/work_packages.py validate      # структура и граф 
 python3 scripts/work_packages.py report        # обновить docs/plan-dependencies.md
 python3 scripts/work_packages.py sync          # пробный запуск: что будет создано в GitHub
 python3 scripts/work_packages.py sync --apply  # создать labels, milestones, Issues, зависимости
-python3 scripts/work_packages.py project --apply   # заполнить поля карточек в проекте
+python3 scripts/work_packages.py project --apply          # заполнить поля карточек в проекте
+python3 scripts/work_packages.py project --apply --dates  # пересчитать скользящее расписание Roadmap от сегодня
+python3 scripts/work_packages.py project --apply --views  # настроить поля видов и вид «Прогресс этапов»
 ```
 
 `validate` и `report --check` выполняются в CI: изменение плана без пересчёта отчёта не пройдёт проверку. Команды `sync --apply` и `project --apply` запускает владелец репозитория; они идемпотентны.
