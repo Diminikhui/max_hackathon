@@ -1,0 +1,5 @@
+{
+  "type": "fact_in",
+  "key": "sales.alcohol",
+  "values": ["beer", "strong"]
+}

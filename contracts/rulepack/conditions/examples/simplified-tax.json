@@ -1,0 +1,4 @@
+{
+  "type": "tax_regime",
+  "in": ["usn_income", "usn_income_expenses"]
+}
