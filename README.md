@@ -28,7 +28,15 @@
 
 ## Запуск
 
-Команды запуска будут добавлены после выбора и фиксации технологического стека.
+Нужны Node.js 24 LTS и pnpm (через `corepack enable`). Стек и раскладка репозитория — [ADR-0005](docs/decisions/0005-stack-and-repository-layout.md).
+
+```bash
+corepack enable
+pnpm install
+pnpm build
+```
+
+Пока в репозитории только пустой каркас пакетов. Запуск бота, мини-приложения и Docker Compose добавят потоки из [дорожной карты](docs/roadmap.md).
 
 ## Безопасность
 

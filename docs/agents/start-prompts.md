@@ -9,7 +9,10 @@ gh auth login                       # доступ к репозиторию
 gh auth refresh -s project          # чтобы агент двигал карточки на доске
 git clone https://github.com/Diminikhui/max_hackathon.git
 cp .env.example .env                # заполнить локально; токены в репозиторий не попадают
+corepack enable                     # pnpm версии из package.json (ADR-0005)
 ```
+
+В каждом новом worktree перед работой выполните `pnpm install`. Очистка сборки — `pnpm run clean` (`pnpm clean` в pnpm 11 — встроенная команда). Подробности — раздел «Окружение и команды» в [TEAM_GUIDE.md](../../TEAM_GUIDE.md).
 
 Каждый агент работает в своём worktree; скрипт `wp.sh claim` создаёт его сам. Запускать можно столько агентов, сколько сейчас потоков с меткой `ready` (`./scripts/wp.sh next`). Скрипт защищает от двойного захвата: если два агента возьмут один поток одновременно, второй получит отказ и должен выбрать следующий.
 

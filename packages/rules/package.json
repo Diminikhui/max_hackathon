@@ -1,0 +1,16 @@
+{
+  "name": "@max-hackathon/rules",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Механизм применимости: условия, статусы, объяснение, загрузка пакетов правил.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}
