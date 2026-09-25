@@ -138,6 +138,9 @@ importers:
       '@max-hackathon/domain':
         specifier: workspace:*
         version: link:../domain
+      '@max-hackathon/rules':
+        specifier: workspace:*
+        version: link:../rules
     devDependencies:
       '@electric-sql/pglite':
         specifier: ^0.5.8
@@ -145,9 +148,6 @@ importers:
       '@max-hackathon/adapters':
         specifier: workspace:*
         version: link:../adapters
-      '@max-hackathon/rules':
-        specifier: workspace:*
-        version: link:../rules
       '@max-hackathon/storage':
         specifier: workspace:*
         version: link:../storage
