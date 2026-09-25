@@ -24,3 +24,9 @@ node tools/rulepack-validate/rulepack-validate.mjs \
 ```bash
 node --test tools/rulepack-validate/rulepack-validate.test.mjs
 ```
+
+## Тесты и зависимости
+
+Инструмент — пакет workspace `@max-hackathon/rulepack-validate` со своими зависимостями (`ajv`, `ajv-formats`). Тесты (`node --test`) входят в общий `pnpm test`, поэтому выполняются в CI (`pnpm --filter @max-hackathon/rulepack-validate test` — только они).
+
+Номер версии относительно уже опубликованных (новая версия строго больше) валидатор проверить не может: это делает `PostgresRequirementRepository.saveVersion` (K-10b).

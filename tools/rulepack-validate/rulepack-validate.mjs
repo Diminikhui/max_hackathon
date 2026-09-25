@@ -1,15 +1,13 @@
 #!/usr/bin/env node
 
 import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Ajv2020 } from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(scriptDir, "../..");
-const domainRequire = createRequire(join(repositoryRoot, "packages/domain/package.json"));
-const { Ajv2020 } = domainRequire("ajv/dist/2020.js");
-const addFormats = domainRequire("ajv-formats");
 
 const packSchemaId = "https://contracts.max-hackathon.invalid/rulepack/pack/pack.schema.json";
 
@@ -96,7 +94,8 @@ export const validateRulepack = (pack) => {
   const schemaErrors = validate(pack) ? [] : formatSchemaErrors(validate.errors);
   if (!isObject(pack)) return schemaErrors.length > 0 ? schemaErrors : ["корень пакета должен быть объектом"];
 
-  const canCheckSemantics = isObject(pack.source) && Array.isArray(pack.requirements) && pack.requirements.every(isObject);
+  const canCheckSemantics =
+    isObject(pack.source) && Array.isArray(pack.requirements) && pack.requirements.every(isObject);
   return canCheckSemantics ? [...schemaErrors, ...validateSemantics(pack)] : schemaErrors;
 };
 
