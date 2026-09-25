@@ -595,13 +595,13 @@ def cmd_project(args: argparse.Namespace) -> int:
     done: dict[str, date] = {}
     for it in issues.values():
         m = re.match(r"\[([^\]]+)\]", it["title"])
-        if m and m.group(1) in wps and it["state"] == "closed" and it.get("closed_at"):
+        if m and m.group(1) in wps and it["state"] == "closed" and it.get("state_reason") == "completed" and it.get("closed_at"):
             done[m.group(1)] = date.fromisoformat(it["closed_at"][:10])
     today = date.today()
     sched = schedule(wps, done, today)
     submit = [b for i, (_, b) in sched.items() if wps[i].stage in ("core", "2", "3") and i != "2-16"]
     print(f"Закрыто потоков: {len(done)} из {len(wps)}. Условное расписание от {today}: "
-          f"ядро и этапы 2–3 заканчиваются {max(submit)} (при неограниченном числе исполнителей)")
+          f"ядро и этапы 2–3 заканчиваются {max(submit, default=today)} (при неограниченном числе исполнителей)")
     if not args.apply:
         print("Пробный запуск. Для выполнения добавьте --apply (нужен scope `project`).")
         return 0
@@ -628,6 +628,9 @@ def cmd_project(args: argparse.Namespace) -> int:
     have = fields()
 
     def field_ids(names: list[str]) -> str:
+        for n in names:
+            if n not in have:
+                print(f"  предупреждение: в проекте нет поля «{n}», столбец пропущен", file=sys.stderr)
         return "[" + ",".join('"%s"' % have[n]["id"] for n in names if n in have) + "]"
 
     def setup_views() -> None:
