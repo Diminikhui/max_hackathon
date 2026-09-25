@@ -20,6 +20,52 @@ describe("safe structured logging", () => {
     expect(context.company.inn).toBe("7700000016");
   });
 
+  it("redacts sensitive keys written in camelCase, kebab-case and upper case", () => {
+    const sanitized = sanitizeLogContext({
+      botToken: "bot-secret",
+      accessToken: "access-secret",
+      maxToken: "max-secret",
+      "x-api-key": "api-secret",
+      companyInn: "7700000016",
+      MAX_BOT_TOKEN: "env-secret",
+      requestId: "req-42",
+      okved: "56.10",
+    });
+    expect(sanitized).toEqual({
+      botToken: REDACTED,
+      accessToken: REDACTED,
+      maxToken: REDACTED,
+      "x-api-key": REDACTED,
+      companyInn: REDACTED,
+      MAX_BOT_TOKEN: REDACTED,
+      requestId: "req-42",
+      okved: "56.10",
+    });
+  });
+
+  it("redacts long numeric identifiers but keeps timestamps, durations and ids", () => {
+    const sanitized = sanitizeLogContext({
+      inn: 7700000016,
+      companyInn: 7700000016,
+      value: 7700000016,
+      nested: [{ count: 1000000000001 }],
+      createdAt: 1727254800000,
+      duration_ms: 1234567890,
+      messageId: 1234567890123,
+      attempts: 3,
+    });
+    expect(sanitized).toEqual({
+      inn: REDACTED,
+      companyInn: REDACTED,
+      value: REDACTED,
+      nested: [{ count: REDACTED }],
+      createdAt: 1727254800000,
+      duration_ms: 1234567890,
+      messageId: 1234567890123,
+      attempts: 3,
+    });
+  });
+
   it("redacts common secrets and PII embedded in messages and arrays", () => {
     const sanitized = sanitizeLogContext({
       values: [

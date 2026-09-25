@@ -15,6 +15,18 @@ export type LogSink = (record: Readonly<LogRecord>) => void;
 
 const SENSITIVE_KEY =
   /(?:^|_)(?:authorization|cookie|password|passwd|secret|token|api_?key|init_?data|inn|ogrn|snils|email|phone|address|full_?name|first_?name|last_?name|user_?id|chat_?id)(?:$|_)/i;
+// Ключ приводится к snake_case: botToken, accessToken и x-api-key становятся bot_token, access_token и x_api_key.
+const NUMERIC_IDENTIFIER = /^\d{10,15}$/;
+// Метки времени в мс, длительности и числовые id нужны при разборе инцидентов и под этими ключами не маскируются.
+const TIME_OR_ID_KEY = /(?:^|_)(?:at|ts|timestamp|time|ms|millis|duration|latency|elapsed|id)$/;
+
+function normalizeKey(key: string): string {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^A-Za-z0-9]+/g, "_")
+    .toLowerCase();
+}
+
 const EMAIL = /\b[^\s@]+@[^\s@]+\.[^\s@]+\b/gu;
 const BEARER = /\bBearer\s+[A-Za-z0-9._~+/=-]+/giu;
 const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu;
@@ -33,8 +45,18 @@ function sanitizeString(value: string): string {
 }
 
 function sanitizeValue(value: unknown, key: string | undefined, seen: WeakSet<object>, depth: number): unknown {
-  if (key && SENSITIVE_KEY.test(key)) return REDACTED;
+  const normalizedKey = key === undefined ? undefined : normalizeKey(key);
+  if (normalizedKey && SENSITIVE_KEY.test(normalizedKey)) return REDACTED;
   if (typeof value === "string") return sanitizeString(value);
+  // ИНН и ОГРН, сохранённые числом под несекретным ключом, тоже не должны попасть в лог.
+  if (
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    NUMERIC_IDENTIFIER.test(String(Math.abs(value))) &&
+    !(normalizedKey && TIME_OR_ID_KEY.test(normalizedKey))
+  ) {
+    return REDACTED;
+  }
   if (typeof value === "bigint") return value.toString();
   if (value === null || typeof value !== "object") return value;
   if (depth >= 8) return "[MAX_DEPTH]";
