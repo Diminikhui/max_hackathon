@@ -2,3 +2,4 @@
 export * from "./conditions.js";
 export * from "./contracts.js";
 export * from "./ports.js";
+export * from "./refs/okved/index.js";
