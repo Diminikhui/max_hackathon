@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
+    "test": "tsc -b && node --test test/dialog/*.test.js",
     "start": "node dist/main.js"
   }
 }
