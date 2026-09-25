@@ -1,0 +1,234 @@
+{
+  "datasetId": "k19e-model-v1",
+  "description": "Модельные снимки для воспроизводимой проверки evaluator; не результаты реальных моделей.",
+  "runs": [
+    {
+      "provider": "template",
+      "model": "deterministic-fallback-v1",
+      "isModel": true,
+      "predictions": [
+        { "documentId": "k19e-001", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-002", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-003", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-004", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-005", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-006", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-007", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-008", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-009", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-010", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-011", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-012", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-013", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-014", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-015", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-016", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-017", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-018", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-019", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-020", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-021", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-022", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-023", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-024", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-025", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-026", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-027", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-028", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-029", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-030", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-031", "impactTypes": [], "effectiveDate": null, "industry": "unknown" },
+        { "documentId": "k19e-032", "impactTypes": [], "effectiveDate": null, "industry": "unknown" }
+      ]
+    },
+    {
+      "provider": "test-double",
+      "model": "gold-label-replay-v1",
+      "isModel": true,
+      "predictions": [
+        {
+          "documentId": "k19e-001",
+          "impactTypes": ["new_obligation"],
+          "effectiveDate": "2026-10-01",
+          "industry": "food_service"
+        },
+        {
+          "documentId": "k19e-002",
+          "impactTypes": ["new_obligation"],
+          "effectiveDate": "2026-11-15",
+          "industry": "auto_service"
+        },
+        {
+          "documentId": "k19e-003",
+          "impactTypes": ["new_obligation"],
+          "effectiveDate": "2027-01-01",
+          "industry": "retail"
+        },
+        {
+          "documentId": "k19e-004",
+          "impactTypes": ["new_obligation"],
+          "effectiveDate": null,
+          "industry": "cross_industry"
+        },
+        {
+          "documentId": "k19e-005",
+          "impactTypes": ["new_obligation"],
+          "effectiveDate": "2026-12-20",
+          "industry": "food_service"
+        },
+        {
+          "documentId": "k19e-006",
+          "impactTypes": ["new_obligation"],
+          "effectiveDate": "2027-02-01",
+          "industry": "auto_service"
+        },
+        { "documentId": "k19e-007", "impactTypes": ["new_obligation"], "effectiveDate": null, "industry": "retail" },
+        {
+          "documentId": "k19e-008",
+          "impactTypes": ["new_obligation"],
+          "effectiveDate": "2027-03-05",
+          "industry": "cross_industry"
+        },
+        {
+          "documentId": "k19e-009",
+          "impactTypes": ["changed_obligation"],
+          "effectiveDate": "2026-10-01",
+          "industry": "food_service"
+        },
+        {
+          "documentId": "k19e-010",
+          "impactTypes": ["changed_obligation"],
+          "effectiveDate": "2026-10-10",
+          "industry": "auto_service"
+        },
+        {
+          "documentId": "k19e-011",
+          "impactTypes": ["changed_obligation"],
+          "effectiveDate": "2027-01-01",
+          "industry": "retail"
+        },
+        {
+          "documentId": "k19e-012",
+          "impactTypes": ["changed_obligation"],
+          "effectiveDate": null,
+          "industry": "cross_industry"
+        },
+        {
+          "documentId": "k19e-013",
+          "impactTypes": ["changed_obligation"],
+          "effectiveDate": "2026-11-01",
+          "industry": "food_service"
+        },
+        {
+          "documentId": "k19e-014",
+          "impactTypes": ["changed_obligation"],
+          "effectiveDate": "2026-12-12",
+          "industry": "auto_service"
+        },
+        {
+          "documentId": "k19e-015",
+          "impactTypes": ["changed_obligation"],
+          "effectiveDate": null,
+          "industry": "retail"
+        },
+        {
+          "documentId": "k19e-016",
+          "impactTypes": ["changed_obligation"],
+          "effectiveDate": "2027-04-01",
+          "industry": "cross_industry"
+        },
+        {
+          "documentId": "k19e-017",
+          "impactTypes": ["removed_obligation"],
+          "effectiveDate": "2026-10-01",
+          "industry": "food_service"
+        },
+        {
+          "documentId": "k19e-018",
+          "impactTypes": ["removed_obligation"],
+          "effectiveDate": "2026-11-20",
+          "industry": "auto_service"
+        },
+        {
+          "documentId": "k19e-019",
+          "impactTypes": ["removed_obligation"],
+          "effectiveDate": "2027-01-01",
+          "industry": "retail"
+        },
+        {
+          "documentId": "k19e-020",
+          "impactTypes": ["removed_obligation"],
+          "effectiveDate": null,
+          "industry": "cross_industry"
+        },
+        {
+          "documentId": "k19e-021",
+          "impactTypes": ["removed_obligation"],
+          "effectiveDate": "2026-12-01",
+          "industry": "food_service"
+        },
+        {
+          "documentId": "k19e-022",
+          "impactTypes": ["removed_obligation"],
+          "effectiveDate": "2027-02-14",
+          "industry": "auto_service"
+        },
+        {
+          "documentId": "k19e-023",
+          "impactTypes": ["removed_obligation"],
+          "effectiveDate": null,
+          "industry": "retail"
+        },
+        {
+          "documentId": "k19e-024",
+          "impactTypes": ["removed_obligation"],
+          "effectiveDate": "2027-05-01",
+          "industry": "cross_industry"
+        },
+        {
+          "documentId": "k19e-025",
+          "impactTypes": ["new_opportunity"],
+          "effectiveDate": "2026-10-01",
+          "industry": "food_service"
+        },
+        {
+          "documentId": "k19e-026",
+          "impactTypes": ["new_opportunity"],
+          "effectiveDate": "2026-12-01",
+          "industry": "auto_service"
+        },
+        {
+          "documentId": "k19e-027",
+          "impactTypes": ["new_opportunity"],
+          "effectiveDate": "2027-01-01",
+          "industry": "retail"
+        },
+        {
+          "documentId": "k19e-028",
+          "impactTypes": ["new_opportunity"],
+          "effectiveDate": null,
+          "industry": "cross_industry"
+        },
+        {
+          "documentId": "k19e-029",
+          "impactTypes": ["new_opportunity"],
+          "effectiveDate": "2026-11-15",
+          "industry": "food_service"
+        },
+        {
+          "documentId": "k19e-030",
+          "impactTypes": ["new_opportunity"],
+          "effectiveDate": "2027-02-01",
+          "industry": "auto_service"
+        },
+        { "documentId": "k19e-031", "impactTypes": ["new_opportunity"], "effectiveDate": null, "industry": "retail" },
+        {
+          "documentId": "k19e-032",
+          "impactTypes": ["new_opportunity"],
+          "effectiveDate": "2027-06-01",
+          "industry": "cross_industry"
+        }
+      ]
+    }
+  ]
+}

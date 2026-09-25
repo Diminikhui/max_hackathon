@@ -1,0 +1,268 @@
+{
+  "datasetId": "k19e-model-v1",
+  "version": 1,
+  "isModel": true,
+  "description": "Синтетическая размеченная выборка для проверки механики классификатора; не является корпусом нормативных актов.",
+  "labelSet": {
+    "impactTypes": ["new_obligation", "changed_obligation", "removed_obligation", "new_opportunity"],
+    "industries": ["food_service", "auto_service", "retail", "cross_industry", "unknown"]
+  },
+  "documents": [
+    {
+      "id": "k19e-001",
+      "title": "Модель: новый журнал температур для кафе",
+      "text": "Организации общественного питания обязаны вести журнал температур с 1 октября 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-001",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_obligation"], "effectiveDate": "2026-10-01", "industry": "food_service" }
+    },
+    {
+      "id": "k19e-002",
+      "title": "Модель: обязательная маркировка заказ-нарядов",
+      "text": "Автосервисы с 15 ноября 2026 года обязаны указывать идентификатор мастера в заказ-наряде.",
+      "sourceUrl": "https://example.invalid/k19e-002",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_obligation"], "effectiveDate": "2026-11-15", "industry": "auto_service" }
+    },
+    {
+      "id": "k19e-003",
+      "title": "Модель: новый отчёт розничной торговли",
+      "text": "Розничные продавцы должны ежемесячно направлять модельный отчёт начиная с 1 января 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-003",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_obligation"], "effectiveDate": "2027-01-01", "industry": "retail" }
+    },
+    {
+      "id": "k19e-004",
+      "title": "Модель: регистрация ответственного сотрудника",
+      "text": "Все организации должны назначить ответственного сотрудника; дата начала действия будет определена позднее.",
+      "sourceUrl": "https://example.invalid/k19e-004",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_obligation"], "effectiveDate": null, "industry": "cross_industry" }
+    },
+    {
+      "id": "k19e-005",
+      "title": "Модель: паспорт аллергенов блюда",
+      "text": "Для предприятий общепита вводится обязанность хранить паспорт аллергенов с 20 декабря 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-005",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_obligation"], "effectiveDate": "2026-12-20", "industry": "food_service" }
+    },
+    {
+      "id": "k19e-006",
+      "title": "Модель: фотофиксация выполненного ремонта",
+      "text": "Станции технического обслуживания обязаны прикладывать фото результата с 1 февраля 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-006",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_obligation"], "effectiveDate": "2027-02-01", "industry": "auto_service" }
+    },
+    {
+      "id": "k19e-007",
+      "title": "Модель: электронный ценник",
+      "text": "Для части розничных товаров вводится электронный ценник; срок вступления проектом не установлен.",
+      "sourceUrl": "https://example.invalid/k19e-007",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_obligation"], "effectiveDate": null, "industry": "retail" }
+    },
+    {
+      "id": "k19e-008",
+      "title": "Модель: новая форма согласия клиента",
+      "text": "Новая форма согласия обязательна для всех отраслей с 5 марта 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-008",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_obligation"], "effectiveDate": "2027-03-05", "industry": "cross_industry" }
+    },
+    {
+      "id": "k19e-009",
+      "title": "Модель: изменён срок хранения проб",
+      "text": "Срок хранения контрольных проб в общепите изменяется с 24 до 48 часов с 1 октября 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-009",
+      "isModel": true,
+      "expected": { "impactTypes": ["changed_obligation"], "effectiveDate": "2026-10-01", "industry": "food_service" }
+    },
+    {
+      "id": "k19e-010",
+      "title": "Модель: изменён состав заказ-наряда",
+      "text": "Перечень реквизитов заказ-наряда автосервиса дополняется пробегом автомобиля с 10 октября 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-010",
+      "isModel": true,
+      "expected": { "impactTypes": ["changed_obligation"], "effectiveDate": "2026-10-10", "industry": "auto_service" }
+    },
+    {
+      "id": "k19e-011",
+      "title": "Модель: новый формат кассовой строки",
+      "text": "Формат строки в чеке розничной торговли меняется с 1 января 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-011",
+      "isModel": true,
+      "expected": { "impactTypes": ["changed_obligation"], "effectiveDate": "2027-01-01", "industry": "retail" }
+    },
+    {
+      "id": "k19e-012",
+      "title": "Модель: уточнение порядка ответа",
+      "text": "Порядок ответа клиенту уточняется для организаций всех отраслей без указанной даты вступления.",
+      "sourceUrl": "https://example.invalid/k19e-012",
+      "isModel": true,
+      "expected": { "impactTypes": ["changed_obligation"], "effectiveDate": null, "industry": "cross_industry" }
+    },
+    {
+      "id": "k19e-013",
+      "title": "Модель: обновление периодичности уборки",
+      "text": "Периодичность уборки кухни меняется с одного раза на два раза в день с 1 ноября 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-013",
+      "isModel": true,
+      "expected": { "impactTypes": ["changed_obligation"], "effectiveDate": "2026-11-01", "industry": "food_service" }
+    },
+    {
+      "id": "k19e-014",
+      "title": "Модель: уточнение диагностической карты",
+      "text": "Диагностическая карта автосервиса дополняется новым полем с 12 декабря 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-014",
+      "isModel": true,
+      "expected": { "impactTypes": ["changed_obligation"], "effectiveDate": "2026-12-12", "industry": "auto_service" }
+    },
+    {
+      "id": "k19e-015",
+      "title": "Модель: изменение срока возврата",
+      "text": "Срок обработки возврата в рознице изменяется, дата начала будет установлена отдельно.",
+      "sourceUrl": "https://example.invalid/k19e-015",
+      "isModel": true,
+      "expected": { "impactTypes": ["changed_obligation"], "effectiveDate": null, "industry": "retail" }
+    },
+    {
+      "id": "k19e-016",
+      "title": "Модель: обновление формы уведомления",
+      "text": "Для всех компаний изменяется форма уведомления с 1 апреля 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-016",
+      "isModel": true,
+      "expected": { "impactTypes": ["changed_obligation"], "effectiveDate": "2027-04-01", "industry": "cross_industry" }
+    },
+    {
+      "id": "k19e-017",
+      "title": "Модель: отмена бумажного журнала кухни",
+      "text": "Обязанность вести бумажный журнал кухни отменяется с 1 октября 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-017",
+      "isModel": true,
+      "expected": { "impactTypes": ["removed_obligation"], "effectiveDate": "2026-10-01", "industry": "food_service" }
+    },
+    {
+      "id": "k19e-018",
+      "title": "Модель: отмена копии заказ-наряда",
+      "text": "Автосервисы освобождаются от хранения второй бумажной копии с 20 ноября 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-018",
+      "isModel": true,
+      "expected": { "impactTypes": ["removed_obligation"], "effectiveDate": "2026-11-20", "industry": "auto_service" }
+    },
+    {
+      "id": "k19e-019",
+      "title": "Модель: отмена квартального отчёта",
+      "text": "Квартальный отчёт розничных продавцов отменяется с 1 января 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-019",
+      "isModel": true,
+      "expected": { "impactTypes": ["removed_obligation"], "effectiveDate": "2027-01-01", "industry": "retail" }
+    },
+    {
+      "id": "k19e-020",
+      "title": "Модель: отмена устаревшей справки",
+      "text": "Для всех отраслей отменяется устаревшая справка; дата вступления не указана.",
+      "sourceUrl": "https://example.invalid/k19e-020",
+      "isModel": true,
+      "expected": { "impactTypes": ["removed_obligation"], "effectiveDate": null, "industry": "cross_industry" }
+    },
+    {
+      "id": "k19e-021",
+      "title": "Модель: отмена отдельной описи продуктов",
+      "text": "Предприятия общепита больше не обязаны вести отдельную опись с 1 декабря 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-021",
+      "isModel": true,
+      "expected": { "impactTypes": ["removed_obligation"], "effectiveDate": "2026-12-01", "industry": "food_service" }
+    },
+    {
+      "id": "k19e-022",
+      "title": "Модель: отмена журнала выдачи инструмента",
+      "text": "Обязанность вести журнал выдачи инструмента автосервиса отменяется с 14 февраля 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-022",
+      "isModel": true,
+      "expected": { "impactTypes": ["removed_obligation"], "effectiveDate": "2027-02-14", "industry": "auto_service" }
+    },
+    {
+      "id": "k19e-023",
+      "title": "Модель: отмена отдельного ценового реестра",
+      "text": "Отдельный ценовой реестр для розницы отменяется, дата применения будет опубликована позже.",
+      "sourceUrl": "https://example.invalid/k19e-023",
+      "isModel": true,
+      "expected": { "impactTypes": ["removed_obligation"], "effectiveDate": null, "industry": "retail" }
+    },
+    {
+      "id": "k19e-024",
+      "title": "Модель: отмена дублирующего уведомления",
+      "text": "Дублирующее уведомление для всех организаций отменяется с 1 мая 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-024",
+      "isModel": true,
+      "expected": { "impactTypes": ["removed_obligation"], "effectiveDate": "2027-05-01", "industry": "cross_industry" }
+    },
+    {
+      "id": "k19e-025",
+      "title": "Модель: грант на оборудование кухни",
+      "text": "С 1 октября 2026 года кафе могут подать заявку на модельный грант для нового оборудования.",
+      "sourceUrl": "https://example.invalid/k19e-025",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_opportunity"], "effectiveDate": "2026-10-01", "industry": "food_service" }
+    },
+    {
+      "id": "k19e-026",
+      "title": "Модель: субсидия автосервисам",
+      "text": "Автосервисам станет доступна модельная субсидия с 1 декабря 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-026",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_opportunity"], "effectiveDate": "2026-12-01", "industry": "auto_service" }
+    },
+    {
+      "id": "k19e-027",
+      "title": "Модель: льготный заём для розницы",
+      "text": "Розничные компании смогут получить модельный льготный заём с 1 января 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-027",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_opportunity"], "effectiveDate": "2027-01-01", "industry": "retail" }
+    },
+    {
+      "id": "k19e-028",
+      "title": "Модель: программа обучения сотрудников",
+      "text": "Компаниям всех отраслей предложена бесплатная программа обучения, срок старта не указан.",
+      "sourceUrl": "https://example.invalid/k19e-028",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_opportunity"], "effectiveDate": null, "industry": "cross_industry" }
+    },
+    {
+      "id": "k19e-029",
+      "title": "Модель: компенсация расходов кафе",
+      "text": "Общепит сможет компенсировать часть расходов с 15 ноября 2026 года.",
+      "sourceUrl": "https://example.invalid/k19e-029",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_opportunity"], "effectiveDate": "2026-11-15", "industry": "food_service" }
+    },
+    {
+      "id": "k19e-030",
+      "title": "Модель: обучение диагностов",
+      "text": "Для автосервисов открывается модельная программа обучения диагностов с 1 февраля 2027 года.",
+      "sourceUrl": "https://example.invalid/k19e-030",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_opportunity"], "effectiveDate": "2027-02-01", "industry": "auto_service" }
+    },
+    {
+      "id": "k19e-031",
+      "title": "Модель: витрина локальных товаров",
+      "text": "Розничные продавцы смогут бесплатно разместиться на модельной витрине; дата запуска не определена.",
+      "sourceUrl": "https://example.invalid/k19e-031",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_opportunity"], "effectiveDate": null, "industry": "retail" }
+    },
+    {
+      "id": "k19e-032",
+      "title": "Модель: единая консультационная программа",
+      "text": "С 1 июня 2027 года компаниям любых отраслей доступна модельная консультационная программа.",
+      "sourceUrl": "https://example.invalid/k19e-032",
+      "isModel": true,
+      "expected": { "impactTypes": ["new_opportunity"], "effectiveDate": "2027-06-01", "industry": "cross_industry" }
+    }
+  ]
+}
