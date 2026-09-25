@@ -20,8 +20,11 @@ review:
   reviewer: Awon-LMV
   reviewedAt: "2026-09-25"
   note: >-
-    Все записи сверены с действующими редакциями актов (PR #171, части 1 и 2
-    предметной проверки); 3 записи разделены, итого 21. Новые записи
+    Записи сверены с действующими редакциями актов (PR #171, части 1 и 2
+    предметной проверки): 14 — полностью, 7 — частично; сроки (deadline)
+    записей technical-documents, consumer-information-menu,
+    tatarstan.alcohol-regional-restrictions и catering-delivery не сверялись,
+    непроверенное перечислено в частях 1 и 2. 3 записи разделены, итого 21. Новые записи
     before-first-employee и sick-persons-food-work-ban переносятся в K-17a;
     выводы для продукта и кода — PR #233.
 
