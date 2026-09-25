@@ -11,12 +11,13 @@
 | `max-client.mjs` | Клиент Bot API без зависимостей: `GET /me`, `GET /updates` (long polling), `POST /messages` с inline-кнопками, `POST /answers` |
 | `me.mjs` | Проверка критерия приёмки: `GET /me` должен вернуть ник `t214_hakaton_max_bot` |
 | `echo-bot.mjs` | Приём событий polling'ом, ответ с двумя кнопками `callback`, ответ на нажатие |
-| `max-client.test.mjs` | Тесты проверки отпечатка на модельном самоподписанном УЦ |
+| `max-client.test.mjs` | Тесты на модельном самоподписанном УЦ: отпечаток, запрос через HTTPS с доверием только процессу, обрыв ответа, ошибки API |
 
 Решения:
 
 - **Доверие сертификату только процессу.** Сертификат НУЦ передаётся в `https.Agent` клиента вместе со стандартными корнями Node (`tls.rootCertificates`). Системное хранилище не меняется, `NODE_TLS_REJECT_UNAUTHORIZED` не трогается. Альтернатива для сервиса — `NODE_EXTRA_CA_CERTS=$MAX_CA_CERT_PATH`.
 - **Проверка отпечатка перед использованием.** Клиент читает `MAX_CA_CERT_PATH`, считает SHA-256 и сравнивает с `MAX_CA_CERT_SHA256`. Без отпечатка или при несовпадении клиент не запускается. Отпечаток в коде не зашит: его записывает тот, кто скачал сертификат и сверил его по двум официальным источникам.
+- **Надёжность приёма.** Обрыв ответа после заголовков завершает запрос ошибкой (long polling не зависает); `marker` сдвигается только после обработки пачки, сбойное событие повторяется до трёх раз.
 - **Токен только в заголовке `Authorization`** и никогда не выводится; в лог бота пишутся лишь тип события и `chat_id`.
 - **Приём событий — long polling** только для разработки. В production — webhook на 443 (K-08, K-22a); при активной подписке polling не работает. Подробно — [k05c-max-bot-api-limits.md](k05c-max-bot-api-limits.md).
 
@@ -26,7 +27,7 @@
 # .env: MAX_BOT_TOKEN, MAX_API_BASE_URL, MAX_CA_CERT_PATH=certs/russian_trusted_root_ca.crt, MAX_CA_CERT_SHA256=<отпечаток>
 node --env-file=.env apps/bot/spike/me.mjs         # ожидается "username": "t214_hakaton_max_bot"
 node --env-file=.env apps/bot/spike/echo-bot.mjs   # написать боту в MAX, нажать кнопку
-node --test apps/bot/spike/                         # модельные тесты отпечатка
+node --test apps/bot/spike/max-client.test.mjs     # модельные тесты
 ```
 
 То же через curl (проверка сертификата включена, без `-k`):

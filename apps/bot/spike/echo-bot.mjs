@@ -11,6 +11,33 @@ const buttons = [
   ],
 ];
 
+async function handle(update) {
+  // В лог — только тип события и идентификатор чата, без текста пользователя.
+  const chatId = update.message?.recipient?.chat_id ?? update.chat_id;
+  console.log(`update ${update.update_type} chat=${chatId ?? "-"}`);
+  if (update.update_type === "message_created" || update.update_type === "bot_started") {
+    await client.sendMessage({ chatId, text: "Spike K-05a: бот на связи. Проверим кнопки?", buttons });
+  } else if (update.update_type === "message_callback") {
+    const choice = update.callback.payload === "spike:yes" ? "Да" : "Нет";
+    await client.answerCallback({ callbackId: update.callback.callback_id, notification: `Вы выбрали: ${choice}` });
+  }
+}
+
+/** Временный сбой повторяется; после трёх неудач событие пропускается, чтобы не застрять на нём навсегда. */
+async function handleWithRetry(update, attempts = 3) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await handle(update);
+    } catch (error) {
+      if (attempt >= attempts) {
+        console.error(`update ${update.update_type} пропущен после ${attempts} попыток: ${error}`);
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+}
+
 let marker;
 let running = true;
 process.on("SIGINT", () => {
@@ -24,18 +51,9 @@ while (running) {
       timeout: 30,
       types: ["message_created", "message_callback", "bot_started"],
     });
+    for (const update of updates) await handleWithRetry(update);
+    // Marker сдвигается только после обработки всей пачки: сбой отправки не теряет события.
     marker = next ?? marker;
-    for (const update of updates) {
-      // В лог — только тип события и идентификатор чата, без текста пользователя.
-      const chatId = update.message?.recipient?.chat_id ?? update.chat_id;
-      console.log(`update ${update.update_type} chat=${chatId ?? "-"}`);
-      if (update.update_type === "message_created" || update.update_type === "bot_started") {
-        await client.sendMessage({ chatId, text: "Spike K-05a: бот на связи. Проверим кнопки?", buttons });
-      } else if (update.update_type === "message_callback") {
-        const choice = update.callback.payload === "spike:yes" ? "Да" : "Нет";
-        await client.answerCallback({ callbackId: update.callback.callback_id, notification: `Вы выбрали: ${choice}` });
-      }
-    }
   } catch (error) {
     console.error(String(error));
     await new Promise((resolve) => setTimeout(resolve, 3000));

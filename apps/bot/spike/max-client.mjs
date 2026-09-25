@@ -62,6 +62,11 @@ export function createMaxClient({ token, baseUrl, caPem, timeoutMs = 40_000 }) {
         },
         (res) => {
           const chunks = [];
+          // Обрыв после заголовков — ошибка потока ответа, а не запроса: без этого промис зависает навсегда.
+          res.on("error", reject);
+          res.on("close", () => {
+            if (!res.complete) reject(new Error(`Ответ ${method} ${url.pathname} оборван`));
+          });
           res.on("data", (chunk) => chunks.push(chunk));
           res.on("end", () => {
             const text = Buffer.concat(chunks).toString("utf8");
