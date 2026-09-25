@@ -16,10 +16,14 @@ scope:
 verifiedAt: "2026-09-24"
 reviewBefore: "2026-12-01"
 review:
-  status: pending_second_participant
+  status: verified_by_second_participant
+  reviewer: Awon-LMV
+  reviewedAt: "2026-09-25"
   note: >-
-    Второй участник должен проверить основания, сроки и условия до перевода
-    набора из эталонного чеклиста в исполняемый пакет правил K-17a.
+    Все записи сверены с действующими редакциями актов (PR #171, части 1 и 2
+    предметной проверки); 3 записи разделены, итого 21. Новые записи
+    before-first-employee и sick-persons-food-work-ban переносятся в K-17a;
+    выводы для продукта и кода — PR #233.
 
 requirements:
   # 2 — часть 1 (опубликована)
