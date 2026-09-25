@@ -8,4 +8,4 @@ export type {
   MessageRequirement,
   RenderedMessage,
 } from "./shared.js";
-export { renderAutomaticProcessingNote } from "./shared.js";
+export { formatDate, MAX_TEXT_LENGTH, renderAutomaticProcessingNote } from "./shared.js";

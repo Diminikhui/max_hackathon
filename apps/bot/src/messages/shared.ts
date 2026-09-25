@@ -60,4 +60,40 @@ const assertWebUrl = (value: string): void => {
 export const requirementLabel = (kind: MessageRequirement["kind"]): string =>
   kind === "opportunity" ? "Возможность" : "Обязанность";
 
+/** Лимит длины текста сообщения MAX (K-05c). */
+export const MAX_TEXT_LENGTH = 4000;
+
+const MOSCOW_DATE = new Intl.DateTimeFormat("ru-RU", {
+  timeZone: "Europe/Moscow",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+const MOSCOW_TIME = new Intl.DateTimeFormat("ru-RU", {
+  timeZone: "Europe/Moscow",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** `2026-09-25` → `25.09.2026`; ISO с временем → `25.09.2026, 12:00 (МСК)`. Нераспознанное значение выводится как есть. */
+export const formatDate = (value: string): string => {
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnly) return `${dateOnly[3]}.${dateOnly[2]}.${dateOnly[1]}`;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return `${MOSCOW_DATE.format(date)}, ${MOSCOW_TIME.format(date)} (МСК)`;
+};
+
+/**
+ * Собирает текст сообщения в пределах лимита MAX. Если тело не помещается, оно обрезается,
+ * а пометка об автоматической обработке сохраняется всегда.
+ */
+export const composeText = (body: readonly string[], note: string): string => {
+  const text = [...body, "", note].join("\n");
+  if (text.length <= MAX_TEXT_LENGTH) return text;
+  const tail = `…\n\n${note}`;
+  return body.join("\n").slice(0, MAX_TEXT_LENGTH - tail.length) + tail;
+};
+
 export const modelLabel = (isModel: boolean): string => (isModel ? " · МОДЕЛЬНЫЕ ДАННЫЕ" : "");

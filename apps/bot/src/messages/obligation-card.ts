@@ -1,5 +1,7 @@
 import {
   type ApplicabilityStatus,
+  composeText,
+  formatDate,
   type MessageRequirement,
   modelLabel,
   type RenderedMessage,
@@ -26,20 +28,21 @@ export const render = (input: ObligationCardInput): RenderedMessage => {
     ...(requirement.summary ? [`Кратко: ${requirement.summary}`] : []),
     ...(requirement.deadline ? [`Срок: ${requirement.deadline}`] : []),
     ...renderValidity(requirement.validity),
-    ...(input.evaluatedAt ? [`Проверено: ${input.evaluatedAt}`] : []),
+    ...(input.evaluatedAt ? [`Проверено: ${formatDate(input.evaluatedAt)}`] : []),
   ];
 
   return {
-    text: [
-      `📋 ${requirementLabel(requirement.kind)}${modelLabel(requirement.source.isModel)}`,
-      requirement.title,
-      "",
-      ...details,
-      "",
-      ...sources.lines,
-      "",
+    text: composeText(
+      [
+        `📋 ${requirementLabel(requirement.kind)}${modelLabel(requirement.source.isModel)}`,
+        requirement.title,
+        "",
+        ...details,
+        "",
+        ...sources.lines,
+      ],
       renderAutomaticProcessingNote(requirement.source.isModel),
-    ].join("\n"),
+    ),
     sourceUrls: sources.urls,
     automated: true,
   };
@@ -47,8 +50,8 @@ export const render = (input: ObligationCardInput): RenderedMessage => {
 
 const renderValidity = (validity: MessageRequirement["validity"]): string[] => {
   if (!validity) return [];
-  if (validity.from && validity.to) return [`Действует: с ${validity.from} по ${validity.to}`];
-  if (validity.from) return [`Действует с: ${validity.from}`];
-  if (validity.to) return [`Действует по: ${validity.to}`];
+  if (validity.from && validity.to) return [`Действует: с ${formatDate(validity.from)} по ${formatDate(validity.to)}`];
+  if (validity.from) return [`Действует с: ${formatDate(validity.from)}`];
+  if (validity.to) return [`Действует по: ${formatDate(validity.to)}`];
   return [];
 };

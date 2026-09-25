@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderObligationCard, renderRequirementDelta } from "../../src/messages/index.js";
+import { MAX_TEXT_LENGTH, renderObligationCard, renderRequirementDelta } from "../../src/messages/index.js";
 
 const modelRequirement = {
   kind: "obligation" as const,
@@ -15,6 +15,21 @@ const modelRequirement = {
     },
   ],
   source: { isModel: true },
+};
+
+const realRequirement = {
+  kind: "obligation" as const,
+  title: "Выдавать кассовый чек при расчёте",
+  summary: "Применять ККТ и выдавать чек покупателю при каждом расчёте.",
+  deadline: "при каждом расчёте",
+  basis: [
+    {
+      act: "Федеральный закон от 22.05.2003 № 54-ФЗ",
+      article: "ст. 1.2",
+      url: "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102081652",
+    },
+  ],
+  source: { isModel: false },
 };
 
 describe("renderObligationCard", () => {
@@ -39,11 +54,23 @@ describe("renderObligationCard", () => {
   });
 });
 
+describe("ограничения MAX", () => {
+  it("не превышает лимит 4000 символов и сохраняет пометку об автоматической обработке", () => {
+    const { text } = renderObligationCard({
+      requirement: { ...modelRequirement, summary: "очень длинный текст ".repeat(400) },
+      status: "applies",
+    });
+    expect(text.length).toBeLessThanOrEqual(MAX_TEXT_LENGTH);
+    expect(text).toContain("Текст сформирован автоматически");
+    expect(text).toContain("Модельные данные");
+  });
+});
+
 describe("renderRequirementDelta", () => {
   it("рендерит изменение статуса без модельной пометки для реального источника", () => {
     expect(
       renderRequirementDelta({
-        requirement: { ...modelRequirement, source: { isModel: false } },
+        requirement: realRequirement,
         reason: "status_changed",
         previousStatus: "insufficient_data",
         newStatus: "applies",
