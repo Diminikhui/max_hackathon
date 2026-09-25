@@ -1,0 +1,238 @@
+{
+  "contractVersion": 1,
+  "packId": "b-autoservice-fed",
+  "packVersion": 1,
+  "title": "Автосервис (ОКВЭД 45.2): федеральный тонкий пакет",
+  "owner": {
+    "name": "Команда MAX Hackathon"
+  },
+  "source": {
+    "system": "manual-curation",
+    "url": "https://zpp.rospotrebnadzor.ru/news/federal/557684",
+    "recordId": "k-17b-autoservice-federal-v1",
+    "retrievedAt": "2026-09-25T10:50:00Z",
+    "isModel": false
+  },
+  "publishedAt": "2026-09-25T10:50:00Z",
+  "validity": {
+    "from": "2026-09-25"
+  },
+  "isModel": false,
+  "requirements": [
+    {
+      "contractVersion": 1,
+      "id": "b.fed.consumer-information",
+      "packId": "b-autoservice-fed",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Раскрывать потребителю сведения об исполнителе и услугах",
+      "summary": "До заключения договора и во время его действия предоставить потребителю сведения об исполнителе, перечне и цене услуг, запасных частях и материалах, порядке оплаты, сроках и гарантиях.",
+      "basis": [
+        {
+          "act": "Постановление Правительства РФ от 29.05.2025 № 780",
+          "article": "Правила оказания услуг по техническому обслуживанию и ремонту автомототранспортных средств, раздел об информации для потребителя",
+          "url": "https://publication.pravo.gov.ru/document/0001202505300055"
+        }
+      ],
+      "deadline": "До заключения договора; поддерживать сведения доступными и актуальными в период его действия",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "45.2"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "rospotrebnadzor.ru",
+        "url": "https://zpp.rospotrebnadzor.ru/news/federal/559399",
+        "recordId": "pp-780-consumer-information",
+        "retrievedAt": "2026-09-25T10:50:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "b.fed.written-service-contract",
+      "packId": "b-autoservice-fed",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Оформлять договор на ремонт с обязательными сведениями",
+      "summary": "Оформить письменный договор, заказ-наряд, квитанцию или иной допустимый документ и включить сведения об исполнителе и потребителе, автомобиле, работах, материалах, цене, сроках и гарантиях.",
+      "basis": [
+        {
+          "act": "Постановление Правительства РФ от 29.05.2025 № 780",
+          "article": "п. 7 и 9 Правил",
+          "url": "https://publication.pravo.gov.ru/document/0001202505300055"
+        }
+      ],
+      "deadline": "До начала оказания услуг; при работах в присутствии потребителя — при оформлении расчётного документа",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "45.2"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "rospotrebnadzor.ru",
+        "url": "https://zpp.rospotrebnadzor.ru/news/federal/570451",
+        "recordId": "pp-780-contract",
+        "retrievedAt": "2026-09-25T10:50:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "b.fed.vehicle-acceptance-act",
+      "packId": "b-autoservice-fed",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Фиксировать состояние переданного автомобиля",
+      "summary": "При оставлении автомобиля составить и выдать потребителю приёмо-сдаточный акт с комплектностью, видимыми повреждениями и сведениями о переданных деталях либо включить эти сведения и фотографии в договор или приложение.",
+      "basis": [
+        {
+          "act": "Постановление Правительства РФ от 29.05.2025 № 780",
+          "article": "п. 12 Правил",
+          "url": "https://publication.pravo.gov.ru/document/0001202505300055"
+        }
+      ],
+      "deadline": "Одновременно с договором при передаче автомобиля исполнителю",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "45.2"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "rospotrebnadzor.ru",
+        "url": "https://zpp.rospotrebnadzor.ru/news/federal/570451",
+        "recordId": "pp-780-acceptance-act",
+        "retrievedAt": "2026-09-25T10:50:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "b.fed.cash-register-receipt",
+      "packId": "b-autoservice-fed",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Применять ККТ при расчётах за ремонт",
+      "summary": "При расчёте за работы или услуги применять зарегистрированную ККТ и передавать клиенту кассовый чек, если конкретный расчёт не относится к установленному законом исключению.",
+      "basis": [
+        {
+          "act": "Федеральный закон от 22.05.2003 № 54-ФЗ",
+          "article": "ст. 1.2, 2 и 4.3",
+          "url": "https://www.kremlin.ru/acts/bank/19607"
+        }
+      ],
+      "deadline": "При каждом расчёте в момент его осуществления",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "45.2"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn59/news/activities_fts/16605068/",
+        "recordId": "54-fz-autoservice-payment",
+        "retrievedAt": "2026-09-25T10:50:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "b.fed.automotive-occupational-safety",
+      "packId": "b-autoservice-fed",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Организовать безопасное выполнение ремонтных работ",
+      "summary": "Для работников автосервиса определить безопасные способы работ, оценить профессиональные риски, провести обучение и обеспечить выполнение отраслевых требований в ремонтных зонах.",
+      "basis": [
+        {
+          "act": "Приказ Минтруда России от 09.12.2020 № 871н",
+          "article": "Правила по охране труда на автомобильном транспорте",
+          "url": "https://mintrud.gov.ru/docs/mintrud/orders/1752"
+        }
+      ],
+      "deadline": "До допуска работника к самостоятельной работе; далее постоянно",
+      "validity": {
+        "to": "2027-08-31"
+      },
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "45.2"
+          },
+          {
+            "type": "has_employees",
+            "value": true
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "mintrud.gov.ru",
+        "url": "https://mintrud.gov.ru/docs/mintrud/orders/1752",
+        "recordId": "order-871n-autoservice",
+        "retrievedAt": "2026-09-25T10:50:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "b.fed.hazardous-waste-passports",
+      "packId": "b-autoservice-fed",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Паспортизировать опасные отходы автосервиса",
+      "summary": "Определить класс образующихся отходов и составить паспорта отходов I–IV классов опасности; организовать их учёт и передачу в соответствии с установленными правилами.",
+      "basis": [
+        {
+          "act": "Федеральный закон от 24.06.1998 № 89-ФЗ «Об отходах производства и потребления»",
+          "article": "ст. 14",
+          "url": "https://rpn.gov.ru/upload/iblock/147/8abso9nzoq227ne0le7m86kw65vgtu2h/Federalnyy-zakon-ot-24-iyunya-1998-g-N-89-FZ-Ob-otkhodakh-proizvodstva-i-potrebleni-v-red-ot-25.12.2023.pdf"
+        }
+      ],
+      "deadline": "После отнесения образующегося отхода к I–IV классу опасности и до его передачи",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "45.2"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "rpn.gov.ru",
+        "url": "https://rpn.gov.ru/activity/regulation/pasportisation/pasportisation-npa/",
+        "recordId": "waste-passport-i-iv",
+        "retrievedAt": "2026-09-25T10:50:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "b.fed.fire-safety-regime",
+      "packId": "b-autoservice-fed",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Установить противопожарный режим в автосервисе",
+      "summary": "Утвердить инструкцию о мерах пожарной безопасности, назначить ответственных и обеспечить исправность путей эвакуации, средств пожаротушения и систем противопожарной защиты с учётом процессов и материалов автосервиса.",
+      "basis": [
+        {
+          "act": "Постановление Правительства РФ от 16.09.2020 № 1479",
+          "article": "Правила противопожарного режима, п. 2–4 и применимые специальные пункты",
+          "url": "https://publication.pravo.gov.ru/Document/View/0001202009250010"
+        }
+      ],
+      "deadline": "До начала эксплуатации объекта; далее постоянно",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "45.2"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "mchs.gov.ru",
+        "url": "https://69.mchs.gov.ru/deyatelnost/nadzornaya-deyatelnost-i-profilakticheskaya-rabota/13-dopolnitelnaya-informaciya/v-pomoshch-malomu-biznesu/pravila-protivopozharnogo-rezhima",
+        "recordId": "pp-1479-autoservice",
+        "retrievedAt": "2026-09-25T10:50:00Z",
+        "isModel": false
+      }
+    }
+  ]
+}
