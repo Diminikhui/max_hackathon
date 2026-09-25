@@ -15,12 +15,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@max-hackathon/domain": "workspace:*"
+    "@max-hackathon/domain": "workspace:*",
+    "@max-hackathon/rules": "workspace:*"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
     "@max-hackathon/adapters": "workspace:*",
-    "@max-hackathon/rules": "workspace:*",
     "@max-hackathon/storage": "workspace:*",
     "vitest": "^5.0.1"
   }
