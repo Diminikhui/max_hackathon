@@ -28,6 +28,8 @@ export interface ClassifierProfile<TDraft extends { summary: string }> {
   responseSchema: Readonly<Record<string, unknown>>;
   /** Детерминированный ответ без ИИ, проходящий ту же схему. */
   template(document: Readonly<DocumentInput>): TDraft;
+  /** Сколько ждать ответа провайдера, мс; по истечении — откат на шаблон. По умолчанию 30 000. */
+  timeoutMs?: number;
 }
 
 export interface Classification<TDraft extends { summary: string } = { summary: string }> {

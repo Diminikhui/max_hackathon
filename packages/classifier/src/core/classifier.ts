@@ -1,11 +1,26 @@
 import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import { DRAFT_SCHEMA, type DocumentDraft } from "./schema.js";
+import { type DocumentDraft, DRAFT_SCHEMA } from "./schema.js";
 import { TemplateProvider, templateDraft } from "./template.js";
-import type { Classification, ClassifierProfile, DocumentInput, LlmProvider } from "./types.js";
+import type { Classification, ClassifierProfile, DocumentInput, LlmProvider, LlmRequest } from "./types.js";
 
 const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
 addFormats.default(ajv);
+
+/** Зависший провайдер не должен лишать пользователя ответа: по истечении срока работает шаблон. */
+export const DEFAULT_TIMEOUT_MS = 30_000;
+
+async function generateWithTimeout(provider: LlmProvider, request: LlmRequest, timeoutMs: number): Promise<unknown> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("Provider response timed out")), timeoutMs);
+  });
+  try {
+    return await Promise.race([provider.generate(request), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export const DEFAULT_PROFILE: ClassifierProfile<DocumentDraft> = {
   responseSchema: DRAFT_SCHEMA,
@@ -40,7 +55,7 @@ export async function classifyDocument<TDraft extends DocumentDraft>(
   let usedFallback = false;
 
   try {
-    const response = await provider.generate(request);
+    const response = await generateWithTimeout(provider, request, profile.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     if (!validateDraft(response)) throw new Error("Invalid provider response");
     draft = response;
   } catch {

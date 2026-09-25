@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { classifyDocument, DRAFT_SCHEMA, TemplateProvider, TestDoubleProvider } from "../../src/core/index.js";
 import type { DocumentInput } from "../../src/core/index.js";
+import {
+  classifyDocument,
+  DEFAULT_PROFILE,
+  DRAFT_SCHEMA,
+  TemplateProvider,
+  TestDoubleProvider,
+} from "../../src/core/index.js";
 
 const document: DocumentInput = {
   id: "model-document-1",
@@ -110,5 +116,22 @@ describe("classifier core", () => {
 
   it("явный TemplateProvider даёт тот же результат", async () => {
     expect(await classifyDocument(document, new TemplateProvider())).toEqual(await classifyDocument(document));
+  });
+
+  it("зависший провайдер не лишает ответа: по таймауту работает шаблон", async () => {
+    const provider = new TestDoubleProvider(() => new Promise<never>(() => {}));
+    const result = await classifyDocument(document, provider, { ...DEFAULT_PROFILE, timeoutMs: 20 });
+
+    expect(result.provider).toBe("template");
+    expect(result.usedFallback).toBe(true);
+    expect(result.summary).toBe("Модельный проект акта");
+  });
+
+  it("ответ в пределах таймаута принимается как обычно", async () => {
+    const provider = new TestDoubleProvider(async () => ({ summary: "Модельное резюме" }));
+    const result = await classifyDocument(document, provider, { ...DEFAULT_PROFILE, timeoutMs: 1000 });
+
+    expect(result.provider).toBe("test-double");
+    expect(result.usedFallback).toBe(false);
   });
 });
