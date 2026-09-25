@@ -1,3 +1,2 @@
-// Провайдеры ИИ (template, GigaChat, локальная модель) и классификатор документов.
-// Пустой пакет из K-01a: содержимое добавляют потоки из docs/roadmap.md.
-export {};
+export * from "./core/index.js";
+export * from "./prompts/index.js";
