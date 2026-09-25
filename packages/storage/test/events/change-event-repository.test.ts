@@ -3,10 +3,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ChangeEvent } from "@max-hackathon/domain";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { PostgresChangeEventRepository } from "../../src/index.js";
 import { contractValidator } from "../support/contracts.js";
-import { createTestDatabase } from "../support/test-db.js";
+import { type TestDatabase, useSharedTestDatabase } from "../support/test-db.js";
 
 const examples = join(import.meta.dirname, "../../../../contracts/v1/examples");
 const read = (file: string) => JSON.parse(readFileSync(join(examples, file), "utf8")) as ChangeEvent;
@@ -16,14 +16,14 @@ const events = [
   read("change-event.profile-change.json"),
 ];
 
-let db: Awaited<ReturnType<typeof createTestDatabase>>;
+const testDatabase = useSharedTestDatabase();
+let db: TestDatabase;
 let repository: PostgresChangeEventRepository;
 
-beforeEach(async () => {
-  db = await createTestDatabase();
+beforeEach(() => {
+  db = testDatabase();
   repository = new PostgresChangeEventRepository(db);
 });
-afterEach(() => db.close());
 
 describe("PostgresChangeEventRepository", () => {
   it("get возвращает ровно записанное событие каждого вида", async () => {

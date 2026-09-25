@@ -5,9 +5,9 @@ import { join } from "node:path";
 import type { CompanyProfile, Fact } from "@max-hackathon/domain";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { PostgresProfileRepository } from "../../src/index.js";
-import { createTestDatabase } from "../support/test-db.js";
+import { type TestDatabase, useSharedTestDatabase } from "../support/test-db.js";
 
 const contractsDir = join(import.meta.dirname, "../../../../contracts/v1");
 const cafe = JSON.parse(
@@ -24,14 +24,14 @@ const declared = (id: string, key: string, value: Fact["value"]): Fact => ({
   observedAt: "2026-09-25T10:00:00Z",
 });
 
-let db: Awaited<ReturnType<typeof createTestDatabase>>;
+const testDatabase = useSharedTestDatabase();
+let db: TestDatabase;
 let repository: PostgresProfileRepository;
 
-beforeEach(async () => {
-  db = await createTestDatabase();
+beforeEach(() => {
+  db = testDatabase();
   repository = new PostgresProfileRepository(db);
 });
-afterEach(() => db.close());
 
 describe("PostgresProfileRepository", () => {
   it("get и findByInn возвращают ровно сохранённый профиль", async () => {
