@@ -10,10 +10,10 @@
     "system": "manual-curation",
     "url": "https://zpp.rospotrebnadzor.ru/news/federal/557684",
     "recordId": "k-17b-autoservice-federal-v1",
-    "retrievedAt": "2026-09-25T11:00:00Z",
+    "retrievedAt": "2026-09-25T10:50:00Z",
     "isModel": false
   },
-  "publishedAt": "2026-09-25T11:00:00Z",
+  "publishedAt": "2026-09-25T10:50:00Z",
   "validity": {
     "from": "2026-09-25"
   },
@@ -44,7 +44,7 @@
         "system": "rospotrebnadzor.ru",
         "url": "https://zpp.rospotrebnadzor.ru/news/federal/559399",
         "recordId": "pp-780-consumer-information",
-        "retrievedAt": "2026-09-25T11:00:00Z",
+        "retrievedAt": "2026-09-25T10:50:00Z",
         "isModel": false
       }
     },
@@ -73,7 +73,7 @@
         "system": "rospotrebnadzor.ru",
         "url": "https://zpp.rospotrebnadzor.ru/news/federal/570451",
         "recordId": "pp-780-contract",
-        "retrievedAt": "2026-09-25T11:00:00Z",
+        "retrievedAt": "2026-09-25T10:50:00Z",
         "isModel": false
       }
     },
@@ -102,7 +102,7 @@
         "system": "rospotrebnadzor.ru",
         "url": "https://zpp.rospotrebnadzor.ru/news/federal/570451",
         "recordId": "pp-780-acceptance-act",
-        "retrievedAt": "2026-09-25T11:00:00Z",
+        "retrievedAt": "2026-09-25T10:50:00Z",
         "isModel": false
       }
     },
@@ -131,7 +131,7 @@
         "system": "nalog.gov.ru",
         "url": "https://www.nalog.gov.ru/rn59/news/activities_fts/16605068/",
         "recordId": "54-fz-autoservice-payment",
-        "retrievedAt": "2026-09-25T11:00:00Z",
+        "retrievedAt": "2026-09-25T10:50:00Z",
         "isModel": false
       }
     },
@@ -172,7 +172,7 @@
         "system": "mintrud.gov.ru",
         "url": "https://mintrud.gov.ru/docs/mintrud/orders/1752",
         "recordId": "order-871n-autoservice",
-        "retrievedAt": "2026-09-25T11:00:00Z",
+        "retrievedAt": "2026-09-25T10:50:00Z",
         "isModel": false
       }
     },
@@ -201,7 +201,7 @@
         "system": "rpn.gov.ru",
         "url": "https://rpn.gov.ru/activity/regulation/pasportisation/pasportisation-npa/",
         "recordId": "waste-passport-i-iv",
-        "retrievedAt": "2026-09-25T11:00:00Z",
+        "retrievedAt": "2026-09-25T10:50:00Z",
         "isModel": false
       }
     },
@@ -230,7 +230,7 @@
         "system": "mchs.gov.ru",
         "url": "https://69.mchs.gov.ru/deyatelnost/nadzornaya-deyatelnost-i-profilakticheskaya-rabota/13-dopolnitelnaya-informaciya/v-pomoshch-malomu-biznesu/pravila-protivopozharnogo-rezhima",
         "recordId": "pp-1479-autoservice",
-        "retrievedAt": "2026-09-25T11:00:00Z",
+        "retrievedAt": "2026-09-25T10:50:00Z",
         "isModel": false
       }
     }
