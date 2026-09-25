@@ -28,12 +28,20 @@ const profiles = new PostgresProfileRepository(db);
 
 Интеграционные тесты идут на настоящем PostgreSQL в PGlite — Docker не нужен ни локально, ни в CI.
 
+Запуск PGlite (WASM) занимает около 0,5 с, поэтому **одна БД на файл теста**: она поднимается в `beforeAll`, а данные очищаются перед каждым тестом. Не создавайте `new PGlite()` или `createTestDatabase()` в теле теста: на медленном раннере CI он упрётся в лимит 5 с.
+
 ```ts
-import { createTestDatabase } from "../support/test-db.js"; // packages/storage/test/support/
-const db = await createTestDatabase(); // новая пустая БД с применёнными миграциями
-// …
-await db.close();
+import { beforeEach } from "vitest";
+import { type TestDatabase, useSharedTestDatabase } from "../support/test-db.js"; // packages/storage/test/support/
+
+const testDatabase = useSharedTestDatabase(); // вызывать на верхнем уровне файла теста
+let db: TestDatabase;
+beforeEach(() => {
+  db = testDatabase(); // пустая БД с применёнными миграциями
+});
 ```
+
+Лимит хука `beforeAll` (запуск БД) — 30 с в `vitest.config.ts` пакета; лимит самих тестов остаётся 5 с. Тесты самого механизма миграций сбрасывают схему (`DROP SCHEMA public CASCADE`) вместо создания нового экземпляра.
 
 ## Как хранятся данные
 
