@@ -36,11 +36,13 @@ describe("формат условий", () => {
       node.items?.forEach(walk);
       if (node.item) walk(node.item);
     };
-    listJson("examples").forEach((file) => walk(readJson(join(conditionsDir, "examples", file))));
+    for (const file of listJson("examples")) walk(readJson(join(conditionsDir, "examples", file)));
     expect(CONDITION_TYPES.filter((type) => !seen.has(type))).toEqual([]);
   });
 
-  const requirementExamples = readdirSync(join(contractsDir, "v1/examples")).filter((file) => file.startsWith("requirement."));
+  const requirementExamples = readdirSync(join(contractsDir, "v1/examples")).filter((file) =>
+    file.startsWith("requirement."),
+  );
   it.each(requirementExamples)("условие в v1/examples/%s соответствует формату", (file) => {
     const valid = validate(readJson(join(contractsDir, "v1/examples", file)).condition);
     expect(validate.errors ?? []).toEqual([]);

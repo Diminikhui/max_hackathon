@@ -2,18 +2,18 @@
 // показывает только решающие факты и условия, а итог проходит схему ApplicabilityResult.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Ajv2020 } from "ajv/dist/2020.js";
-import addFormats from "ajv-formats";
 import {
   APPLICABILITY_STATUSES,
-  CONTRACT_VERSION,
   type ApplicabilityResult,
+  CONTRACT_VERSION,
   type ConditionNode,
   type Fact,
   type FactKind,
   type FactValue,
   type Requirement,
 } from "@max-hackathon/domain";
+import { Ajv2020 } from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 import { buildExplanation, decisiveLeaves, evaluateCondition } from "../../src/index.js";
 
@@ -55,17 +55,40 @@ const okved = fact("f-okved", "activity.okved_main", "56.10");
 const employees = fact("f-employees", "employment.has_employees", true, "derived");
 
 const explain = (condition: ConditionNode, facts: Fact[], status = "applies" as ApplicabilityResult["status"]) =>
-  buildExplanation({ requirement: requirement(condition), status, trace: evaluateCondition(condition, facts).result, facts });
+  buildExplanation({
+    requirement: requirement(condition),
+    status,
+    trace: evaluateCondition(condition, facts).result,
+    facts,
+  });
 
 describe("цепочка объяснения", () => {
   it("порядок шагов: факты → условия → правило → результат → источники", () => {
     const steps = explain(cafeCondition, [okved, employees]);
-    expect(steps.map((step) => step.kind)).toEqual(["fact", "fact", "condition", "condition", "condition", "rule", "result", "source", "source"]);
-    expect(steps[0]).toEqual({ kind: "fact", text: "Основной ОКВЭД: 56.10 (по данным rmsp.nalog.ru, модельные данные)", refId: "f-okved" });
+    expect(steps.map((step) => step.kind)).toEqual([
+      "fact",
+      "fact",
+      "condition",
+      "condition",
+      "condition",
+      "rule",
+      "result",
+      "source",
+      "source",
+    ]);
+    expect(steps[0]).toEqual({
+      kind: "fact",
+      text: "Основной ОКВЭД: 56.10 (по данным rmsp.nalog.ru, модельные данные)",
+      refId: "f-okved",
+    });
     expect(steps[1]?.text).toBe("Есть работники: да (вычислено из других данных, модельные данные)");
     expect(steps[2]).toEqual({ kind: "condition", text: "ОКВЭД начинается с 56 — выполнено", refId: "$.items[0]" });
     expect(steps[4]?.text).toBe("Итог условия: выполнены все условия — выполнено");
-    expect(steps[5]).toEqual({ kind: "rule", text: "Обязанность: Провести специальную оценку условий труда (модельная запись)", refId: "a.fed.sout" });
+    expect(steps[5]).toEqual({
+      kind: "rule",
+      text: "Обязанность: Провести специальную оценку условий труда (модельная запись)",
+      refId: "a.fed.sout",
+    });
     expect(steps[6]).toEqual({ kind: "result", text: "Применяется" });
     expect(steps.slice(7)).toEqual([
       { kind: "source", text: "Федеральный закон № 426-ФЗ, ст. 8", url: "http://pravo.gov.ru/" },
@@ -76,7 +99,10 @@ describe("цепочка объяснения", () => {
   it("не применяется — показывает только условие, которое не выполнено", () => {
     const steps = explain(cafeCondition, [fact("f-okved", "activity.okved_main", "47.11"), employees], "not_applies");
     const conditions = steps.filter((step) => step.kind === "condition").map((step) => step.text);
-    expect(conditions).toEqual(["ОКВЭД начинается с 56 — не выполнено", "Итог условия: выполнены все условия — не выполнено"]);
+    expect(conditions).toEqual([
+      "ОКВЭД начинается с 56 — не выполнено",
+      "Итог условия: выполнены все условия — не выполнено",
+    ]);
     expect(steps.filter((step) => step.kind === "fact").map((step) => step.refId)).toEqual(["f-okved"]);
   });
 
@@ -91,29 +117,50 @@ describe("цепочка объяснения", () => {
     expect(steps.filter((step) => step.kind === "fact")).toEqual([
       { kind: "fact", text: "Есть работники: нет данных", refId: "employment.has_employees" },
     ]);
-    expect(steps.find((step) => step.kind === "result")?.text).toBe("Недостаточно данных: Неизвестно, есть ли работники");
+    expect(steps.find((step) => step.kind === "result")?.text).toBe(
+      "Недостаточно данных: Неизвестно, есть ли работники",
+    );
   });
 
   it("без трассы (вне покрытия) — правило, результат и источники", () => {
-    const steps = buildExplanation({ requirement: requirement({ type: "always" }), status: "out_of_coverage", facts: [], statusReason: "регион не поддерживается" });
+    const steps = buildExplanation({
+      requirement: requirement({ type: "always" }),
+      status: "out_of_coverage",
+      facts: [],
+      statusReason: "регион не поддерживается",
+    });
     expect(steps.map((step) => step.kind)).toEqual(["rule", "result", "source", "source"]);
   });
 
   it("отрицание помечается как исключение", () => {
-    const condition: ConditionNode = { type: "all", items: [{ type: "okved_prefix", prefix: "56" }, { type: "not", item: { type: "region", codes: ["77"] } }] };
+    const condition: ConditionNode = {
+      type: "all",
+      items: [
+        { type: "okved_prefix", prefix: "56" },
+        { type: "not", item: { type: "region", codes: ["77"] } },
+      ],
+    };
     const steps = explain(condition, [okved, fact("f-region", "location.region_code", "16")]);
     expect(steps.map((step) => step.text)).toContain("Исключение «регион: 77» — не выполнено");
   });
 
   it("any = yes — только выполненные варианты", () => {
-    const condition: ConditionNode = { type: "any", items: [{ type: "okved_prefix", prefix: "45.2" }, { type: "okved_prefix", prefix: "56" }] };
+    const condition: ConditionNode = {
+      type: "any",
+      items: [
+        { type: "okved_prefix", prefix: "45.2" },
+        { type: "okved_prefix", prefix: "56" },
+      ],
+    };
     const leaves = decisiveLeaves(evaluateCondition(condition, [okved]).result);
     expect(leaves.map((leaf) => leaf.node.path)).toEqual(["$.items[1]"]);
   });
 
   it("условие «применяется ко всем»", () => {
     const steps = explain({ type: "always" }, []);
-    expect(steps.filter((step) => step.kind === "condition").map((step) => step.text)).toEqual(["Итог условия: применяется ко всем — выполнено"]);
+    expect(steps.filter((step) => step.kind === "condition").map((step) => step.text)).toEqual([
+      "Итог условия: применяется ко всем — выполнено",
+    ]);
   });
 
   it("детерминирована: порядок фактов на входе не влияет", () => {
@@ -130,9 +177,16 @@ describe("цепочка проходит схему ApplicabilityResult для 
   }
   const validate = ajv.getSchema("https://contracts.max-hackathon.invalid/v1/applicability-result.schema.json")!;
   const examplesDir = join(contractsDir, "rulepack/conditions/examples");
-  const cafe = [okved, employees, fact("f-region", "location.region_code", "77"), fact("f-alcohol", "sales.alcohol", "beer", "declared")];
+  const cafe = [
+    okved,
+    employees,
+    fact("f-region", "location.region_code", "77"),
+    fact("f-alcohol", "sales.alcohol", "beer", "declared"),
+  ];
 
-  const cases = readdirSync(examplesDir).flatMap((file) => APPLICABILITY_STATUSES.map((status) => [file, status] as const));
+  const cases = readdirSync(examplesDir).flatMap((file) =>
+    APPLICABILITY_STATUSES.map((status) => [file, status] as const),
+  );
   it.each(cases)("%s → %s", (file, status) => {
     const condition = JSON.parse(readFileSync(join(examplesDir, file), "utf8")) as ConditionNode;
     const evaluation = evaluateCondition(condition, cafe);
@@ -146,7 +200,12 @@ describe("цепочка проходит схему ApplicabilityResult для 
       status,
       ...(status === "insufficient_data" ? { missingFactKeys: ["employment.headcount"] } : {}),
       ...(withTrace ? { trace: evaluation.result } : {}),
-      explanation: buildExplanation({ requirement: requirement(condition), status, facts: cafe, ...(withTrace ? { trace: evaluation.result } : {}) }),
+      explanation: buildExplanation({
+        requirement: requirement(condition),
+        status,
+        facts: cafe,
+        ...(withTrace ? { trace: evaluation.result } : {}),
+      }),
       evaluatedAt: "2026-09-25T09:00:00Z",
     };
     expect(validate(result), JSON.stringify(validate.errors)).toBe(true);

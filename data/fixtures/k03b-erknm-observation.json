@@ -1,0 +1,38 @@
+{
+  "recordType": "k03b_erknm_public_metadata_observation",
+  "observedAt": "2026-09-25T00:00:00Z",
+  "isModel": false,
+  "containsCompanyOrPersonalRecords": false,
+  "source": {
+    "portalUrl": "https://proverki.gov.ru/portal/public-open-data",
+    "listUrl": "https://proverki.gov.ru/public/api/opendata/list?isFederalLaw248=true",
+    "datasetMetadataUrl": "https://proverki.gov.ru/public/api/opendata/2026/9?isFederalLaw248=true"
+  },
+  "dataset": {
+    "datasetId": "7710146102-inspection-9-2026",
+    "name": "Проверки на Сентябрь 2026 года",
+    "format": "xml",
+    "snapshotPublished": "2026-09-24",
+    "archiveName": "data-20260924-structure-20220125.zip",
+    "archiveContentLengthBytes": 223716459,
+    "schemaName": "structure-20220125.xsd",
+    "schemaUrl": "https://proverki.gov.ru/blob/erknm-opendata/structure-20220125.xsd"
+  },
+  "schemaEvidence": {
+    "rootElement": "INSPECTIONS",
+    "recordElement": "INSPECTION",
+    "recordKeyAttribute": "ERPID",
+    "selectedRecordAttributes": ["STATUS", "STATUS_KEY", "START_DATE", "STOP_DATE", "IS_REMOTE"],
+    "selectedElements": [
+      "KIND_CONTROL",
+      "KIND_KNM",
+      "SUBJECT",
+      "OBJECT",
+      "KNO_ORGANIZATION",
+      "CHECKLIST",
+      "REQUIREMENT_VALUE"
+    ],
+    "sensitiveOrIdentifyingSubjectAttributes": ["INN", "OGRN", "SNILS", "NAME"]
+  },
+  "note": "Наблюдение содержит только метаданные и имена полей официальной XSD. Реальные записи организаций не скачивались и не сохранялись."
+}

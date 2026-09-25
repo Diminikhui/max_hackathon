@@ -11,6 +11,18 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/pg": "^8.23.1",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "@max-hackathon/domain": "workspace:*",
+    "pg": "^8.23.0"
   }
 }

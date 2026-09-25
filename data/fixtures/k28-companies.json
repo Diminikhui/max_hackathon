@@ -1,0 +1,494 @@
+[
+  {
+    "contractVersion": 1,
+    "companyId": "k28-cafe-msk",
+    "inn": "7700000016",
+    "entityType": "legal_entity",
+    "displayName": "Кофейня «Модель», Москва (модельные данные)",
+    "isModel": true,
+    "updatedAt": "2026-09-25T09:00:00Z",
+    "facts": [
+      {
+        "id": "k28-cafe-msk.okved",
+        "companyId": "k28-cafe-msk",
+        "key": "activity.okved_main",
+        "value": "56.10",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-msk.okved-add",
+        "companyId": "k28-cafe-msk",
+        "key": "activity.okved_additional",
+        "value": ["47.25"],
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-msk.region",
+        "companyId": "k28-cafe-msk",
+        "key": "location.region_code",
+        "value": "77",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-msk.msp",
+        "companyId": "k28-cafe-msk",
+        "key": "scale.msp_category",
+        "value": "micro",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-msk.headcount",
+        "companyId": "k28-cafe-msk",
+        "key": "employment.headcount",
+        "value": 12,
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-msk.employees",
+        "companyId": "k28-cafe-msk",
+        "key": "employment.has_employees",
+        "value": true,
+        "kind": "derived",
+        "source": {
+          "system": "rules",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z",
+        "derivedFrom": ["k28-cafe-msk.headcount"]
+      },
+      {
+        "id": "k28-cafe-msk.tax",
+        "companyId": "k28-cafe-msk",
+        "key": "tax.regime",
+        "value": "usn_income",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-msk.alcohol",
+        "companyId": "k28-cafe-msk",
+        "key": "sales.alcohol",
+        "value": "beer",
+        "kind": "declared",
+        "source": {
+          "system": "user",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T09:05:00Z"
+      }
+    ]
+  },
+  {
+    "contractVersion": 1,
+    "companyId": "k28-cafe-kzn",
+    "inn": "1600000011",
+    "entityType": "legal_entity",
+    "displayName": "Кафе «Модель», Казань — без данных о работниках и алкоголе (модельные данные)",
+    "isModel": true,
+    "updatedAt": "2026-09-25T09:00:00Z",
+    "facts": [
+      {
+        "id": "k28-cafe-kzn.okved",
+        "companyId": "k28-cafe-kzn",
+        "key": "activity.okved_main",
+        "value": "56.10",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-kzn.okved-add",
+        "companyId": "k28-cafe-kzn",
+        "key": "activity.okved_additional",
+        "value": [],
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-kzn.region",
+        "companyId": "k28-cafe-kzn",
+        "key": "location.region_code",
+        "value": "16",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-kzn.msp",
+        "companyId": "k28-cafe-kzn",
+        "key": "scale.msp_category",
+        "value": "micro",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      }
+    ]
+  },
+  {
+    "contractVersion": 1,
+    "companyId": "k28-autoservice-msk",
+    "inn": "7700000023",
+    "entityType": "legal_entity",
+    "displayName": "Автосервис «Модель», Москва (модельные данные)",
+    "isModel": true,
+    "updatedAt": "2026-09-25T09:00:00Z",
+    "facts": [
+      {
+        "id": "k28-autoservice-msk.okved",
+        "companyId": "k28-autoservice-msk",
+        "key": "activity.okved_main",
+        "value": "45.20",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-autoservice-msk.okved-add",
+        "companyId": "k28-autoservice-msk",
+        "key": "activity.okved_additional",
+        "value": [],
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-autoservice-msk.region",
+        "companyId": "k28-autoservice-msk",
+        "key": "location.region_code",
+        "value": "77",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-autoservice-msk.msp",
+        "companyId": "k28-autoservice-msk",
+        "key": "scale.msp_category",
+        "value": "small",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-autoservice-msk.headcount",
+        "companyId": "k28-autoservice-msk",
+        "key": "employment.headcount",
+        "value": 20,
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-autoservice-msk.employees",
+        "companyId": "k28-autoservice-msk",
+        "key": "employment.has_employees",
+        "value": true,
+        "kind": "derived",
+        "source": {
+          "system": "rules",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z",
+        "derivedFrom": ["k28-autoservice-msk.headcount"]
+      }
+    ]
+  },
+  {
+    "contractVersion": 1,
+    "companyId": "k28-retail-ip-msk",
+    "inn": "770000000082",
+    "entityType": "individual_entrepreneur",
+    "displayName": "ИП «Модель», магазин у дома, Москва (модельные данные)",
+    "isModel": true,
+    "updatedAt": "2026-09-25T09:00:00Z",
+    "facts": [
+      {
+        "id": "k28-retail-ip-msk.okved",
+        "companyId": "k28-retail-ip-msk",
+        "key": "activity.okved_main",
+        "value": "47.11",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-retail-ip-msk.okved-add",
+        "companyId": "k28-retail-ip-msk",
+        "key": "activity.okved_additional",
+        "value": [],
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-retail-ip-msk.region",
+        "companyId": "k28-retail-ip-msk",
+        "key": "location.region_code",
+        "value": "77",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-retail-ip-msk.msp",
+        "companyId": "k28-retail-ip-msk",
+        "key": "scale.msp_category",
+        "value": "micro",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-retail-ip-msk.headcount",
+        "companyId": "k28-retail-ip-msk",
+        "key": "employment.headcount",
+        "value": 0,
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-retail-ip-msk.employees",
+        "companyId": "k28-retail-ip-msk",
+        "key": "employment.has_employees",
+        "value": false,
+        "kind": "derived",
+        "source": {
+          "system": "rules",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z",
+        "derivedFrom": ["k28-retail-ip-msk.headcount"]
+      },
+      {
+        "id": "k28-retail-ip-msk.tax",
+        "companyId": "k28-retail-ip-msk",
+        "key": "tax.regime",
+        "value": ["psn", "usn_income"],
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      }
+    ]
+  },
+  {
+    "contractVersion": 1,
+    "companyId": "k28-cafe-bad-data",
+    "inn": "7700000030",
+    "entityType": "legal_entity",
+    "displayName": "Кафе «Модель» с ошибкой в данных о работниках (модельные данные)",
+    "isModel": true,
+    "updatedAt": "2026-09-25T09:00:00Z",
+    "facts": [
+      {
+        "id": "k28-cafe-bad-data.okved",
+        "companyId": "k28-cafe-bad-data",
+        "key": "activity.okved_main",
+        "value": "56.30",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-bad-data.okved-add",
+        "companyId": "k28-cafe-bad-data",
+        "key": "activity.okved_additional",
+        "value": [],
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-bad-data.region",
+        "companyId": "k28-cafe-bad-data",
+        "key": "location.region_code",
+        "value": "77",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-bad-data.msp",
+        "companyId": "k28-cafe-bad-data",
+        "key": "scale.msp_category",
+        "value": "micro",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-bad-data.employees",
+        "companyId": "k28-cafe-bad-data",
+        "key": "employment.has_employees",
+        "value": "да",
+        "kind": "declared",
+        "source": {
+          "system": "user",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      },
+      {
+        "id": "k28-cafe-bad-data.alcohol",
+        "companyId": "k28-cafe-bad-data",
+        "key": "sales.alcohol",
+        "value": "none",
+        "kind": "declared",
+        "source": {
+          "system": "user",
+          "recordId": "k28",
+          "retrievedAt": "2026-09-25T09:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-10T00:00:00Z"
+      }
+    ]
+  }
+]

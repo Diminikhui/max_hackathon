@@ -32,7 +32,17 @@
     "isModel": { "type": "boolean" },
     "createdAt": { "$ref": "common.schema.json#/$defs/DateTime" }
   },
-  "required": ["contractVersion", "id", "companyId", "changeEventId", "reason", "matchedFactKeys", "dedupKey", "isModel", "createdAt"],
+  "required": [
+    "contractVersion",
+    "id",
+    "companyId",
+    "changeEventId",
+    "reason",
+    "matchedFactKeys",
+    "dedupKey",
+    "isModel",
+    "createdAt"
+  ],
   "additionalProperties": false,
   "if": { "properties": { "reason": { "const": "early_signal" } } },
   "then": { "properties": { "newStatus": { "const": "needs_review" } } },

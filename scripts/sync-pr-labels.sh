@@ -22,6 +22,8 @@ for n in $issues; do
     echo "#$n: PR влит, снимаю рабочие метки"; remove "$n" needs-review; remove "$n" in-progress
   elif [[ "$state" == "open" && "$draft" == "false" ]]; then
     echo "#$n: PR готов к проверке"; add "$n" needs-review; remove "$n" in-progress
+  elif [[ "$state" == "closed" && "$(gh api "repos/$repo/issues/$n" --jq '.assignees | length')" == "0" ]]; then
+    echo "#$n: PR закрыт, поток свободен, снимаю рабочие метки"; remove "$n" needs-review; remove "$n" in-progress
   else
     echo "#$n: работа продолжается"; add "$n" in-progress; remove "$n" needs-review
   fi

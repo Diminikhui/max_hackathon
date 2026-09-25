@@ -47,7 +47,9 @@ describe("схемы контрактов v1", () => {
 
   it("у каждой сущности есть корректный пример", () => {
     const covered = new Set(listJson("examples").map(schemaFor));
-    const entities = schemaFiles.filter((file) => !["common.schema.json", "condition-result.schema.json"].includes(file));
+    const entities = schemaFiles.filter(
+      (file) => !["common.schema.json", "condition-result.schema.json"].includes(file),
+    );
     expect(entities.filter((file) => !covered.has(file))).toEqual([]);
   });
 });
