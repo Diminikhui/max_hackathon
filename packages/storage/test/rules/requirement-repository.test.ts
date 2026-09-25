@@ -3,9 +3,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Requirement } from "@max-hackathon/domain";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { PostgresRequirementRepository } from "../../src/index.js";
-import { createTestDatabase } from "../support/test-db.js";
+import { type TestDatabase, useSharedTestDatabase } from "../support/test-db.js";
 
 const examples = join(import.meta.dirname, "../../../../contracts/v1/examples");
 const read = (file: string) => JSON.parse(readFileSync(join(examples, file), "utf8")) as Requirement;
@@ -15,14 +15,14 @@ const rate = read("requirement.opportunity.json");
 const at = (version: number, ...requirements: Requirement[]): Requirement[] =>
   requirements.map((requirement) => ({ ...requirement, packVersion: version }));
 
-let db: Awaited<ReturnType<typeof createTestDatabase>>;
+const testDatabase = useSharedTestDatabase();
+let db: TestDatabase;
 let repository: PostgresRequirementRepository;
 
-beforeEach(async () => {
-  db = await createTestDatabase();
+beforeEach(() => {
+  db = testDatabase();
   repository = new PostgresRequirementRepository(db);
 });
-afterEach(() => db.close());
 
 describe("PostgresRequirementRepository", () => {
   it("пустое хранилище", async () => {

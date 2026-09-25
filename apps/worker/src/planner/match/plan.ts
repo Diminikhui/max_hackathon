@@ -23,6 +23,17 @@ const reasonForTransition = (
   return "status_changed";
 };
 
+/**
+ * Источник перехода статуса: версия пакета правил или само событие. Без него требование, ставшее применимым,
+ * потом переставшее и снова ставшее применимым, дало бы тот же dedupKey, и второе уведомление отбросили бы как дубль.
+ */
+const transitionSource = (event: ChangeEvent): string =>
+  event.kind === "rulepack_version" ? `${event.rulepack.packId}@${event.rulepack.toVersion}` : event.id;
+
+/** Первичная оценка требования без предыдущего статуса: об «неприменимо» и «вне покрытия» пользователю не пишем. */
+const isSilentFirstEvaluation = (match: ApplicabilityMatch): boolean =>
+  match.previousStatus === undefined && (match.newStatus === "not_applies" || match.newStatus === "out_of_coverage");
+
 const applicabilityCandidate = (
   event: ChangeEvent,
   profile: CompanyProfile,
@@ -30,7 +41,7 @@ const applicabilityCandidate = (
   id: string,
   createdAt: string,
 ): NotificationCandidate | undefined => {
-  if (match.previousStatus === match.newStatus) {
+  if (match.previousStatus === match.newStatus || isSilentFirstEvaluation(match)) {
     return undefined;
   }
 
@@ -44,7 +55,7 @@ const applicabilityCandidate = (
     ...(match.previousStatus === undefined ? {} : { previousStatus: match.previousStatus }),
     newStatus: match.newStatus,
     matchedFactKeys: uniqueSorted(match.matchedFactKeys),
-    dedupKey: `${profile.companyId}:${match.requirementId}:${match.newStatus}`,
+    dedupKey: `${profile.companyId}:${match.requirementId}:${match.newStatus}:${transitionSource(event)}`,
     isModel: event.isModel || profile.isModel,
     createdAt,
   };

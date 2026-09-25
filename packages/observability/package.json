@@ -11,6 +11,10 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.1"
   }
 }

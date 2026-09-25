@@ -1,0 +1,25 @@
+name: PR overlap check
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: pr-overlap
+  cancel-in-progress: false
+
+jobs:
+  overlap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comment file overlaps between open pull requests and edits outside the work package zone
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/check-pr-overlap.sh --all

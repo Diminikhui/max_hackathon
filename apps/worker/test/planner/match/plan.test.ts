@@ -16,7 +16,7 @@ const fact = (companyId: string, key: string, value: string): Fact => ({
 const profile = (companyId: string, okved: string): CompanyProfile => ({
   contractVersion: 1,
   companyId,
-  inn: companyId === "cafe" ? "7707083893" : "500100732259",
+  inn: companyId === "cafe" ? "7700000016" : "770000000082",
   entityType: companyId === "cafe" ? "legal_entity" : "individual_entrepreneur",
   facts: [fact(companyId, "activity.okved_main", okved)],
   isModel: true,
@@ -70,7 +70,7 @@ describe("planNotificationCandidates", () => {
         previousStatus: "not_applies",
         newStatus: "applies",
         matchedFactKeys: ["activity.okved_main", "location.region_code"],
-        dedupKey: "cafe:food.water-marking:applies",
+        dedupKey: "cafe:food.water-marking:applies:foodservice@2",
         isModel: true,
         createdAt: "2026-09-24T09:00:05.000Z",
       },
@@ -99,6 +99,67 @@ describe("planNotificationCandidates", () => {
 
     expect(candidates).toHaveLength(1);
     expect(candidates[0]).toMatchObject({ reason: "no_longer_applicable", previousStatus: "applies" });
+  });
+
+  it("distinguishes repeated transitions to the same status by pack version", () => {
+    const company = profile("cafe", "56.10");
+    const becameApplicable = () => ({
+      kind: "applicability" as const,
+      requirementId: "food.water-marking",
+      previousStatus: "not_applies" as const,
+      newStatus: "applies" as const,
+      matchedFactKeys: ["activity.okved_main"],
+    });
+    const toVersion = (version: number): ChangeEvent =>
+      event.kind === "rulepack_version"
+        ? { ...event, id: `event-pack-v${version}`, rulepack: { ...event.rulepack, toVersion: version } }
+        : event;
+
+    const [second] = planNotificationCandidates(toVersion(2), [company], becameApplicable);
+    const [fourth] = planNotificationCandidates(toVersion(4), [company], becameApplicable);
+
+    expect(second?.dedupKey).toBe("cafe:food.water-marking:applies:foodservice@2");
+    expect(fourth?.dedupKey).toBe("cafe:food.water-marking:applies:foodservice@4");
+    expect(second?.dedupKey).not.toBe(fourth?.dedupKey);
+  });
+
+  it("uses the event id as the transition source for a profile change", () => {
+    const profileEvent: ChangeEvent = {
+      contractVersion: 1,
+      id: "event-profile-1",
+      kind: "profile_change",
+      occurredAt: observedAt,
+      isModel: true,
+      profile: { companyId: "cafe", changedFactKeys: ["activity.okved_main"] },
+    };
+    const [candidate] = planNotificationCandidates(profileEvent, [profile("cafe", "56.10")], () => ({
+      kind: "applicability",
+      requirementId: "food.water-marking",
+      previousStatus: "not_applies",
+      newStatus: "applies",
+      matchedFactKeys: ["activity.okved_main"],
+    }));
+
+    expect(candidate?.dedupKey).toBe("cafe:food.water-marking:applies:event-profile-1");
+  });
+
+  it("stays silent about a first evaluation that is not applicable or out of coverage", () => {
+    const first = (
+      newStatus: "not_applies" | "out_of_coverage" | "applies" | "needs_review" | "insufficient_data",
+    ) => ({
+      kind: "applicability" as const,
+      requirementId: "food.water-marking",
+      newStatus,
+      matchedFactKeys: [],
+    });
+    const plan = (newStatus: Parameters<typeof first>[0]) =>
+      planNotificationCandidates(event, [profile("cafe", "56.10")], () => first(newStatus));
+
+    expect(plan("not_applies")).toEqual([]);
+    expect(plan("out_of_coverage")).toEqual([]);
+    for (const status of ["applies", "needs_review", "insufficient_data"] as const) {
+      expect(plan(status)).toHaveLength(1);
+    }
   });
 
   it("creates an early signal only for a regulation document", () => {
