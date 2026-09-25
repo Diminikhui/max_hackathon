@@ -22,15 +22,24 @@
   "allOf": [
     {
       "if": { "properties": { "kind": { "const": "rulepack_version" } } },
-      "then": { "required": ["rulepack"], "not": { "anyOf": [{ "required": ["document"] }, { "required": ["profile"] }] } }
+      "then": {
+        "required": ["rulepack"],
+        "not": { "anyOf": [{ "required": ["document"] }, { "required": ["profile"] }] }
+      }
     },
     {
       "if": { "properties": { "kind": { "const": "regulation_document" } } },
-      "then": { "required": ["document"], "not": { "anyOf": [{ "required": ["rulepack"] }, { "required": ["profile"] }] } }
+      "then": {
+        "required": ["document"],
+        "not": { "anyOf": [{ "required": ["rulepack"] }, { "required": ["profile"] }] }
+      }
     },
     {
       "if": { "properties": { "kind": { "const": "profile_change" } } },
-      "then": { "required": ["profile"], "not": { "anyOf": [{ "required": ["rulepack"] }, { "required": ["document"] }] } }
+      "then": {
+        "required": ["profile"],
+        "not": { "anyOf": [{ "required": ["rulepack"] }, { "required": ["document"] }] }
+      }
     }
   ],
   "$defs": {

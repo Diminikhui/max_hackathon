@@ -9,10 +9,14 @@
   },
   "scripts": {
     "build": "tsc -b && pnpm --filter @max-hackathon/miniapp build",
-    "typecheck": "tsc -b && pnpm --filter @max-hackathon/miniapp typecheck",
+    "typecheck": "tsc -b && tsc -p tsconfig.tests.json && pnpm --filter @max-hackathon/miniapp typecheck",
+    "test": "pnpm -r test",
+    "lint": "biome ci .",
+    "format": "biome check --write .",
     "clean": "rm -rf packages/*/dist apps/*/dist"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.14",
     "@types/node": "^24.13.6",
     "typescript": "^7.0.2"
   }

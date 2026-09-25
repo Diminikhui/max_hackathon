@@ -48,6 +48,17 @@
     },
     "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
   },
-  "required": ["contractVersion", "id", "packId", "packVersion", "kind", "title", "basis", "condition", "coverage", "source"],
+  "required": [
+    "contractVersion",
+    "id",
+    "packId",
+    "packVersion",
+    "kind",
+    "title",
+    "basis",
+    "condition",
+    "coverage",
+    "source"
+  ],
   "additionalProperties": false
 }

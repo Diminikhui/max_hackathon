@@ -1,3 +1,3 @@
 // Прикладные сценарии: профиль, перечень, уточнения, пересчёт.
-// Пустой пакет из K-01a: содержимое добавляют потоки из docs/roadmap.md.
-export {};
+export * from "./profile/inn/index.js";
+export * from "./profile/service.js";

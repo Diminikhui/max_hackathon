@@ -1,7 +1,4 @@
 {
   "type": "all",
-  "items": [
-    { "type": "msp_category", "in": ["micro", "small"] },
-    { "type": "region", "codes": ["16"] }
-  ]
+  "items": [{ "type": "msp_category", "in": ["micro", "small"] }, { "type": "region", "codes": ["16"] }]
 }

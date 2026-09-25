@@ -12,8 +12,24 @@
     "factKeys": [],
     "factIds": [],
     "children": [
-      { "path": "$.items[0]", "conditionType": "okved_prefix", "outcome": "yes", "factKeys": ["activity.okved_main"], "factIds": ["fact-cafe-okved"], "expected": "ОКВЭД начинается с 56", "actual": "56.10" },
-      { "path": "$.items[1]", "conditionType": "fact_equals", "outcome": "yes", "factKeys": ["employment.has_employees"], "factIds": ["fact-cafe-has-employees"], "expected": "есть работники", "actual": "да" }
+      {
+        "path": "$.items[0]",
+        "conditionType": "okved_prefix",
+        "outcome": "yes",
+        "factKeys": ["activity.okved_main"],
+        "factIds": ["fact-cafe-okved"],
+        "expected": "ОКВЭД начинается с 56",
+        "actual": "56.10"
+      },
+      {
+        "path": "$.items[1]",
+        "conditionType": "fact_equals",
+        "outcome": "yes",
+        "factKeys": ["employment.has_employees"],
+        "factIds": ["fact-cafe-has-employees"],
+        "expected": "есть работники",
+        "actual": "да"
+      }
     ]
   },
   "explanation": [

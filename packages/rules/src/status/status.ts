@@ -2,16 +2,16 @@
 // Детерминирован: одинаковый вход — одинаковый статус и причина.
 
 import {
-  CONTRACT_VERSION,
   type ApplicabilityResult,
   type ApplicabilityStatus,
+  CONTRACT_VERSION,
   type CompanyProfile,
   type ConditionNode,
   type DateTime,
   type IsoDate,
   type Requirement,
 } from "@max-hackathon/domain";
-import { evaluateCondition, type ConditionEvaluation, type EvaluationMode } from "../conditions/index.js";
+import { type ConditionEvaluation, type EvaluationMode, evaluateCondition } from "../conditions/index.js";
 import { buildExplanation, factLabel } from "../explain/index.js";
 
 export interface StatusDecision {
@@ -69,7 +69,8 @@ export const determineStatus = ({ requirement, evaluation, asOf }: StatusInput):
 };
 
 const isInForce = (validity: Requirement["validity"], asOf: IsoDate): boolean =>
-  !validity || ((validity.from === undefined || validity.from <= asOf) && (validity.to === undefined || asOf <= validity.to));
+  !validity ||
+  ((validity.from === undefined || validity.from <= asOf) && (validity.to === undefined || asOf <= validity.to));
 
 export interface AssessOptions {
   /** Момент расчёта; попадает в ApplicabilityResult.evaluatedAt. */
