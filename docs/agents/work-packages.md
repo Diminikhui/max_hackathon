@@ -68,6 +68,7 @@
 - Общие данные кладите в `data/fixtures/`, миграции БД — в `packages/storage/migrations/`, всегда с префиксом потока (`k-16a-…`). Так потоки не конфликтуют при слиянии.
 - **Контракты** (`contracts/`) после слияния K-02 меняются только отдельным PR `contract: …`. Повышайте `contractVersion` и упомяните в PR все затронутые Issue. Запросить изменение — форма «Запрос изменения контракта».
 - Работайте против портов и фикстур, а не против чужого кода.
+- **Тесты с БД** (PGlite в `packages/storage`, `packages/services`): одна БД на файл через `useSharedTestDatabase()` из `packages/storage/test/support/test-db.ts`, а не `new PGlite()` в теле теста (запуск WASM занимает около 0,5 с и на медленном CI приводит к `Test timed out in 5000ms`). Подробности — `packages/storage/README.md`.
 
 ## 5. Обязательные ограничения проекта
 

@@ -4,10 +4,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Notification, NotificationCandidate } from "@max-hackathon/domain";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { PostgresNotificationRepository } from "../../src/index.js";
 import { contractValidator } from "../support/contracts.js";
-import { createTestDatabase } from "../support/test-db.js";
+import { type TestDatabase, useSharedTestDatabase } from "../support/test-db.js";
 
 const examples = join(import.meta.dirname, "../../../../contracts/v1/examples");
 const read = <T>(file: string) => JSON.parse(readFileSync(join(examples, file), "utf8")) as T;
@@ -21,14 +21,14 @@ const queued = (id: string, createdAt: string, overrides: Partial<Notification> 
   return { ...base, id, idempotencyKey: `key-${id}`, status: "queued", attempts: 0, createdAt, ...overrides };
 };
 
-let db: Awaited<ReturnType<typeof createTestDatabase>>;
+const testDatabase = useSharedTestDatabase();
+let db: TestDatabase;
 let repository: PostgresNotificationRepository;
 
-beforeEach(async () => {
-  db = await createTestDatabase();
+beforeEach(() => {
+  db = testDatabase();
   repository = new PostgresNotificationRepository(db);
 });
-afterEach(() => db.close());
 
 const count = async (table: string): Promise<number> => {
   const { rows } = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM ${table}`);
