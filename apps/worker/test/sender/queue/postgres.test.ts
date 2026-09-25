@@ -34,7 +34,14 @@ describe("SendQueueWorker + PostgresNotificationRepository", () => {
     await repository.enqueue(queued("n2", { createdAt: "2026-09-25T12:00:01Z" }));
     const clock = manualClock();
     const sender = new FakeMessageSender([{ ok: true }, { ok: false, code: "max_unavailable", retryable: true }]);
-    const worker = new SendQueueWorker({ repository, sender, now: clock.now, backoff: { baseMs: 1000, maxMs: 1000 } });
+    const worker = new SendQueueWorker({
+      repository,
+      sender,
+      now: clock.now,
+      backoff: { baseMs: 1000, maxMs: 1000 },
+      rateLimit: { capacity: 100, refillPerSecond: 100 },
+      perChatRateLimit: { capacity: 100, refillPerSecond: 100 },
+    });
 
     expect(await worker.processBatch()).toMatchObject({ sent: ["n1"], retried: ["n2"] });
     expect(await read("key-n1")).toMatchObject({ status: "sent", attempts: 1 });

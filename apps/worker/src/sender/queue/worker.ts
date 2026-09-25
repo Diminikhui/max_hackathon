@@ -32,8 +32,10 @@ export interface SendQueueWorkerOptions {
   maxAttempts?: number;
   /** Отсрочка повтора: base * 2^(попытка-1), не больше maxMs. По умолчанию 1 с и 5 мин. */
   backoff?: { baseMs: number; maxMs: number };
-  /** Ограничение скорости отправки. По умолчанию 10 сообщений в секунду, всплеск до 10. */
+  /** Общий лимит Bot API. По умолчанию не более 30 запросов/с без всплеска. */
   rateLimit?: TokenBucketOptions;
+  /** Лимит отправки в один чат. По умолчанию не более 2 сообщений/с без всплеска. */
+  perChatRateLimit?: TokenBucketOptions;
   /**
    * Что делать с уведомлением, исход отправки которого неизвестен (воркер упал после начала отправки,
    * отправитель бросил исключение). "fail" (по умолчанию) — failed с кодом delivery_unknown: без дублей,
@@ -66,6 +68,8 @@ export class SendQueueWorker {
   private readonly maxAttempts: number;
   private readonly backoff: { baseMs: number; maxMs: number };
   private readonly bucket: TokenBucket;
+  private readonly perChatLimit: TokenBucketOptions;
+  private readonly chatBuckets = new Map<string, TokenBucket>();
   private readonly unknownOutcome: "fail" | "retry";
   private readonly idleDelayMs: number;
   /** Не раньше какого момента повторять уведомление (в памяти: после перезапуска повтор наступит раньше). */
@@ -81,7 +85,10 @@ export class SendQueueWorker {
     this.batchSize = options.batchSize ?? 20;
     this.maxAttempts = options.maxAttempts ?? 5;
     this.backoff = options.backoff ?? { baseMs: 1000, maxMs: 300_000 };
-    this.bucket = new TokenBucket(options.rateLimit ?? { capacity: 10, refillPerSecond: 10 });
+    this.bucket = new TokenBucket(options.rateLimit ?? { capacity: 1, refillPerSecond: 30 });
+    this.perChatLimit = options.perChatRateLimit ?? { capacity: 1, refillPerSecond: 2 };
+    // Проверяем настройки сразу, даже если очередь пока пуста.
+    new TokenBucket(this.perChatLimit);
     this.unknownOutcome = options.unknownOutcome ?? "fail";
     this.idleDelayMs = options.idleDelayMs ?? 5000;
     if (!Number.isInteger(this.batchSize) || this.batchSize < 1) throw new Error("batchSize должен быть >= 1");
@@ -110,7 +117,7 @@ export class SendQueueWorker {
 
     // Запас на отложенные уведомления, чтобы они не вытесняли готовые к отправке.
     const fetchLimit = this.batchSize + this.notBefore.size;
-    const queued = await this.repository.listQueued(fetchLimit);
+    const queued = fairOrder(await this.repository.listQueued(fetchLimit));
     if (queued.length < fetchLimit) this.pruneBackoff(queued);
 
     let handled = 0;
@@ -140,12 +147,26 @@ export class SendQueueWorker {
         continue;
       }
 
-      const wait = this.bucket.take(this.now());
-      if (wait > 0) {
+      const now = this.now();
+      const globalWait = this.bucket.availableIn(now);
+      if (globalWait > 0) {
         report.throttled = true;
-        delay = wait;
+        delay = globalWait;
         break;
       }
+
+      const chatBucket = this.chatBucket(current.recipient.chatId);
+      const chatWait = chatBucket.availableIn(now);
+      if (chatWait > 0) {
+        // Не блокируем другие чаты: они используют отдельные квоты.
+        report.skipped.push(item.id);
+        delay = Math.min(delay ?? Number.POSITIVE_INFINITY, chatWait);
+        continue;
+      }
+
+      // Оба токена доступны; расходуем их непосредственно перед отправкой.
+      this.bucket.take(now);
+      chatBucket.take(now);
 
       handled += 1;
       const paused = await this.deliver(current, report);
@@ -237,6 +258,15 @@ export class SendQueueWorker {
     return Math.min(this.backoff.maxMs, this.backoff.baseMs * 2 ** (attempts - 1));
   }
 
+  private chatBucket(chatId: string): TokenBucket {
+    let bucket = this.chatBuckets.get(chatId);
+    if (!bucket) {
+      bucket = new TokenBucket(this.perChatLimit);
+      this.chatBuckets.set(chatId, bucket);
+    }
+    return bucket;
+  }
+
   private idleDelay(): number {
     const now = this.now();
     let delay = this.idleDelayMs;
@@ -253,3 +283,26 @@ export class SendQueueWorker {
 
 const errorOf = (failure: SendFailure): { code: string; message?: string } =>
   failure.message === undefined ? { code: failure.code } : { code: failure.code, message: failure.message };
+
+/** FIFO внутри чата и round-robin между чатами, чтобы один получатель не вытеснял остальных. */
+const fairOrder = (queued: Notification[]): Notification[] => {
+  const byChat = new Map<string, Notification[]>();
+  for (const item of queued) {
+    const group = byChat.get(item.recipient.chatId);
+    if (group) group.push(item);
+    else byChat.set(item.recipient.chatId, [item]);
+  }
+  const result: Notification[] = [];
+  let added = true;
+  for (let index = 0; added; index += 1) {
+    added = false;
+    for (const group of byChat.values()) {
+      const item = group[index];
+      if (item) {
+        result.push(item);
+        added = true;
+      }
+    }
+  }
+  return result;
+};

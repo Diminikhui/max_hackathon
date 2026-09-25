@@ -27,7 +27,14 @@ beforeEach(() => {
 
 const setup = (script: FakeSendStep[] = [], options: Partial<SendQueueWorkerOptions> = {}) => {
   const sender = new FakeMessageSender(script);
-  const worker = new SendQueueWorker({ repository, sender, now: clock.now, ...options });
+  const worker = new SendQueueWorker({
+    repository,
+    sender,
+    now: clock.now,
+    rateLimit: { capacity: 100, refillPerSecond: 100 },
+    perChatRateLimit: { capacity: 100, refillPerSecond: 100 },
+    ...options,
+  });
   return { sender, worker };
 };
 
@@ -197,7 +204,10 @@ describe("SendQueueWorker", () => {
 
   it("ограничение скорости: token bucket, остальное ждёт токенов", async () => {
     for (const id of ["n1", "n2", "n3", "n4", "n5"]) await repository.enqueue(queued(id));
-    const { sender, worker } = setup([], { rateLimit: { capacity: 2, refillPerSecond: 1 } });
+    const { sender, worker } = setup([], {
+      rateLimit: { capacity: 2, refillPerSecond: 1 },
+      perChatRateLimit: { capacity: 100, refillPerSecond: 100 },
+    });
 
     const first = await worker.processBatch();
     expect(first.sent).toEqual(["n1", "n2"]);
@@ -212,6 +222,52 @@ describe("SendQueueWorker", () => {
     expect((await worker.processBatch()).sent).toEqual(["n4", "n5"]);
     expect(sender.calls.map((call) => call.id)).toEqual(["n1", "n2", "n3", "n4", "n5"]);
     for (const id of ["n1", "n2", "n3", "n4", "n5"]) expectValid(stored(id));
+  });
+
+  it("по умолчанию сглаживает общий поток до 30 rps и чат до 2 msg/s", async () => {
+    await repository.enqueue(queued("a1", { recipient: { channel: "max_bot", chatId: "chat-a" } }));
+    await repository.enqueue(queued("a2", { recipient: { channel: "max_bot", chatId: "chat-a" } }));
+    await repository.enqueue(queued("b1", { recipient: { channel: "max_bot", chatId: "chat-b" } }));
+    const sender = new FakeMessageSender();
+    const worker = new SendQueueWorker({ repository, sender, now: clock.now });
+
+    expect(await worker.processBatch()).toMatchObject({ sent: ["a1"], throttled: true, nextDelayMs: 34 });
+    clock.advance(34);
+    const second = await worker.processBatch();
+    expect(second.sent).toEqual(["b1"]);
+    expect(second.skipped).toContain("a2");
+    expect(second.nextDelayMs).toBe(466);
+    clock.advance(466);
+    expect((await worker.processBatch()).sent).toEqual(["a2"]);
+    expect(sender.calls.map((call) => call.id)).toEqual(["a1", "b1", "a2"]);
+  });
+
+  it("сохраняет FIFO внутри чата и даёт ход другим чатам", async () => {
+    for (const id of ["a1", "a2", "a3"]) {
+      await repository.enqueue(queued(id, { recipient: { channel: "max_bot", chatId: "chat-a" } }));
+    }
+    await repository.enqueue(
+      queued("b1", {
+        createdAt: "2026-09-25T12:00:01Z",
+        recipient: { channel: "max_bot", chatId: "chat-b" },
+      }),
+    );
+    const sender = new FakeMessageSender();
+    const worker = new SendQueueWorker({
+      repository,
+      sender,
+      now: clock.now,
+      rateLimit: { capacity: 10, refillPerSecond: 30 },
+    });
+
+    const first = await worker.processBatch();
+    expect(first.sent).toEqual(["a1", "b1"]);
+    expect(first.skipped).toEqual(["a2", "a3"]);
+    clock.advance(500);
+    expect((await worker.processBatch()).sent).toEqual(["a2"]);
+    clock.advance(500);
+    expect((await worker.processBatch()).sent).toEqual(["a3"]);
+    expect(sender.calls.map((call) => call.id)).toEqual(["a1", "b1", "a2", "a3"]);
   });
 
   it("retryAfterMs от отправителя ставит на паузу всю очередь", async () => {
