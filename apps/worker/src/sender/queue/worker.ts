@@ -22,7 +22,7 @@ import {
 } from "./sender.js";
 
 export interface SendQueueWorkerOptions {
-  repository: NotificationRepository;
+  repository: SendQueueRepository;
   sender: MessageSender;
   /** Текущее время в миллисекундах Unix. В тестах — управляемые часы. */
   now: () => number;
@@ -43,6 +43,22 @@ export interface SendQueueWorkerOptions {
   unknownOutcome?: "fail" | "retry";
   /** Пауза, если работы нет. По умолчанию 5 с. */
   idleDelayMs?: number;
+  /** Жёсткая верхняя граница записей, которые fair query вправе просмотреть за tick. */
+  maxScanPerTick?: number;
+  /** Неактивные per-chat buckets удаляются после этого срока. По умолчанию 10 минут. */
+  chatBucketIdleTtlMs?: number;
+}
+
+export interface FairQueuedBatch {
+  /** Round-robin по чатам, FIFO внутри каждого чата. */
+  items: Notification[];
+  /** Реальное число просмотренных хранилищем записей, не больше maxScan. */
+  scanned: number;
+}
+
+/** Обязательный query-контракт scheduler. Обычный FIFO listQueued недостаточен для честности. */
+export interface SendQueueRepository extends Pick<NotificationRepository, "findByIdempotencyKey" | "updateStatus"> {
+  listQueuedFair(options: { maxItems: number; maxScan: number }): Promise<FairQueuedBatch>;
 }
 
 export interface BatchReport {
@@ -59,16 +75,18 @@ export interface BatchReport {
 }
 
 export class SendQueueWorker {
-  private readonly repository: NotificationRepository;
+  private readonly repository: SendQueueRepository;
   private readonly sender: MessageSender;
   private readonly now: () => number;
   private readonly batchSize: number;
   private readonly maxAttempts: number;
   private readonly backoff: { baseMs: number; maxMs: number };
   private readonly perChatLimit: TokenBucketOptions;
-  private readonly chatBuckets = new Map<string, TokenBucket>();
+  private readonly chatBuckets = new Map<string, { bucket: TokenBucket; lastUsedAt: number }>();
   private readonly unknownOutcome: "fail" | "retry";
   private readonly idleDelayMs: number;
+  private readonly maxScanPerTick: number;
+  private readonly chatBucketIdleTtlMs: number;
   /** Не раньше какого момента повторять уведомление (в памяти: после перезапуска повтор наступит раньше). */
   private readonly notBefore = new Map<Id, number>();
   /** Общая пауза после ответа с retryAfterMs (например, 429). */
@@ -87,8 +105,12 @@ export class SendQueueWorker {
     new TokenBucket(this.perChatLimit);
     this.unknownOutcome = options.unknownOutcome ?? "fail";
     this.idleDelayMs = options.idleDelayMs ?? 5000;
+    this.maxScanPerTick = options.maxScanPerTick ?? Math.max(100, this.batchSize * 10);
+    this.chatBucketIdleTtlMs = options.chatBucketIdleTtlMs ?? 600_000;
     if (!Number.isInteger(this.batchSize) || this.batchSize < 1) throw new Error("batchSize должен быть >= 1");
     if (!Number.isInteger(this.maxAttempts) || this.maxAttempts < 1) throw new Error("maxAttempts должен быть >= 1");
+    if (!Number.isInteger(this.maxScanPerTick) || this.maxScanPerTick < this.batchSize)
+      throw new Error("maxScanPerTick должен быть целым и не меньше batchSize");
   }
 
   /** Одна итерация очереди. Параллельные вызовы на одном воркере запрещены. */
@@ -105,15 +127,20 @@ export class SendQueueWorker {
   private async run(): Promise<BatchReport> {
     const report: BatchReport = { sent: [], retried: [], failed: [], skipped: [], throttled: false, nextDelayMs: 0 };
     const startedAt = this.now();
+    this.evictIdleChatBuckets(startedAt);
     if (startedAt < this.pausedUntil) {
       report.throttled = true;
       report.nextDelayMs = this.pausedUntil - startedAt;
       return report;
     }
 
-    // listQueued возвращает FIFO-префикс. Читаем его до конца с геометрическим ростом лимита:
-    // иначе длинный throttled chat A навсегда скрывает chat B за первым batchSize.
-    const queued = fairOrder(await this.scanQueued());
+    const selection = await this.repository.listQueuedFair({
+      maxItems: this.maxScanPerTick,
+      maxScan: this.maxScanPerTick,
+    });
+    if (selection.scanned > this.maxScanPerTick || selection.items.length > this.maxScanPerTick)
+      throw new Error("listQueuedFair нарушил maxScanPerTick");
+    const queued = selection.items;
     this.pruneBackoff(queued);
 
     let handled = 0;
@@ -247,12 +274,25 @@ export class SendQueueWorker {
   }
 
   private chatBucket(chatId: string): TokenBucket {
-    let bucket = this.chatBuckets.get(chatId);
-    if (!bucket) {
-      bucket = new TokenBucket(this.perChatLimit);
-      this.chatBuckets.set(chatId, bucket);
+    const now = this.now();
+    let entry = this.chatBuckets.get(chatId);
+    if (!entry) {
+      entry = { bucket: new TokenBucket(this.perChatLimit), lastUsedAt: now };
+      this.chatBuckets.set(chatId, entry);
     }
-    return bucket;
+    entry.lastUsedAt = now;
+    return entry.bucket;
+  }
+
+  private evictIdleChatBuckets(now: number): void {
+    for (const [chatId, entry] of this.chatBuckets) {
+      if (now - entry.lastUsedAt >= this.chatBucketIdleTtlMs) this.chatBuckets.delete(chatId);
+    }
+  }
+
+  /** Диагностика bounded cache; не раскрывает chatId. */
+  activeChatBucketCount(): number {
+    return this.chatBuckets.size;
   }
 
   private idleDelay(): number {
@@ -260,17 +300,6 @@ export class SendQueueWorker {
     let delay = this.idleDelayMs;
     for (const at of this.notBefore.values()) delay = Math.min(delay, Math.max(0, at - now));
     return delay;
-  }
-
-  private async scanQueued(): Promise<Notification[]> {
-    let limit = Math.max(1, this.batchSize + this.notBefore.size);
-    for (;;) {
-      const queued = await this.repository.listQueued(limit);
-      if (queued.length < limit) return queued;
-      const next = Math.min(Number.MAX_SAFE_INTEGER, limit * 2);
-      if (next === limit) return queued;
-      limit = next;
-    }
   }
 
   /** Забыть отсрочки уведомлений, которых больше нет в очереди (отправлены или подавлены извне). */
@@ -282,26 +311,3 @@ export class SendQueueWorker {
 
 const errorOf = (failure: SendFailure): { code: string; message?: string } =>
   failure.message === undefined ? { code: failure.code } : { code: failure.code, message: failure.message };
-
-/** FIFO внутри чата и round-robin между чатами, чтобы один получатель не вытеснял остальных. */
-const fairOrder = (queued: Notification[]): Notification[] => {
-  const byChat = new Map<string, Notification[]>();
-  for (const item of queued) {
-    const group = byChat.get(item.recipient.chatId);
-    if (group) group.push(item);
-    else byChat.set(item.recipient.chatId, [item]);
-  }
-  const result: Notification[] = [];
-  let added = true;
-  for (let index = 0; added; index += 1) {
-    added = false;
-    for (const group of byChat.values()) {
-      const item = group[index];
-      if (item) {
-        result.push(item);
-        added = true;
-      }
-    }
-  }
-  return result;
-};

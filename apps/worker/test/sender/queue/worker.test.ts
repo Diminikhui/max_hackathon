@@ -1,13 +1,14 @@
 // Воркер очереди отправки (K-21a) на модельном отправителе и in-memory репозитории: успех, повтор после
 // временной ошибки, исчерпание попыток, постоянная ошибка, отсутствие дублей при повторном запуске и сбое,
 // ограничение скорости, статусы проходят схему notification v1.
-import type { Notification, NotificationRepository } from "@max-hackathon/domain";
+import type { Notification } from "@max-hackathon/domain";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   DELIVERY_IN_PROGRESS,
   DELIVERY_UNKNOWN,
   FakeMessageSender,
   type FakeSendStep,
+  type SendQueueRepository,
   SendQueueWorker,
   type SendQueueWorkerOptions,
 } from "../../../src/sender/queue/index.js";
@@ -141,7 +142,7 @@ describe("SendQueueWorker", () => {
   it("сбой между send и updateStatus: после перезапуска сообщение не отправляется повторно", async () => {
     await repository.enqueue(queued("n1"));
     const sender = new FakeMessageSender();
-    const crashing: NotificationRepository = {
+    const crashing: SendQueueRepository = {
       ...bind(repository),
       updateStatus: async (id, update) => {
         if (update.status === "sent") throw new Error("процесс упал");
@@ -187,12 +188,12 @@ describe("SendQueueWorker", () => {
   it("не отправляет уведомление, статус которого изменился после listQueued", async () => {
     await repository.enqueue(queued("n1"));
     const sender = new FakeMessageSender();
-    const racing: NotificationRepository = {
+    const racing: SendQueueRepository = {
       ...bind(repository),
-      listQueued: async (limit) => {
-        const list = await repository.listQueued(limit);
+      listQueuedFair: async (options) => {
+        const result = await repository.listQueuedFair(options);
         await repository.updateStatus("n1", { status: "suppressed", attempts: 0 });
-        return list;
+        return result;
       },
     };
     const report = await new SendQueueWorker({ repository: racing, sender, now: clock.now }).processBatch();
@@ -264,6 +265,53 @@ describe("SendQueueWorker", () => {
     const report = await worker.processBatch();
     expect(report.sent).toEqual(["a-00", "b-1"]);
     expect(sender.calls.map((call) => call.id)).toEqual(["a-00", "b-1"]);
+  });
+
+  it("ограничивает чтение при огромном backlog и видит B за A через fair index", async () => {
+    for (let index = 0; index < 10_000; index += 1) {
+      await repository.enqueue(
+        queued(`a-${index}`, {
+          createdAt: `2026-09-25T11:${String(Math.floor(index / 60) % 60).padStart(2, "0")}:${String(index % 60).padStart(2, "0")}Z`,
+          recipient: { channel: "max_bot", chatId: "chat-a" },
+        }),
+      );
+    }
+    await repository.enqueue(
+      queued("b-boundary", {
+        createdAt: "2026-09-25T23:59:59Z",
+        recipient: { channel: "max_bot", chatId: "chat-b" },
+      }),
+    );
+    let observedScanned = 0;
+    const bounded = {
+      ...bind(repository),
+      listQueuedFair: async (options: { maxItems: number; maxScan: number }) => {
+        const result = await repository.listQueuedFair(options);
+        observedScanned = result.scanned;
+        return result;
+      },
+    };
+    const sender = new FakeMessageSender();
+    const worker = new SendQueueWorker({
+      repository: bounded,
+      sender,
+      now: clock.now,
+      batchSize: 2,
+      maxScanPerTick: 20,
+      perChatRateLimit: { capacity: 1, refillPerSecond: 0.01 },
+    });
+    expect((await worker.processBatch()).sent).toEqual(["a-0", "b-boundary"]);
+    expect(observedScanned).toBeLessThanOrEqual(20);
+  });
+
+  it("удаляет idle chat buckets по TTL", async () => {
+    await repository.enqueue(queued("a1", { recipient: { channel: "max_bot", chatId: "chat-a" } }));
+    const { worker } = setup([], { chatBucketIdleTtlMs: 1000 });
+    await worker.processBatch();
+    expect(worker.activeChatBucketCount()).toBe(1);
+    clock.advance(1000);
+    await worker.processBatch();
+    expect(worker.activeChatBucketCount()).toBe(0);
   });
 
   it("retryAfterMs от отправителя ставит на паузу всю очередь", async () => {
