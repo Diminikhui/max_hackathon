@@ -18,7 +18,15 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
-  apps/bot: {}
+  apps/bot:
+    dependencies:
+      '@max-hackathon/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+    devDependencies:
+      vitest:
+        specifier: ^5.0.1
+        version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6))
 
   apps/miniapp:
     dependencies:
@@ -138,6 +146,9 @@ importers:
       '@max-hackathon/domain':
         specifier: workspace:*
         version: link:../domain
+      '@max-hackathon/rules':
+        specifier: workspace:*
+        version: link:../rules
     devDependencies:
       '@electric-sql/pglite':
         specifier: ^0.5.8
@@ -145,9 +156,6 @@ importers:
       '@max-hackathon/adapters':
         specifier: workspace:*
         version: link:../adapters
-      '@max-hackathon/rules':
-        specifier: workspace:*
-        version: link:../rules
       '@max-hackathon/storage':
         specifier: workspace:*
         version: link:../storage
@@ -179,6 +187,8 @@ importers:
       vitest:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6))
+
+  tools/eval: {}
 
   tools/rulepack-validate:
     dependencies:

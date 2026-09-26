@@ -1,0 +1,11 @@
+{
+  "name": "@max-hackathon/classifier-eval",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Воспроизводимая оценка классификаторов документов на размеченной выборке K-19e.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "eval:model": "node evaluate.mjs --dataset ../../data/fixtures/k19e-classification-sample.json --predictions ../../data/fixtures/k19e-model-predictions.json --pretty"
+  }
+}
