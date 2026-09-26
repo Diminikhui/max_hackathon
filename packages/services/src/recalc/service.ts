@@ -38,11 +38,32 @@ export interface ProfileRecalculationOptions {
   eventId?: (input: { companyId: Id; evaluatedAt: DateTime; changedFactKeys: readonly string[] }) => Id;
 }
 
+export interface PendingRecalculationOperation {
+  revision: number;
+  targetDigest: string;
+  previous: ApplicabilityResult[];
+  target: ApplicabilityResult[];
+  delta: RecalculationDelta;
+  event: ChangeEvent;
+}
+
+export interface RecalculationState {
+  committedRevision: number;
+  pending?: PendingRecalculationOperation;
+}
+
+/** Durable service-local state used to resume the same logical operation after a crash. */
+export interface RecalculationStateRepository {
+  get(companyId: Id): Promise<RecalculationState | undefined>;
+  save(companyId: Id, state: RecalculationState): Promise<void>;
+}
+
 export interface ProfileRecalculationDeps {
   profiles: ProfileRepository;
   requirements: RequirementRepository;
   applicability: ApplicabilityRepository;
   events: ChangeEventRepository;
+  recalculationState: RecalculationStateRepository;
   clock?: () => DateTime;
 }
 
@@ -50,10 +71,9 @@ export interface ProfileRecalculationDeps {
  * Пересчитывает снимок применимости после изменения профиля.
  *
  * Сначала вычисляется полный новый снимок на зафиксированных версиях пакетов. Для дельты
- * идемпотентное `profile_change` сохраняется до замены снимка. ID по умолчанию привязан к
- * стабильной идентичности операции (версия профиля + предыдущий снимок + новые
- * статусы), а не к clock вызова. Поэтому повтор безопасен и после failed append, и после
- * successful append + failed replace. Без дельты событие не создаётся.
+ * pending-операция сохраняется до публикации `profile_change` и замены снимка. Её
+ * монотонная ревизия даёт один ID всем retry одной операции и новый ID следующему
+ * независимому переходу, даже если значения профиля и timestamps совпадают.
  */
 export class ProfileRecalculationService {
   readonly #deps: ProfileRecalculationDeps;
@@ -68,6 +88,9 @@ export class ProfileRecalculationService {
     const profile = await this.#deps.profiles.get(companyId);
     if (!profile) return { status: "profile_not_found", companyId };
 
+    const storedState = (await this.#deps.recalculationState.get(companyId)) ?? { committedRevision: 0 };
+    if (storedState.pending) return this.#resumePending(companyId, storedState.pending);
+
     const evaluatedAt = options.evaluatedAt ?? this.#clock();
     const asOf = options.asOf ?? evaluatedAt.slice(0, 10);
     const previous = sortResults(await this.#deps.applicability.listByCompany(companyId));
@@ -77,16 +100,19 @@ export class ProfileRecalculationService {
 
     if (delta.appeared.length === 0 && delta.disappeared.length === 0) {
       await this.#deps.applicability.replaceForCompany(companyId, current);
+      await this.#deps.recalculationState.save(companyId, {
+        committedRevision: storedState.committedRevision + 1,
+      });
       return { status: "unchanged", previous, current, delta };
     }
 
     const changedFactKeys = [...new Set(options.changedFactKeys)].sort();
+    const revision = storedState.committedRevision + 1;
+    const targetDigest = snapshotDigest(current);
     const defaultEventId = operationEventId({
       companyId,
-      profileUpdatedAt: profile.updatedAt,
-      changedFactKeys,
-      previous,
-      current,
+      revision,
+      targetDigest,
     });
     const eventId = options.eventId?.({ companyId, evaluatedAt, changedFactKeys }) ?? defaultEventId;
     const existingEvent = await this.#deps.events.get(eventId);
@@ -98,9 +124,32 @@ export class ProfileRecalculationService {
       isModel: profile.isModel,
       profile: { companyId, changedFactKeys },
     };
-    await this.#deps.events.append(event);
-    await this.#deps.applicability.replaceForCompany(companyId, current);
-    return { status: "changed", previous, current, delta, event };
+    const pending: PendingRecalculationOperation = {
+      revision,
+      targetDigest,
+      previous,
+      target: current,
+      delta,
+      event,
+    };
+    await this.#deps.recalculationState.save(companyId, { ...storedState, pending });
+    return this.#resumePending(companyId, pending);
+  }
+
+  async #resumePending(companyId: Id, pending: PendingRecalculationOperation): Promise<ProfileRecalculationOutcome> {
+    await this.#deps.events.append(pending.event);
+    const snapshot = sortResults(await this.#deps.applicability.listByCompany(companyId));
+    if (snapshotDigest(snapshot) !== pending.targetDigest) {
+      await this.#deps.applicability.replaceForCompany(companyId, pending.target);
+    }
+    await this.#deps.recalculationState.save(companyId, { committedRevision: pending.revision });
+    return {
+      status: "changed",
+      previous: pending.previous,
+      current: pending.target,
+      delta: pending.delta,
+      event: pending.event,
+    };
   }
 
   async #requirementsSnapshot(): Promise<Requirement[]> {
@@ -139,22 +188,19 @@ const sortResults = (results: ApplicabilityResult[]): ApplicabilityResult[] =>
 
 const operationEventId = (input: {
   companyId: Id;
-  profileUpdatedAt: DateTime;
-  changedFactKeys: readonly string[];
-  previous: readonly ApplicabilityResult[];
-  current: readonly ApplicabilityResult[];
+  revision: number;
+  targetDigest: string;
 }): Id => {
   const identity = JSON.stringify({
     kind: "profile_change",
     companyId: input.companyId,
-    profileUpdatedAt: input.profileUpdatedAt,
-    changedFactKeys: input.changedFactKeys,
-    // evaluatedAt предыдущего снимка — durable anchor между успешными replace.
-    // evaluatedAt текущего расчёта исключён: clock меняется при retry.
-    previous: input.previous.map(snapshotIdentity),
-    current: input.current.map(({ evaluatedAt: _evaluatedAt, ...result }) => result),
+    revision: input.revision,
+    targetDigest: input.targetDigest,
   });
   return `profile-change:${createHash("sha256").update(identity).digest("hex")}`;
 };
 
-const snapshotIdentity = (result: ApplicabilityResult): ApplicabilityResult => result;
+const snapshotDigest = (results: readonly ApplicabilityResult[]): string => {
+  const identity = results.map(({ evaluatedAt: _evaluatedAt, ...result }) => result);
+  return createHash("sha256").update(JSON.stringify(identity)).digest("hex");
+};

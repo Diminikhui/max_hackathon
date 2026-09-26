@@ -11,7 +11,11 @@ import {
   type RequirementRepository,
 } from "@max-hackathon/domain";
 import { describe, expect, it } from "vitest";
-import { ProfileRecalculationService } from "../../src/recalc/index.js";
+import {
+  ProfileRecalculationService,
+  type RecalculationState,
+  type RecalculationStateRepository,
+} from "../../src/recalc/index.js";
 
 const NOW = "2026-09-26T08:00:00Z";
 const source = { system: "model-fixture", retrievedAt: NOW, isModel: true } as const;
@@ -119,16 +123,35 @@ class MemoryEvents implements ChangeEventRepository {
   }
 }
 
+class MemoryRecalculationState implements RecalculationStateRepository {
+  readonly values = new Map<string, RecalculationState>();
+  async get(companyId: string) {
+    const value = this.values.get(companyId);
+    return value ? structuredClone(value) : undefined;
+  }
+  async save(companyId: string, state: RecalculationState) {
+    this.values.set(companyId, structuredClone(state));
+  }
+}
+
 const setup = () => {
   const profiles = new MemoryProfiles(profile("47.11", "micro"));
   const applicability = new MemoryApplicability();
   const events = new MemoryEvents();
+  const recalculationState = new MemoryRecalculationState();
   const requirements = new MemoryRequirements([
     requirement("req:food", { type: "okved_prefix", prefix: "56" }),
     requirement("req:small", { type: "msp_category", in: ["small"] }),
   ]);
-  const service = new ProfileRecalculationService({ profiles, requirements, applicability, events, clock: () => NOW });
-  return { profiles, applicability, events, service };
+  const service = new ProfileRecalculationService({
+    profiles,
+    requirements,
+    applicability,
+    events,
+    recalculationState,
+    clock: () => NOW,
+  });
+  return { profiles, applicability, events, recalculationState, service };
 };
 
 describe("ProfileRecalculationService", () => {
@@ -203,6 +226,7 @@ describe("ProfileRecalculationService", () => {
       ]),
       applicability: state.applicability,
       events: state.events,
+      recalculationState: state.recalculationState,
       clock: () => times.shift() ?? "2026-09-26T08:03:00Z",
     });
     state.profiles.value = profile("56.10", "small", "2026-09-26T08:00:30Z");
@@ -221,15 +245,15 @@ describe("ProfileRecalculationService", () => {
     expect(state.applicability.value[0]?.evaluatedAt).toBe("2026-09-26T08:02:00Z");
   });
 
-  it("не подавляет новую такую же операцию после цикла изменений", async () => {
+  it("не подавляет одинаковые по значениям и timestamps переходы после цикла A→B→A→B", async () => {
     const state = setup();
-    state.profiles.value = profile("56.10", "small", "2026-09-26T08:01:00Z");
+    state.profiles.value = profile("56.10", "small", NOW);
     await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
     const firstForwardId = state.events.values[0]?.id;
 
-    state.profiles.value = profile("47.11", "micro", "2026-09-26T08:02:00Z");
+    state.profiles.value = profile("47.11", "micro", NOW);
     await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
-    state.profiles.value = profile("56.10", "small", "2026-09-26T08:03:00Z");
+    state.profiles.value = profile("56.10", "small", NOW);
     await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
 
     expect(state.events.values).toHaveLength(3);
