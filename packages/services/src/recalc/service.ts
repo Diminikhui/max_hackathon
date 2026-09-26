@@ -48,9 +48,10 @@ export interface ProfileRecalculationDeps {
 /**
  * Пересчитывает снимок применимости после изменения профиля.
  *
- * Сначала вычисляется полный новый снимок на зафиксированных версиях пакетов, затем он
- * заменяет старый снимок. `profile_change` публикуется только для дельты применимости;
- * повтор того же пересчёта поэтому не создаёт событие и уведомление.
+ * Сначала вычисляется полный новый снимок на зафиксированных версиях пакетов. Для дельты
+ * идемпотентное `profile_change` сохраняется до замены снимка: при ошибке append старый
+ * снимок остаётся доступен для безопасного повтора с тем же id события. Без дельты событие
+ * не создаётся.
  */
 export class ProfileRecalculationService {
   readonly #deps: ProfileRecalculationDeps;
@@ -72,8 +73,8 @@ export class ProfileRecalculationService {
     const current = sortResults(requirements.map((item) => assessRequirement(item, profile, { evaluatedAt, asOf })));
     const delta = calculateDelta(previous, current);
 
-    await this.#deps.applicability.replaceForCompany(companyId, current);
     if (delta.appeared.length === 0 && delta.disappeared.length === 0) {
+      await this.#deps.applicability.replaceForCompany(companyId, current);
       return { status: "unchanged", previous, current, delta };
     }
 
@@ -89,6 +90,7 @@ export class ProfileRecalculationService {
       profile: { companyId, changedFactKeys },
     };
     await this.#deps.events.append(event);
+    await this.#deps.applicability.replaceForCompany(companyId, current);
     return { status: "changed", previous, current, delta, event };
   }
 

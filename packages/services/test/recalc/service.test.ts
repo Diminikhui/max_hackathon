@@ -101,7 +101,12 @@ class MemoryApplicability implements ApplicabilityRepository {
 
 class MemoryEvents implements ChangeEventRepository {
   readonly values: ChangeEvent[] = [];
+  failNextAppend = false;
   async append(event: ChangeEvent) {
+    if (this.failNextAppend) {
+      this.failNextAppend = false;
+      throw new Error("model event store unavailable");
+    }
     if (!this.values.some((item) => item.id === event.id)) this.values.push(event);
   }
   async get(id: string) {
@@ -161,6 +166,28 @@ describe("ProfileRecalculationService", () => {
     expect(second).toMatchObject({ status: "unchanged", delta: { appeared: [], disappeared: [] } });
     expect(state.events.values).toHaveLength(0);
     expect(state.applicability.value).toHaveLength(2);
+  });
+
+  it("после failed append повтор сохраняет один event и корректный снимок", async () => {
+    const state = setup();
+    state.profiles.value = profile("56.10", "small");
+    state.events.failNextAppend = true;
+    const options = {
+      changedFactKeys: [FACT_KEYS.okvedMain, FACT_KEYS.mspCategory],
+      eventId: () => "event:retryable-profile-change",
+    };
+
+    await expect(state.service.recalculate("company:model-1", options)).rejects.toThrow(
+      "model event store unavailable",
+    );
+    expect(state.applicability.value).toEqual([]);
+    expect(state.events.values).toEqual([]);
+
+    const retried = await state.service.recalculate("company:model-1", options);
+
+    expect(retried.status).toBe("changed");
+    expect(state.events.values.map((event) => event.id)).toEqual(["event:retryable-profile-change"]);
+    expect(state.applicability.value.map((item) => item.requirementId)).toEqual(["req:food", "req:small"]);
   });
 
   it("возвращает profile_not_found и не меняет снимок", async () => {
