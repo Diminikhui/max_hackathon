@@ -1,5 +1,5 @@
-// Клиент regulation.gov.ru на модельных ответах: форма ответов портала не подтверждена живым запросом,
-// все XML и JSON ниже — модельные данные.
+// Клиент regulation.gov.ru на модельных ответах; форма запросов и ответов сверена живым запросом 26.09.2026.
+// Все XML и JSON ниже — модельные данные.
 import { describe, expect, it } from "vitest";
 import {
   buildFilter,
@@ -14,7 +14,7 @@ import {
 
 const MODEL_NPALIST = `<?xml version="1.0" encoding="utf-8"?>
 <!-- модельные данные -->
-<npalist>
+<npalist total="4">
   <npa id="900001">
     <title><![CDATA[Об изменении Правил оказания услуг общественного питания <модель>]]></title>
     <department>Модельное ведомство</department>
@@ -83,11 +83,15 @@ describe("parseXml", () => {
 
 describe("listNpa", () => {
   it("забирает выборку, пропуская записи без идентификатора и не падая на пустых полях", async () => {
-    const { fetch, calls } = modelFetch([new Response(MODEL_NPALIST)]);
+    const { fetch, calls } = modelFetch([
+      new Response('<projects total="4"><project id="900001"/></projects>'),
+      new Response(MODEL_NPALIST),
+    ]);
     const client = new RegulationClient({ fetch, ...fakeClock() });
     const page = await client.listNpa({ limit: 500 });
 
-    expect(calls[0]?.url).toBe("https://regulation.gov.ru/api/npalist/?limit=500");
+    expect(calls[0]?.url).toBe("https://regulation.gov.ru/api/npalist/?offset=0&limit=1");
+    expect(calls[1]?.url).toBe("https://regulation.gov.ru/api/npalist/?offset=0&limit=500");
     expect(page.skipped).toBe(2);
     expect(page.items).toEqual([
       {
@@ -107,8 +111,19 @@ describe("listNpa", () => {
     ]);
   });
 
+  it("читает хвост списка по total и offset", async () => {
+    const { fetch, calls } = modelFetch([
+      new Response('<projects total="100"><project id="1"/></projects>'),
+      new Response('<projects total="100" offset="98"><project id="99"/><project id="100"/></projects>'),
+    ]);
+    const client = new RegulationClient({ fetch, ...fakeClock() });
+    const page = await client.listNpa({ limit: 2 });
+    expect(calls[1]?.url).toBe("https://regulation.gov.ru/api/npalist/?offset=98&limit=2");
+    expect(page.items.map((item) => item.id)).toEqual(["99", "100"]);
+  });
+
   it("пустой список — пустая выборка; битый XML — ошибка источника", async () => {
-    const empty = new RegulationClient({ fetch: modelFetch([new Response("<npalist/>")]).fetch });
+    const empty = new RegulationClient({ fetch: modelFetch([new Response('<npalist total="0"/>')]).fetch });
     expect(await empty.listNpa()).toEqual({ items: [], skipped: 0 });
 
     const broken = new RegulationClient({ fetch: modelFetch([new Response("<html><body>")]).fetch, maxRetries: 0 });
@@ -147,7 +162,8 @@ describe("GetFiltered", () => {
       ["1", "Модельный проект", "Ведомство", [23, 45]],
       ["2", undefined, undefined, []],
     ]);
-    expect(pageFromJson(null)).toMatchObject({ items: [], skipped: 0, total: undefined });
+    expect(() => pageFromJson(null)).toThrow(TypeError);
+    expect(() => pageFromJson({ unexpected: [] })).toThrow(TypeError);
   });
 
   it("листает страницы по 500 до неполной страницы и убирает дубли", async () => {
@@ -160,11 +176,9 @@ describe("GetFiltered", () => {
     const result = await client.getFiltered({ sphereIds: [23] });
     expect(result.pages).toBe(2);
     expect(result.items).toHaveLength(501);
-    expect(JSON.parse(String(calls[1]?.init?.body))).toEqual({
-      filters: "okveds==23",
-      sorts: "-id",
-      page: 2,
-      pageSize: 500,
+    expect(JSON.parse(String(calls[1]?.init?.body))).toMatchObject({
+      listParams: { filterModel: { filters: "okveds==23", sorts: "-id", page: 2, pageSize: 500 } },
+      orderedFields: expect.arrayContaining(["id", "title", "okveds"]),
     });
     expect(clock.sleeps).toEqual([1000]);
   });
@@ -181,9 +195,11 @@ describe("GetFiltered", () => {
     expect(endless.calls).toHaveLength(2);
   });
 
-  it("пустое тело и не-JSON", async () => {
+  it("пустая выборка, пустое тело и не-JSON", async () => {
+    const noResults = new RegulationClient({ fetch: modelFetch([json({ result: [], totalCount: 0 })]).fetch });
+    expect((await noResults.getFiltered({})).items).toEqual([]);
     const empty = new RegulationClient({ fetch: modelFetch([new Response("")]).fetch });
-    expect((await empty.getFiltered({})).items).toEqual([]);
+    await expect(empty.getFiltered({})).rejects.toMatchObject({ code: "DEPENDENCY_UNAVAILABLE" });
     const html = new RegulationClient({ fetch: modelFetch([new Response("<html>")]).fetch });
     await expect(html.getFiltered({})).rejects.toMatchObject({ code: "DEPENDENCY_UNAVAILABLE" });
   });
@@ -194,7 +210,7 @@ describe("ошибки и повторы", () => {
     const { fetch, calls } = modelFetch([
       new Response("", { status: 429, headers: { "Retry-After": "7" } }),
       new Response("", { status: 503 }),
-      new Response("<npalist/>"),
+      new Response('<npalist total="0"/>'),
     ]);
     const clock = fakeClock();
     const client = new RegulationClient({ fetch, ...clock, minIntervalMs: 0, retryBaseMs: 1000 });

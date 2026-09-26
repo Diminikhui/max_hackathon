@@ -72,9 +72,22 @@ export class RegulationClient {
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_SIZE) {
       throw new RegulationClientError("INVALID_INPUT", `limit должен быть от 1 до ${MAX_PAGE_SIZE}`);
     }
-    const text = await this.request(`/api/npalist/?limit=${limit}`, { method: "GET", headers: { Accept: "*/*" } });
+    const initial = await this.fetchNpa(0, 1);
+    const total = Number(initial.attributes.total);
+    if (!Number.isSafeInteger(total) || total < 0 || initial.attributes.total === undefined) {
+      throw new RegulationClientError("DEPENDENCY_UNAVAILABLE", "Ответ npalist не содержит корректный total");
+    }
+    if (total <= 1) return pageFromXml(initial);
+    return pageFromXml(await this.fetchNpa(Math.max(0, total - limit), limit));
+  }
+
+  private async fetchNpa(offset: number, limit: number) {
+    const text = await this.request(`/api/npalist/?offset=${offset}&limit=${limit}`, {
+      method: "GET",
+      headers: { Accept: "application/xml" },
+    });
     try {
-      return pageFromXml(parseXml(text));
+      return parseXml(text);
     } catch (error) {
       if (error instanceof XmlParseError) {
         throw new RegulationClientError("DEPENDENCY_UNAVAILABLE", `Ответ npalist не разобран: ${error.message}`, {
@@ -91,7 +104,20 @@ export class RegulationClient {
     if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
       throw new RegulationClientError("INVALID_INPUT", `pageSize должен быть от 1 до ${MAX_PAGE_SIZE}`);
     }
-    const body = JSON.stringify({ filters: buildFilter(query), sorts: "-id", page, pageSize });
+    const body = JSON.stringify({
+      listParams: { filterModel: { filters: buildFilter(query), sorts: "-id", page, pageSize } },
+      orderedFields: [
+        "id",
+        "projectId",
+        "title",
+        "developedDepartment",
+        "creationDate",
+        "publicationDate",
+        "stage",
+        "status",
+        "okveds",
+      ],
+    });
     const text = await this.request("/api/public/PublicProjects/GetFiltered", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -99,11 +125,17 @@ export class RegulationClient {
     });
     let parsed: unknown;
     try {
-      parsed = text.trim() ? JSON.parse(text) : [];
+      parsed = JSON.parse(text);
     } catch (error) {
       throw new RegulationClientError("DEPENDENCY_UNAVAILABLE", "Ответ GetFiltered — не JSON", { cause: error });
     }
-    return pageFromJson(parsed);
+    try {
+      return pageFromJson(parsed);
+    } catch (error) {
+      throw new RegulationClientError("DEPENDENCY_UNAVAILABLE", "Неизвестная структура ответа GetFiltered", {
+        cause: error,
+      });
+    }
   }
 
   /** Вся выборка GetFiltered постранично: до пустой/неполной страницы, total или maxPages. */

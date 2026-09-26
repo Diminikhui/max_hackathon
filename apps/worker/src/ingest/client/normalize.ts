@@ -86,16 +86,17 @@ export function projectFromJson(value: unknown): NpaProject | undefined {
 
 /** Находит массив записей и общее число в ответе GetFiltered. */
 export function pageFromJson(body: unknown): FetchPage & { total: number | undefined; received: number } {
-  let list: unknown[] = [];
+  let list: unknown[];
   let total: number | undefined;
   if (Array.isArray(body)) list = body;
   else if (typeof body === "object" && body !== null) {
     const record = body as Record<string, unknown>;
     const found = pick(record, ["items", "data", "projects", "results", "result", "list"]);
-    if (Array.isArray(found)) list = found;
+    if (!Array.isArray(found)) throw new TypeError("Массив проектов не найден в ответе GetFiltered");
+    list = found;
     const count = pick(record, ["total", "totalCount", "count", "totalItems"]);
     if (typeof count === "number" && Number.isFinite(count)) total = count;
-  }
+  } else throw new TypeError("Ответ GetFiltered должен быть объектом или массивом");
   const items = list.map(projectFromJson).filter((item): item is NpaProject => item !== undefined);
   return { items, skipped: list.length - items.length, total, received: list.length };
 }
