@@ -186,11 +186,7 @@ export const calculateDelta = (
 const sortResults = (results: ApplicabilityResult[]): ApplicabilityResult[] =>
   [...results].sort((left, right) => left.requirementId.localeCompare(right.requirementId));
 
-const operationEventId = (input: {
-  companyId: Id;
-  revision: number;
-  targetDigest: string;
-}): Id => {
+const operationEventId = (input: { companyId: Id; revision: number; targetDigest: string }): Id => {
   const identity = JSON.stringify({
     kind: "profile_change",
     companyId: input.companyId,

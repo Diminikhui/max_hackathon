@@ -3,7 +3,7 @@ export {
   type ProfileRecalculationOptions,
   type ProfileRecalculationOutcome,
   ProfileRecalculationService,
+  type RecalculationDelta,
   type RecalculationState,
   type RecalculationStateRepository,
-  type RecalculationDelta,
 } from "./service.js";
