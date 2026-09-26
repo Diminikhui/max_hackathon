@@ -1,0 +1,121 @@
+name: max-hackathon
+
+x-app-build: &app-build
+  context: .
+  dockerfile: Dockerfile
+
+x-app-environment: &app-environment
+  DATABASE_URL: postgresql://${POSTGRES_USER:-max_hackathon}:${POSTGRES_PASSWORD:-max_hackathon_local}@database:5432/${POSTGRES_DB:-max_hackathon}
+  LLM_PROVIDER: ${LLM_PROVIDER:-template}
+  LOCAL_LLM_URL: ${LOCAL_LLM_URL:-http://local-model:11434}
+  MAX_API_BASE_URL: ${MAX_API_BASE_URL:-https://platform-api2.max.ru}
+
+x-app-service: &app-service
+  init: true
+  restart: unless-stopped
+  environment: *app-environment
+  depends_on:
+    database:
+      condition: service_healthy
+
+services:
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-max_hackathon}
+      POSTGRES_USER: ${POSTGRES_USER:-max_hackathon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-max_hackathon_local}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # Local Compose deliberately starts the bot without a MAX token. Receiving
+  # MAX events is enabled only in the separately managed server environment.
+  bot:
+    <<: *app-service
+    build:
+      <<: *app-build
+      target: bot
+    environment:
+      <<: *app-environment
+      MAX_BOT_TOKEN: ""
+      MAX_EVENTS_ENABLED: "false"
+    command:
+      - node
+      - --input-type=module
+      - -e
+      - |
+        await import('./apps/bot/dist/main.js');
+        console.log('Local MAX event ingestion is disabled.');
+        setInterval(() => {}, 2147483647);
+
+  worker:
+    <<: *app-service
+    build:
+      <<: *app-build
+      target: worker
+    command:
+      - node
+      - --input-type=module
+      - -e
+      - |
+        await import('./apps/worker/dist/main.js');
+        setInterval(() => {}, 2147483647);
+
+  miniapp-api:
+    <<: *app-service
+    build:
+      <<: *app-build
+      target: miniapp-api
+    command:
+      - node
+      - --input-type=module
+      - -e
+      - |
+        await import('./apps/miniapp-api/dist/main.js');
+        setInterval(() => {}, 2147483647);
+    ports:
+      - "${MINIAPP_API_PORT:-3000}:3000"
+
+  miniapp:
+    build:
+      <<: *app-build
+      target: miniapp
+    init: true
+    restart: unless-stopped
+    depends_on:
+      miniapp-api:
+        condition: service_healthy
+    ports:
+      - "${MINIAPP_PORT:-4173}:4173"
+
+  # Optional: `docker compose --profile local-model up` downloads the runtime
+  # image, while model weights remain only in the named volume at runtime.
+  local-model:
+    image: ${LOCAL_LLM_IMAGE:-ollama/ollama:latest}
+    profiles:
+      - local-model
+    restart: unless-stopped
+    volumes:
+      - local-model-data:/root/.ollama
+    healthcheck:
+      test:
+        - CMD
+        - ollama
+        - list
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  postgres-data:
+  local-model-data:

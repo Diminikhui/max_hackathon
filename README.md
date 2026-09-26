@@ -36,7 +36,30 @@ pnpm install
 pnpm build
 ```
 
-Пока в репозитории только пустой каркас пакетов. Запуск бота, мини-приложения и Docker Compose добавят потоки из [дорожной карты](docs/roadmap.md).
+### Docker Compose
+
+Все компоненты поднимаются одной командой из чистого клона (нужен Docker с Compose v2):
+
+```bash
+cp .env.example .env   # значения по умолчанию подходят для локального запуска
+docker compose up --build --wait
+```
+
+| Сервис | Что делает | Адрес |
+| --- | --- | --- |
+| `database` | PostgreSQL 17, данные в томе `postgres-data` | внутри сети Compose |
+| `bot` | бот MAX | — |
+| `worker` | фоновые задачи | — |
+| `miniapp-api` | API мини-приложения | <http://localhost:3000> (`MINIAPP_API_PORT`) |
+| `miniapp` | статическая сборка мини-приложения | <http://localhost:4173> (`MINIAPP_PORT`) |
+
+**Локально бот не принимает события MAX.** Compose запускает его с пустым `MAX_BOT_TOKEN` и `MAX_EVENTS_ENABLED=false`: выданный организаторами бот работает только на сервере, где хранится токен ([ADR-0003](docs/decisions/0003-issued-bot-and-hackathon-contour.md)). Локальный запуск нужен для разработки и проверки остальных компонентов.
+
+Сертификат НУЦ Минцифры для доверия TLS кладётся в `certs/russian_trusted_root_ca.crt` ([certs/README.md](certs/README.md)); если файл есть, образ передаёт его только процессу Node.js через `NODE_EXTRA_CA_CERTS`. Проверку TLS не отключайте.
+
+Локальная модель (ADR-0001) не входит в образы приложения и запускается только по профилю: `docker compose --profile local-model up`; веса хранятся в томе `local-model-data`. По умолчанию `LLM_PROVIDER=template` работает без ИИ.
+
+Остановка: `docker compose down` (с `-v` — вместе с данными).
 
 ## Безопасность
 
