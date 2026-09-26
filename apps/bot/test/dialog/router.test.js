@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 
-import { createDialogRouter, DIALOG_ROUTES } from "../../dist/dialog/index.js";
+import { createDialogRouter, DIALOG_ROUTES } from "../../src/dialog/index.js";
 
 const handlersReturningRoute = () =>
   Object.fromEntries(

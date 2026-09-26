@@ -1,0 +1,17 @@
+{
+  "name": "@max-hackathon/pack-cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CLI для установки пакетов правил без изменения кода.",
+  "type": "module",
+  "bin": {
+    "pack": "./pack.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  }
+}

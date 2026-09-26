@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 
-import { allowedDialogEvents, DIALOG_STATES, transitionDialog } from "../../dist/dialog/index.js";
+import { allowedDialogEvents, DIALOG_STATES, transitionDialog } from "../../src/dialog/index.js";
 
 const transitions = [
   ["idle", { type: "start" }, "awaiting_inn", "request_inn"],
@@ -76,4 +76,13 @@ describe("dialog state machine", () => {
       reason: "unknown_state",
     });
   });
+
+  for (const state of ["toString", "__proto__", "constructor", "hasOwnProperty"]) {
+    it(`resets prototype key "${state}" instead of treating it as a state`, () => {
+      const result = transitionDialog(state, { type: "back" });
+      assert.equal(result.state, "idle");
+      assert.equal(result.route, "reset_dialog");
+      assert.equal(result.reason, "unknown_state");
+    });
+  }
 });

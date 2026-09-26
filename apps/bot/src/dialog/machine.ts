@@ -72,7 +72,7 @@ const RECOVERY_ROUTES = {
   notification_settings: "show_notification_settings",
 } as const satisfies Readonly<Record<DialogState, DialogRoute>>;
 
-const isDialogState = (state: string): state is DialogState => state in TRANSITIONS;
+const isDialogState = (state: string): state is DialogState => Object.hasOwn(TRANSITIONS, state);
 
 const allowedEventsFor = (state: DialogState): readonly DialogEventType[] =>
   Object.freeze(Object.keys(TRANSITIONS[state]) as DialogEventType[]);
