@@ -66,7 +66,8 @@ case "${MAX_INGEST_MODE:-polling}" in
     fi
     ;;
   webhook)
-    if ! systemctl is-active --quiet max-hackathon-webhook.service; then
+    if ! systemctl is-active --quiet max-hackathon-webhook.service || \
+       ! curl --fail --silent --max-time 5 --output /dev/null http://127.0.0.1:3001/health; then
       failures+=(webhook-bot)
     fi
     subscriptions=$(printf 'header = "Authorization: %s"\n' "$MAX_BOT_TOKEN" | \
