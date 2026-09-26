@@ -33,6 +33,8 @@ export interface MessageSender {
    * Отправить одно уведомление. Не должен бросать исключения: ошибки возвращаются как SendFailure.
    * Исключение очередь считает неизвестным исходом (см. {@link DELIVERY_UNKNOWN}).
    * notification.idempotencyKey стоит передать в MAX, если API поддерживает ключ идемпотентности.
+   * Реализация обязана выполнять HTTP-вызов через общий MaxApiTransport, разделяемый с upload и
+   * service-клиентами. Очередь отвечает только за per-chat лимит и не может учитывать иные MAX-запросы.
    */
   send(notification: Notification): Promise<SendResult>;
 }

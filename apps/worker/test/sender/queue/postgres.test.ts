@@ -39,7 +39,6 @@ describe("SendQueueWorker + PostgresNotificationRepository", () => {
       sender,
       now: clock.now,
       backoff: { baseMs: 1000, maxMs: 1000 },
-      rateLimit: { capacity: 100, refillPerSecond: 100 },
       perChatRateLimit: { capacity: 100, refillPerSecond: 100 },
     });
 

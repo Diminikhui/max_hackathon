@@ -31,7 +31,6 @@ const setup = (script: FakeSendStep[] = [], options: Partial<SendQueueWorkerOpti
     repository,
     sender,
     now: clock.now,
-    rateLimit: { capacity: 100, refillPerSecond: 100 },
     perChatRateLimit: { capacity: 100, refillPerSecond: 100 },
     ...options,
   });
@@ -202,42 +201,15 @@ describe("SendQueueWorker", () => {
     expect(stored("n1").status).toBe("suppressed");
   });
 
-  it("ограничение скорости: token bucket, остальное ждёт токенов", async () => {
-    for (const id of ["n1", "n2", "n3", "n4", "n5"]) await repository.enqueue(queued(id));
-    const { sender, worker } = setup([], {
-      rateLimit: { capacity: 2, refillPerSecond: 1 },
-      perChatRateLimit: { capacity: 100, refillPerSecond: 100 },
-    });
-
-    const first = await worker.processBatch();
-    expect(first.sent).toEqual(["n1", "n2"]);
-    expect(first.throttled).toBe(true);
-    expect(first.nextDelayMs).toBe(1000);
-
-    clock.advance(500);
-    expect((await worker.processBatch()).sent).toEqual([]);
-    clock.advance(500);
-    expect((await worker.processBatch()).sent).toEqual(["n3"]);
-    clock.advance(10_000);
-    expect((await worker.processBatch()).sent).toEqual(["n4", "n5"]);
-    expect(sender.calls.map((call) => call.id)).toEqual(["n1", "n2", "n3", "n4", "n5"]);
-    for (const id of ["n1", "n2", "n3", "n4", "n5"]) expectValid(stored(id));
-  });
-
-  it("по умолчанию сглаживает общий поток до 30 rps и чат до 2 msg/s", async () => {
+  it("по умолчанию сглаживает чат до 2 msg/s; общий бюджет принадлежит MAX transport", async () => {
     await repository.enqueue(queued("a1", { recipient: { channel: "max_bot", chatId: "chat-a" } }));
     await repository.enqueue(queued("a2", { recipient: { channel: "max_bot", chatId: "chat-a" } }));
     await repository.enqueue(queued("b1", { recipient: { channel: "max_bot", chatId: "chat-b" } }));
     const sender = new FakeMessageSender();
     const worker = new SendQueueWorker({ repository, sender, now: clock.now });
 
-    expect(await worker.processBatch()).toMatchObject({ sent: ["a1"], throttled: true, nextDelayMs: 34 });
-    clock.advance(34);
-    const second = await worker.processBatch();
-    expect(second.sent).toEqual(["b1"]);
-    expect(second.skipped).toContain("a2");
-    expect(second.nextDelayMs).toBe(466);
-    clock.advance(466);
+    expect(await worker.processBatch()).toMatchObject({ sent: ["a1", "b1"], nextDelayMs: 500 });
+    clock.advance(500);
     expect((await worker.processBatch()).sent).toEqual(["a2"]);
     expect(sender.calls.map((call) => call.id)).toEqual(["a1", "b1", "a2"]);
   });
@@ -257,7 +229,6 @@ describe("SendQueueWorker", () => {
       repository,
       sender,
       now: clock.now,
-      rateLimit: { capacity: 10, refillPerSecond: 30 },
     });
 
     const first = await worker.processBatch();
@@ -268,6 +239,31 @@ describe("SendQueueWorker", () => {
     clock.advance(500);
     expect((await worker.processBatch()).sent).toEqual(["a3"]);
     expect(sender.calls.map((call) => call.id)).toEqual(["a1", "b1", "a2", "a3"]);
+  });
+
+  it("не допускает starvation: chat B виден за большим throttled FIFO-префиксом chat A", async () => {
+    for (let index = 0; index < 80; index += 1) {
+      await repository.enqueue(
+        queued(`a-${String(index).padStart(2, "0")}`, {
+          createdAt: `2026-09-25T11:00:00.${String(index).padStart(3, "0")}Z`,
+          recipient: { channel: "max_bot", chatId: "chat-a" },
+        }),
+      );
+    }
+    await repository.enqueue(
+      queued("b-1", {
+        createdAt: "2026-09-25T13:00:00Z",
+        recipient: { channel: "max_bot", chatId: "chat-b" },
+      }),
+    );
+    const { sender, worker } = setup([], {
+      batchSize: 2,
+      perChatRateLimit: { capacity: 1, refillPerSecond: 0.01 },
+    });
+
+    const report = await worker.processBatch();
+    expect(report.sent).toEqual(["a-00", "b-1"]);
+    expect(sender.calls.map((call) => call.id)).toEqual(["a-00", "b-1"]);
   });
 
   it("retryAfterMs от отправителя ставит на паузу всю очередь", async () => {

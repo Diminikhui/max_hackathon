@@ -32,8 +32,6 @@ export interface SendQueueWorkerOptions {
   maxAttempts?: number;
   /** Отсрочка повтора: base * 2^(попытка-1), не больше maxMs. По умолчанию 1 с и 5 мин. */
   backoff?: { baseMs: number; maxMs: number };
-  /** Общий лимит Bot API. По умолчанию не более 30 запросов/с без всплеска. */
-  rateLimit?: TokenBucketOptions;
   /** Лимит отправки в один чат. По умолчанию не более 2 сообщений/с без всплеска. */
   perChatRateLimit?: TokenBucketOptions;
   /**
@@ -67,7 +65,6 @@ export class SendQueueWorker {
   private readonly batchSize: number;
   private readonly maxAttempts: number;
   private readonly backoff: { baseMs: number; maxMs: number };
-  private readonly bucket: TokenBucket;
   private readonly perChatLimit: TokenBucketOptions;
   private readonly chatBuckets = new Map<string, TokenBucket>();
   private readonly unknownOutcome: "fail" | "retry";
@@ -85,7 +82,6 @@ export class SendQueueWorker {
     this.batchSize = options.batchSize ?? 20;
     this.maxAttempts = options.maxAttempts ?? 5;
     this.backoff = options.backoff ?? { baseMs: 1000, maxMs: 300_000 };
-    this.bucket = new TokenBucket(options.rateLimit ?? { capacity: 1, refillPerSecond: 30 });
     this.perChatLimit = options.perChatRateLimit ?? { capacity: 1, refillPerSecond: 2 };
     // Проверяем настройки сразу, даже если очередь пока пуста.
     new TokenBucket(this.perChatLimit);
@@ -115,10 +111,10 @@ export class SendQueueWorker {
       return report;
     }
 
-    // Запас на отложенные уведомления, чтобы они не вытесняли готовые к отправке.
-    const fetchLimit = this.batchSize + this.notBefore.size;
-    const queued = fairOrder(await this.repository.listQueued(fetchLimit));
-    if (queued.length < fetchLimit) this.pruneBackoff(queued);
+    // listQueued возвращает FIFO-префикс. Читаем его до конца с геометрическим ростом лимита:
+    // иначе длинный throttled chat A навсегда скрывает chat B за первым batchSize.
+    const queued = fairOrder(await this.scanQueued());
+    this.pruneBackoff(queued);
 
     let handled = 0;
     let delay: number | undefined;
@@ -148,13 +144,6 @@ export class SendQueueWorker {
       }
 
       const now = this.now();
-      const globalWait = this.bucket.availableIn(now);
-      if (globalWait > 0) {
-        report.throttled = true;
-        delay = globalWait;
-        break;
-      }
-
       const chatBucket = this.chatBucket(current.recipient.chatId);
       const chatWait = chatBucket.availableIn(now);
       if (chatWait > 0) {
@@ -164,8 +153,7 @@ export class SendQueueWorker {
         continue;
       }
 
-      // Оба токена доступны; расходуем их непосредственно перед отправкой.
-      this.bucket.take(now);
+      // Общий MAX API budget расходует общий transport; здесь — только квота конкретного чата.
       chatBucket.take(now);
 
       handled += 1;
@@ -272,6 +260,17 @@ export class SendQueueWorker {
     let delay = this.idleDelayMs;
     for (const at of this.notBefore.values()) delay = Math.min(delay, Math.max(0, at - now));
     return delay;
+  }
+
+  private async scanQueued(): Promise<Notification[]> {
+    let limit = Math.max(1, this.batchSize + this.notBefore.size);
+    for (;;) {
+      const queued = await this.repository.listQueued(limit);
+      if (queued.length < limit) return queued;
+      const next = Math.min(Number.MAX_SAFE_INTEGER, limit * 2);
+      if (next === limit) return queued;
+      limit = next;
+    }
   }
 
   /** Забыть отсрочки уведомлений, которых больше нет в очереди (отправлены или подавлены извне). */
