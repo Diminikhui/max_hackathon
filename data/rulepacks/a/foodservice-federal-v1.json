@@ -34,7 +34,7 @@
           "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102126836"
         },
         {
-          "act": "Постановление Правительства РФ от 27.05.2025 № 725 (ред. от 10.05.2026)",
+          "act": "Постановление Правительства РФ от 27.05.2025 № 725 (ред. от 10.05.2026; действует до 01.09.2031)",
           "article": "Правила, п. 2, 7, 11; приложение № 1, п. 6",
           "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=608619029"
         }
@@ -45,9 +45,6 @@
         "prefix": "56"
       },
       "coverage": "partial",
-      "validity": {
-        "to": "2031-08-31"
-      },
       "source": {
         "system": "pravo.gov.ru",
         "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=608619029",
@@ -479,8 +476,7 @@
       },
       "coverage": "partial",
       "validity": {
-        "from": "2023-09-01",
-        "to": "2029-08-31"
+        "from": "2023-09-01"
       },
       "source": {
         "system": "publication.pravo.gov.ru",
@@ -542,7 +538,7 @@
           "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102074279"
         },
         {
-          "act": "Постановление Правительства РФ от 24.12.2021 № 2464 (ред. от 30.06.2026 № 805)",
+          "act": "Постановление Правительства РФ от 24.12.2021 № 2464 (ред. от 30.06.2026 № 805; действует до 01.09.2032)",
           "article": "п. 5; Правила, п. 2, 10, 13, 14, 33, 36, 44, 59, 62, 63, 100–103",
           "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=602682753"
         },
@@ -567,9 +563,6 @@
         ]
       },
       "coverage": "partial",
-      "validity": {
-        "to": "2032-08-31"
-      },
       "source": {
         "system": "pravo.gov.ru",
         "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=602682753",
