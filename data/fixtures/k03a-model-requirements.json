@@ -1,0 +1,38 @@
+[
+  {
+    "contractVersion": 1,
+    "id": "k03a.model.foodservice",
+    "packId": "k03a-model",
+    "packVersion": 1,
+    "kind": "obligation",
+    "title": "Модельная запись для общепита — не юридическое требование",
+    "summary": "Иллюстрация связи записи с ОКВЭД 56; условия и правовое основание вымышлены.",
+    "basis": [{ "act": "Модельный акт", "url": "https://example.invalid/k03a/model-act" }],
+    "condition": { "type": "okved_prefix", "prefix": "56" },
+    "coverage": "partial",
+    "source": {
+      "system": "fixture",
+      "url": "https://example.invalid/k03a/model-foodservice",
+      "retrievedAt": "2026-09-25T00:00:00Z",
+      "isModel": true
+    }
+  },
+  {
+    "contractVersion": 1,
+    "id": "k03a.model.retail",
+    "packId": "k03a-model",
+    "packVersion": 1,
+    "kind": "obligation",
+    "title": "Модельная запись для розничной торговли — не юридическое требование",
+    "summary": "Иллюстрация связи записи с ОКВЭД 47; условия и правовое основание вымышлены.",
+    "basis": [{ "act": "Модельный акт", "url": "https://example.invalid/k03a/model-act" }],
+    "condition": { "type": "okved_prefix", "prefix": "47" },
+    "coverage": "partial",
+    "source": {
+      "system": "fixture",
+      "url": "https://example.invalid/k03a/model-retail",
+      "retrievedAt": "2026-09-25T00:00:00Z",
+      "isModel": true
+    }
+  }
+]
