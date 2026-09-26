@@ -27,7 +27,9 @@ systemctl list-timers k08-cert-renew.timer max-hackathon-deploy.timer
 ## Бот и webhook
 
 Пока `apps/bot/src/main.ts` пустой, на VPS работает **временный тестовый**
-обработчик `deploy/webhook-echo.mjs` для K-05a. Служба
+обработчик `deploy/webhook-echo.mjs` для K-05a. Его установленная
+копия — `/usr/local/lib/max-hackathon/webhook-echo.mjs`; при изменении
+исходника скопируйте её заново и перезапустите службу. Служба
 `max-hackathon-webhook.service` принимает события MAX через Nginx на
 `https://135.106.227.207/webhook`, проверяет заголовок
 `X-Max-Bot-Api-Secret` и отвечает на сообщения и callback. Секрет хранится
@@ -41,10 +43,11 @@ MAX **успешно принял** 27.09.2026 тестовую подписку
 Рабочая подписка включает `message_created`, `message_callback` и
 `bot_started`. Сверить её можно через `GET /subscriptions` по
 документации MAX, не публикуя токен. Long polling `k08-spike-bot.service`
-остановлен: при активной webhook-подписке он не работает. Если нужно
-временно вернуться к polling, сначала удалите webhook-подписку через
-`DELETE /subscriptions?url=...`, затем запустите `k08-spike-bot.service`
-и переключите `MAX_INGEST_MODE=polling` в `monitor.env`.
+остановлен и отключён от автозапуска: при активной webhook-подписке он не
+работает. Если нужно временно вернуться к polling, сначала удалите
+webhook-подписку через `DELETE /subscriptions?url=...`, затем выполните
+`systemctl enable --now k08-spike-bot.service` и переключите
+`MAX_INGEST_MODE=polling` в `monitor.env`.
 
 Это **тестовый ответ K-05a**, а не продуктовый диалог. K-22a должен заменить
 обработчик на основной бот, сохранив URL, секрет и проверку TLS. На VPS
