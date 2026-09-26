@@ -6,10 +6,17 @@ import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const { clientFromEnv } = await import(pathToFileURL(resolve(process.cwd(), "apps/bot/spike/max-client.mjs")).href);
+const { createMaxClient, loadPinnedCa } = await import(
+  pathToFileURL(resolve(process.cwd(), "apps/bot/spike/max-client.mjs")).href
+);
 const secret = process.env.MAX_WEBHOOK_SECRET;
 if (!secret || secret.length < 5) throw new Error("MAX_WEBHOOK_SECRET is required");
-const client = clientFromEnv();
+const client = createMaxClient({
+  token: process.env.MAX_BOT_TOKEN,
+  baseUrl: process.env.MAX_API_BASE_URL ?? "https://platform-api2.max.ru",
+  caPem: loadPinnedCa(process.env.MAX_CA_CERT_PATH, process.env.MAX_CA_CERT_SHA256),
+  timeoutMs: 20_000, // MAX requires a webhook response within 30 seconds.
+});
 
 const buttons = [
   [
