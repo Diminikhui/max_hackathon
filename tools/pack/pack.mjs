@@ -10,7 +10,7 @@ const usage = "Использование: pack add <путь-к-пакету.js
 
 const parseArgs = (args) => {
   if (args[0] !== "add" || !args[1]) return undefined;
-  let registryDirectory = process.env.RULEPACK_DIRECTORY ?? "data/rulepacks/installed";
+  let registryDirectory = process.env.RULEPACK_DIRECTORY || "data/rulepacks/installed";
   for (let index = 2; index < args.length; index += 1) {
     if (args[index] !== "--registry" || !args[index + 1] || index + 2 !== args.length) return undefined;
     registryDirectory = args[index + 1];
