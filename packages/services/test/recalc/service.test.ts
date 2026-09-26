@@ -16,13 +16,13 @@ import { ProfileRecalculationService } from "../../src/recalc/index.js";
 const NOW = "2026-09-26T08:00:00Z";
 const source = { system: "model-fixture", retrievedAt: NOW, isModel: true } as const;
 
-const profile = (okved: string, size: string): CompanyProfile => ({
+const profile = (okved: string, size: string, updatedAt = NOW): CompanyProfile => ({
   contractVersion: CONTRACT_VERSION,
   companyId: "company:model-1",
   inn: "7700000016",
   entityType: "legal_entity",
   isModel: true,
-  updatedAt: NOW,
+  updatedAt,
   facts: [
     {
       id: "fact:okved",
@@ -91,10 +91,15 @@ class MemoryRequirements implements RequirementRepository {
 
 class MemoryApplicability implements ApplicabilityRepository {
   value: ApplicabilityResult[] = [];
+  failNextReplace = false;
   async listByCompany() {
     return structuredClone(this.value);
   }
   async replaceForCompany(_companyId: string, results: ApplicabilityResult[]) {
+    if (this.failNextReplace) {
+      this.failNextReplace = false;
+      throw new Error("model snapshot store unavailable");
+    }
     this.value = structuredClone(results);
   }
 }
@@ -172,10 +177,7 @@ describe("ProfileRecalculationService", () => {
     const state = setup();
     state.profiles.value = profile("56.10", "small");
     state.events.failNextAppend = true;
-    const options = {
-      changedFactKeys: [FACT_KEYS.okvedMain, FACT_KEYS.mspCategory],
-      eventId: () => "event:retryable-profile-change",
-    };
+    const options = { changedFactKeys: [FACT_KEYS.okvedMain, FACT_KEYS.mspCategory] };
 
     await expect(state.service.recalculate("company:model-1", options)).rejects.toThrow(
       "model event store unavailable",
@@ -186,8 +188,52 @@ describe("ProfileRecalculationService", () => {
     const retried = await state.service.recalculate("company:model-1", options);
 
     expect(retried.status).toBe("changed");
-    expect(state.events.values.map((event) => event.id)).toEqual(["event:retryable-profile-change"]);
+    expect(state.events.values).toHaveLength(1);
     expect(state.applicability.value.map((item) => item.requirementId)).toEqual(["req:food", "req:small"]);
+  });
+
+  it("после successful append + failed replace retry не дублирует event", async () => {
+    const state = setup();
+    const times = ["2026-09-26T08:01:00Z", "2026-09-26T08:02:00Z"];
+    const service = new ProfileRecalculationService({
+      profiles: state.profiles,
+      requirements: new MemoryRequirements([
+        requirement("req:food", { type: "okved_prefix", prefix: "56" }),
+        requirement("req:small", { type: "msp_category", in: ["small"] }),
+      ]),
+      applicability: state.applicability,
+      events: state.events,
+      clock: () => times.shift() ?? "2026-09-26T08:03:00Z",
+    });
+    state.profiles.value = profile("56.10", "small", "2026-09-26T08:00:30Z");
+    state.applicability.failNextReplace = true;
+
+    await expect(service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] })).rejects.toThrow(
+      "model snapshot store unavailable",
+    );
+    expect(state.events.values).toHaveLength(1);
+    const firstEvent = structuredClone(state.events.values[0]);
+
+    const retried = await service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
+
+    expect(retried.status).toBe("changed");
+    expect(state.events.values).toEqual([firstEvent]);
+    expect(state.applicability.value[0]?.evaluatedAt).toBe("2026-09-26T08:02:00Z");
+  });
+
+  it("не подавляет новую такую же операцию после цикла изменений", async () => {
+    const state = setup();
+    state.profiles.value = profile("56.10", "small", "2026-09-26T08:01:00Z");
+    await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
+    const firstForwardId = state.events.values[0]?.id;
+
+    state.profiles.value = profile("47.11", "micro", "2026-09-26T08:02:00Z");
+    await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
+    state.profiles.value = profile("56.10", "small", "2026-09-26T08:03:00Z");
+    await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
+
+    expect(state.events.values).toHaveLength(3);
+    expect(state.events.values[2]?.id).not.toBe(firstForwardId);
   });
 
   it("возвращает profile_not_found и не меняет снимок", async () => {

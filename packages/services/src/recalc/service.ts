@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   type ApplicabilityRepository,
   type ApplicabilityResult,
@@ -49,9 +50,10 @@ export interface ProfileRecalculationDeps {
  * Пересчитывает снимок применимости после изменения профиля.
  *
  * Сначала вычисляется полный новый снимок на зафиксированных версиях пакетов. Для дельты
- * идемпотентное `profile_change` сохраняется до замены снимка: при ошибке append старый
- * снимок остаётся доступен для безопасного повтора с тем же id события. Без дельты событие
- * не создаётся.
+ * идемпотентное `profile_change` сохраняется до замены снимка. ID по умолчанию привязан к
+ * стабильной идентичности операции (версия профиля + предыдущий снимок + новые
+ * статусы), а не к clock вызова. Поэтому повтор безопасен и после failed append, и после
+ * successful append + failed replace. Без дельты событие не создаётся.
  */
 export class ProfileRecalculationService {
   readonly #deps: ProfileRecalculationDeps;
@@ -79,11 +81,18 @@ export class ProfileRecalculationService {
     }
 
     const changedFactKeys = [...new Set(options.changedFactKeys)].sort();
-    const event: ChangeEvent = {
+    const defaultEventId = operationEventId({
+      companyId,
+      profileUpdatedAt: profile.updatedAt,
+      changedFactKeys,
+      previous,
+      current,
+    });
+    const eventId = options.eventId?.({ companyId, evaluatedAt, changedFactKeys }) ?? defaultEventId;
+    const existingEvent = await this.#deps.events.get(eventId);
+    const event: ChangeEvent = existingEvent ?? {
       contractVersion: CONTRACT_VERSION,
-      id:
-        options.eventId?.({ companyId, evaluatedAt, changedFactKeys }) ??
-        `profile-change:${companyId}:${evaluatedAt}:${changedFactKeys.join(",")}`,
+      id: eventId,
       kind: "profile_change",
       occurredAt: evaluatedAt,
       isModel: profile.isModel,
@@ -127,3 +136,25 @@ export const calculateDelta = (
 
 const sortResults = (results: ApplicabilityResult[]): ApplicabilityResult[] =>
   [...results].sort((left, right) => left.requirementId.localeCompare(right.requirementId));
+
+const operationEventId = (input: {
+  companyId: Id;
+  profileUpdatedAt: DateTime;
+  changedFactKeys: readonly string[];
+  previous: readonly ApplicabilityResult[];
+  current: readonly ApplicabilityResult[];
+}): Id => {
+  const identity = JSON.stringify({
+    kind: "profile_change",
+    companyId: input.companyId,
+    profileUpdatedAt: input.profileUpdatedAt,
+    changedFactKeys: input.changedFactKeys,
+    // evaluatedAt предыдущего снимка — durable anchor между успешными replace.
+    // evaluatedAt текущего расчёта исключён: clock меняется при retry.
+    previous: input.previous.map(snapshotIdentity),
+    current: input.current.map(({ evaluatedAt: _evaluatedAt, ...result }) => result),
+  });
+  return `profile-change:${createHash("sha256").update(identity).digest("hex")}`;
+};
+
+const snapshotIdentity = (result: ApplicabilityResult): ApplicabilityResult => result;
