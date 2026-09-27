@@ -2,6 +2,7 @@
 // Очередь зависит только от этого интерфейса, а не от конкретного клиента.
 
 import type { Notification } from "@max-hackathon/domain";
+import type { MaxApiTransport } from "./max-transport.js";
 
 /** Успешная отправка: сообщение принято MAX. */
 export interface SendSuccess {
@@ -33,8 +34,41 @@ export interface MessageSender {
    * Отправить одно уведомление. Не должен бросать исключения: ошибки возвращаются как SendFailure.
    * Исключение очередь считает неизвестным исходом (см. {@link DELIVERY_UNKNOWN}).
    * notification.idempotencyKey стоит передать в MAX, если API поддерживает ключ идемпотентности.
+   * Реализация обязана выполнять HTTP-вызов через общий MaxApiTransport, разделяемый с upload и
+   * service-клиентами. Очередь отвечает только за per-chat лимит и не может учитывать иные MAX-запросы.
    */
   send(notification: Notification): Promise<SendResult>;
+}
+
+/** MAX sender без собственной HTTP-зависимости: transport обязателен при сборке. */
+export class MaxMessageSender implements MessageSender {
+  constructor(private readonly transport: MaxApiTransport) {}
+
+  async send(notification: Notification): Promise<SendResult> {
+    try {
+      const response = await this.transport.send({
+        path: `messages?chat_id=${encodeURIComponent(notification.recipient.chatId)}`,
+        init: {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Idempotency-Key": notification.idempotencyKey },
+          body: JSON.stringify({ text: notification.text }),
+        },
+      });
+      if (response.ok) return { ok: true };
+      const retryable = response.status === 429 || response.status >= 500;
+      const retryAfter = response.headers.get("retry-after");
+      const retryAfterMs = retryAfter === null ? undefined : Number(retryAfter) * 1000;
+      const failure: SendFailure = {
+        ok: false,
+        code: response.status === 429 ? "max_rate_limited" : `max_http_${response.status}`,
+        retryable,
+      };
+      if (retryAfterMs !== undefined && Number.isFinite(retryAfterMs)) failure.retryAfterMs = retryAfterMs;
+      return failure;
+    } catch {
+      return { ok: false, code: "max_transport_error", retryable: false };
+    }
+  }
 }
 
 // Коды ошибок, которые выставляет сама очередь (таксономия K-27).

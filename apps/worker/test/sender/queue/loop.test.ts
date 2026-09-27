@@ -14,12 +14,12 @@ describe("runSendLoop", () => {
     const worker = new SendQueueWorker({
       repository: {
         ...bind(repository),
-        listQueued: async (limit) => {
+        listQueuedFair: async (options) => {
           if (failOnce) {
             failOnce = false;
             throw new Error("БД недоступна");
           }
-          return repository.listQueued(limit);
+          return repository.listQueuedFair(options);
         },
       },
       sender,

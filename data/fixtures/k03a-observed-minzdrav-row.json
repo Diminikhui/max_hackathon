@@ -1,0 +1,14 @@
+{
+  "recordType": "observed_departmental_list_row_not_fgis_api",
+  "isModel": false,
+  "sourceUrl": "https://minzdrav.gov.ru/poleznye-resursy/forma_perechney",
+  "sourcePageUpdatedAt": "2023-11-08",
+  "observedAt": "2026-09-25",
+  "rowNumber": 1,
+  "act": "Приказ Минздрава России от 01.11.2013 № 811н",
+  "structuralUnit": "Пункт 9",
+  "okvedText": "Класс ОКВЭД 21; подклассы 21.1, 21.2",
+  "okvedCodes": ["21", "21.1", "21.2"],
+  "legalStatusVerified": false,
+  "note": "Наблюдение из ведомственного HTML-перечня. Не является ответом ФГИС РОТ или подтверждением действующей обязанности."
+}
