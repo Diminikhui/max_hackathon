@@ -1,0 +1,24 @@
+[Unit]
+Description=Temporary MAX webhook transport for K-05a on the K-08 VPS
+Wants=network-online.target
+After=network-online.target
+Conflicts=k08-spike-bot.service
+
+[Service]
+Type=simple
+User=maxbot
+Group=maxbot
+WorkingDirectory=/srv/max-hackathon/repo
+EnvironmentFile=/etc/max-hackathon/bot.env
+EnvironmentFile=/etc/max-hackathon/webhook.env
+ExecStart=/opt/node24/node-v24.21.0-linux-x64/bin/node /usr/local/lib/max-hackathon/webhook-echo.mjs
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/run
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
