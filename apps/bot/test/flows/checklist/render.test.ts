@@ -70,7 +70,7 @@ describe("renderRequirementList", () => {
     );
   });
 
-  it("укладывается в лимит MAX на длинном перечне", () => {
+  it("на длинном перечне показывает столько записей, сколько помещается, и даёт кнопку каждой показанной", () => {
     const many = Array.from({ length: 300 }, (_, index) => ({
       ...modelItems[1]!,
       requirement: {
@@ -80,8 +80,30 @@ describe("renderRequirementList", () => {
       },
     }));
     const long = renderRequirementList(modelChecklist(many), { profileIsModel: true });
+    const itemButtons = long.buttons.slice(0, -1);
+
     assert.ok(long.text.length <= MAX_TEXT_LENGTH);
-    assert.ok(long.buttons.length <= 210);
+    assert.ok(itemButtons.length > 0 && itemButtons.length < 300);
+    assert.ok(long.text.includes(`Показаны ${itemButtons.length} из 300 записей`));
+    assert.ok(long.text.includes("Расчёт на 27.09.2026"), "подвал не обрезан");
+    assert.ok(long.text.includes(`${itemButtons.length}. Длинное требование`));
+    assert.equal(long.text.includes(`${itemButtons.length + 1}. Длинное требование`), false);
+    assert.deepEqual(payloadOf(itemButtons.at(-1)), {
+      type: "select_requirement",
+      requirementId: `r-${itemButtons.length - 1}`,
+    });
+  });
+
+  it("не даёт больше 200 кнопок записей, даже если текст помещается", () => {
+    const many = Array.from({ length: 250 }, (_, index) => ({
+      ...modelItems[1]!,
+      requirement: { ...modelItems[1]!.requirement, id: `s-${index}`, title: "К" },
+    }));
+    const reply = renderRequirementList(modelChecklist(many), { profileIsModel: false });
+    const shown = reply.buttons.length - 1;
+    assert.ok(shown <= 200);
+    assert.ok(reply.text.includes(`Показаны ${shown} из 250 записей`));
+    assert.equal(reply.text.includes(`${shown + 1}. К`), false);
   });
 });
 

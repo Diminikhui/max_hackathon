@@ -3,6 +3,7 @@ import { renderObligationCard } from "../../messages/index.js";
 import {
   composeText,
   formatDate,
+  MAX_TEXT_LENGTH,
   modelLabel,
   renderAutomaticProcessingNote,
   STATUS_TEXT,
@@ -29,7 +30,7 @@ const STATUS_MARK: Record<ApplicabilityStatus, string> = {
   not_applies: "➖",
 };
 
-/** Лимит клавиатуры MAX — 210 кнопок; две оставлены под навигацию. */
+/** Лимит клавиатуры MAX — 210 кнопок; под перечнем ещё «🏠 Меню», остальное — запас. */
 const MAX_ITEM_BUTTONS = 200;
 
 export const homeButton = (): NotificationButton => ({
@@ -65,26 +66,42 @@ export const renderRequirementList = (
     `${STATUS_MARK.not_applies} ${STATUS_TEXT.not_applies}: ${checklist.statusCounts.not_applies}`,
   );
 
-  let number = 0;
-  for (const status of LISTED_STATUSES) {
-    const section = items.filter((item) => item.applicability.status === status);
-    if (section.length === 0) continue;
-    lines.push("", `${STATUS_MARK[status]} ${STATUS_TEXT[status]}:`);
-    for (const { requirement } of section) {
-      number += 1;
-      lines.push(`${number}. ${requirement.title}`);
-    }
-  }
-
-  lines.push(
+  const note = renderAutomaticProcessingNote(isModel);
+  const footer = (shown: number): string[] => [
     "",
+    ...(shown < items.length
+      ? [`Показаны ${shown} из ${items.length} записей: остальные не поместились в сообщение.`]
+      : []),
     items.length > 0
       ? "Нажмите номер, чтобы открыть карточку: почему это касается вас, срок и первоисточник."
       : "Записей, которые касаются компании или требуют уточнения, нет.",
     `Расчёт на ${formatDate(checklist.asOf)}. Пакеты правил: ${formatPacks(checklist)}.`,
-  );
+  ];
+  // Записи добавляются, пока сообщение с подвалом помещается в лимит MAX и хватает кнопок: у каждой показанной
+  // записи есть кнопка с её номером, а подвал с датой расчёта не обрезается.
+  const fits = (candidate: readonly string[], shown: number): boolean =>
+    [...candidate, ...footer(shown), "", note].join("\n").length <= MAX_TEXT_LENGTH;
 
-  const itemButtons = items.slice(0, MAX_ITEM_BUTTONS).map(
+  const shownItems: ChecklistItemView[] = [];
+  // Первая не поместившаяся запись останавливает весь вывод: иначе короткая запись из следующего раздела
+  // попала бы в сообщение, а пропущенные перед ней — нет.
+  fill: for (const status of LISTED_STATUSES) {
+    const section = items.filter((item) => item.applicability.status === status);
+    const heading = ["", `${STATUS_MARK[status]} ${STATUS_TEXT[status]}:`];
+    let headed = false;
+    for (const item of section) {
+      if (shownItems.length >= MAX_ITEM_BUTTONS) break fill;
+      const line = `${shownItems.length + 1}. ${item.requirement.title}`;
+      const addition = headed ? [line] : [...heading, line];
+      if (!fits([...lines, ...addition], shownItems.length + 1)) break fill;
+      lines.push(...addition);
+      headed = true;
+      shownItems.push(item);
+    }
+  }
+  lines.push(...footer(shownItems.length));
+
+  const itemButtons = shownItems.map(
     ({ requirement }, index): NotificationButton => ({
       text: String(index + 1),
       payload: encodeButtonPayload({ type: "select_requirement", requirementId: requirement.id }),
@@ -92,7 +109,7 @@ export const renderRequirementList = (
   );
 
   return {
-    text: composeText(lines, renderAutomaticProcessingNote(isModel)),
+    text: composeText(lines, note),
     sourceUrls: [],
     automated: true,
     buttons: [...itemButtons, homeButton()],
