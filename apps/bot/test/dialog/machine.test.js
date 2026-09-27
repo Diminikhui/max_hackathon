@@ -6,7 +6,7 @@ import { allowedDialogEvents, DIALOG_STATES, transitionDialog } from "../../src/
 const transitions = [
   ["idle", { type: "start" }, "awaiting_inn", "request_inn"],
   ["idle", { type: "home" }, "idle", "show_welcome"],
-  ["awaiting_inn", { type: "submit_inn", inn: "7707083893" }, "loading_profile", "lookup_profile"],
+  ["awaiting_inn", { type: "submit_inn", inn: "7700000016" }, "loading_profile", "lookup_profile"],
   ["awaiting_inn", { type: "home" }, "idle", "show_welcome"],
   ["loading_profile", { type: "profile_loaded", profileId: "profile-1" }, "confirming_profile", "confirm_profile"],
   ["loading_profile", { type: "profile_not_found" }, "awaiting_inn", "profile_not_found"],

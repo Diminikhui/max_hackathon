@@ -14,7 +14,7 @@ const handlersReturningRoute = () =>
 describe("dialog router", () => {
   it("passes an accepted transition and original event to the selected handler", async () => {
     const router = createDialogRouter(handlersReturningRoute());
-    const event = { type: "submit_inn", inn: "7707083893" };
+    const event = { type: "submit_inn", inn: "7700000016" };
 
     const routed = await router.dispatch({ dialogId: "dialog-1", state: "awaiting_inn", event });
 
