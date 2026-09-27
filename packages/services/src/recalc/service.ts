@@ -52,10 +52,41 @@ export interface RecalculationState {
   pending?: PendingRecalculationOperation;
 }
 
-/** Durable service-local state used to resume the same logical operation after a crash. */
+/** Эксклюзивная аренда пересчёта одной компании. */
+export interface RecalculationLease {
+  readonly token: string;
+}
+
+/**
+ * Durable service-local state used to resume the same logical operation after a crash.
+ *
+ * Пересчёты одной компании сериализуются арендой с истечением: `acquire` выдаёт её только одному
+ * исполнителю, а `save` записывает состояние, только пока аренда действует (fencing). Упавший
+ * процесс не держит компанию дольше срока аренды, а его pending-операцию доигрывает следующий.
+ */
 export interface RecalculationStateRepository {
+  /** Аренда компании на `ttlMs`; `undefined`, если её держит другой исполнитель. */
+  acquire(companyId: Id, ttlMs: number): Promise<RecalculationLease | undefined>;
+  release(companyId: Id, lease: RecalculationLease): Promise<void>;
   get(companyId: Id): Promise<RecalculationState | undefined>;
-  save(companyId: Id, state: RecalculationState): Promise<void>;
+  /** Записывает состояние; `false`, если аренда истекла или перехвачена. */
+  save(companyId: Id, lease: RecalculationLease, state: RecalculationState): Promise<boolean>;
+}
+
+/** Компанию пересчитывает другой исполнитель дольше допустимого ожидания. */
+export class RecalculationBusyError extends Error {
+  constructor(readonly companyId: Id) {
+    super(`Пересчёт компании ${companyId} уже выполняется`);
+    this.name = "RecalculationBusyError";
+  }
+}
+
+/** Аренда потеряна во время пересчёта: результат не зафиксирован, операцию нужно повторить. */
+export class RecalculationLeaseLostError extends Error {
+  constructor(readonly companyId: Id) {
+    super(`Аренда пересчёта компании ${companyId} потеряна`);
+    this.name = "RecalculationLeaseLostError";
+  }
 }
 
 export interface ProfileRecalculationDeps {
@@ -65,7 +96,18 @@ export interface ProfileRecalculationDeps {
   events: ChangeEventRepository;
   recalculationState: RecalculationStateRepository;
   clock?: () => DateTime;
+  /** Срок аренды компании; должен с запасом покрывать один пересчёт. По умолчанию 60 с. */
+  leaseTtlMs?: number;
+  /** Сколько ждать аренду, занятую другим исполнителем. По умолчанию 10 с. */
+  leaseWaitMs?: number;
+  /** Пауза между попытками взять аренду. По умолчанию 50 мс. */
+  leaseRetryMs?: number;
+  sleep?: (ms: number) => Promise<void>;
 }
+
+const DEFAULT_LEASE_TTL_MS = 60_000;
+const DEFAULT_LEASE_WAIT_MS = 10_000;
+const DEFAULT_LEASE_RETRY_MS = 50;
 
 /**
  * Пересчитывает снимок применимости после изменения профиля.
@@ -74,6 +116,10 @@ export interface ProfileRecalculationDeps {
  * pending-операция сохраняется до публикации `profile_change` и замены снимка. Её
  * монотонная ревизия даёт один ID всем retry одной операции и новый ID следующему
  * независимому переходу, даже если значения профиля и timestamps совпадают.
+ *
+ * Пересчёты одной компании выполняются строго по очереди под арендой. Если найдена pending-операция
+ * прошлого (упавшего) исполнителя, она сначала доигрывается, а затем выполняется собственный пересчёт,
+ * чтобы изменения профиля вызывающего не потерялись.
  */
 export class ProfileRecalculationService {
   readonly #deps: ProfileRecalculationDeps;
@@ -85,11 +131,41 @@ export class ProfileRecalculationService {
   }
 
   async recalculate(companyId: Id, options: ProfileRecalculationOptions): Promise<ProfileRecalculationOutcome> {
+    const lease = await this.#acquire(companyId);
+    try {
+      return await this.#recalculateLocked(companyId, lease, options);
+    } finally {
+      await this.#deps.recalculationState.release(companyId, lease);
+    }
+  }
+
+  async #acquire(companyId: Id): Promise<RecalculationLease> {
+    const ttl = this.#deps.leaseTtlMs ?? DEFAULT_LEASE_TTL_MS;
+    const wait = this.#deps.leaseWaitMs ?? DEFAULT_LEASE_WAIT_MS;
+    const retry = this.#deps.leaseRetryMs ?? DEFAULT_LEASE_RETRY_MS;
+    const sleep = this.#deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+    for (let waited = 0; ; waited += retry) {
+      const lease = await this.#deps.recalculationState.acquire(companyId, ttl);
+      if (lease) return lease;
+      if (waited >= wait) throw new RecalculationBusyError(companyId);
+      await sleep(retry);
+    }
+  }
+
+  async #recalculateLocked(
+    companyId: Id,
+    lease: RecalculationLease,
+    options: ProfileRecalculationOptions,
+  ): Promise<ProfileRecalculationOutcome> {
     const profile = await this.#deps.profiles.get(companyId);
     if (!profile) return { status: "profile_not_found", companyId };
 
-    const storedState = (await this.#deps.recalculationState.get(companyId)) ?? { committedRevision: 0 };
-    if (storedState.pending) return this.#resumePending(companyId, storedState.pending);
+    let storedState = (await this.#deps.recalculationState.get(companyId)) ?? { committedRevision: 0 };
+    const resumed = storedState.pending;
+    if (resumed) {
+      await this.#completePending(companyId, lease, resumed);
+      storedState = { committedRevision: resumed.revision };
+    }
 
     const evaluatedAt = options.evaluatedAt ?? this.#clock();
     const asOf = options.asOf ?? evaluatedAt.slice(0, 10);
@@ -100,9 +176,9 @@ export class ProfileRecalculationService {
 
     if (delta.appeared.length === 0 && delta.disappeared.length === 0) {
       await this.#deps.applicability.replaceForCompany(companyId, current);
-      await this.#deps.recalculationState.save(companyId, {
-        committedRevision: storedState.committedRevision + 1,
-      });
+      await this.#save(companyId, lease, { committedRevision: storedState.committedRevision + 1 });
+      // Retry прерванной операции: сообщаем о доведённом переходе, а не о пустом пересчёте поверх него.
+      if (resumed) return { ...changedOutcome(resumed), current };
       return { status: "unchanged", previous, current, delta };
     }
 
@@ -132,24 +208,29 @@ export class ProfileRecalculationService {
       delta,
       event,
     };
-    await this.#deps.recalculationState.save(companyId, { ...storedState, pending });
-    return this.#resumePending(companyId, pending);
+    await this.#save(companyId, lease, { committedRevision: storedState.committedRevision, pending });
+    await this.#completePending(companyId, lease, pending);
+    return { status: "changed", previous, current, delta, event };
   }
 
-  async #resumePending(companyId: Id, pending: PendingRecalculationOperation): Promise<ProfileRecalculationOutcome> {
+  /** Идемпотентно доводит pending-операцию: событие, снимок, фиксация ревизии. */
+  async #completePending(
+    companyId: Id,
+    lease: RecalculationLease,
+    pending: PendingRecalculationOperation,
+  ): Promise<void> {
     await this.#deps.events.append(pending.event);
     const snapshot = sortResults(await this.#deps.applicability.listByCompany(companyId));
     if (snapshotDigest(snapshot) !== pending.targetDigest) {
       await this.#deps.applicability.replaceForCompany(companyId, pending.target);
     }
-    await this.#deps.recalculationState.save(companyId, { committedRevision: pending.revision });
-    return {
-      status: "changed",
-      previous: pending.previous,
-      current: pending.target,
-      delta: pending.delta,
-      event: pending.event,
-    };
+    await this.#save(companyId, lease, { committedRevision: pending.revision });
+  }
+
+  async #save(companyId: Id, lease: RecalculationLease, state: RecalculationState): Promise<void> {
+    if (!(await this.#deps.recalculationState.save(companyId, lease, state))) {
+      throw new RecalculationLeaseLostError(companyId);
+    }
   }
 
   async #requirementsSnapshot(): Promise<Requirement[]> {
@@ -166,6 +247,16 @@ export class ProfileRecalculationService {
     return result;
   }
 }
+
+const changedOutcome = (
+  pending: PendingRecalculationOperation,
+): Exclude<ProfileRecalculationOutcome, { status: "profile_not_found" }> => ({
+  status: "changed",
+  previous: pending.previous,
+  current: pending.target,
+  delta: pending.delta,
+  event: pending.event,
+});
 
 export const calculateDelta = (
   previous: readonly ApplicabilityResult[],
