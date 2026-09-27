@@ -33,22 +33,52 @@ describe("ProcessStatusFeed", () => {
       [new ModelProcessStatusSource("ФНС России", [status("ФНС России", "submitted", "2026-09-27T10:00:00Z")])],
       repository,
     );
-    expect(await first.refresh("model-company")).toEqual([]);
+    expect(await first.refresh("model-company")).toEqual({ notifications: [], unavailable: [] });
 
     const changed = new ProcessStatusFeed(
       [new ModelProcessStatusSource("ФНС России", [status("ФНС России", "in_review", "2026-09-27T11:00:00Z")])],
       repository,
       () => Date.parse("2026-09-27T12:00:00Z"),
     );
-    const [notification] = await changed.refresh("model-company");
+    const {
+      notifications: [notification],
+      unavailable,
+    } = await changed.refresh("model-company");
+    expect(unavailable).toEqual([]);
     expect(notification).toMatchObject({
       previousStatus: "submitted",
       newStatus: "in_review",
       isModel: true,
       dedupKey: "model-ФНС России:submitted:in_review:2026-09-27T11:00:00Z",
     });
-    expect(notification?.text).toContain("Модельное уведомление");
-    expect(await changed.refresh("model-company")).toEqual([]);
+    expect(notification?.text).toBe(
+      "Модельное уведомление: статус «Модельное заявление» изменён: подано → на рассмотрении.",
+    );
+    expect((await changed.refresh("model-company")).notifications).toEqual([]);
+  });
+
+  it("отказ одного ведомства не мешает получить смену статуса у другого", async () => {
+    const repository = new MemoryProcessStatusRepository();
+    await repository.save(status("Роспотребнадзор", "submitted", "2026-09-27T10:00:00Z"));
+    const failing = {
+      info: { name: "ФНС России", isModel: true },
+      list: async (): Promise<ProcessStatus[]> => {
+        throw new Error("модельный таймаут");
+      },
+    };
+    const feed = new ProcessStatusFeed(
+      [
+        failing,
+        new ModelProcessStatusSource("Роспотребнадзор", [
+          status("Роспотребнадзор", "approved", "2026-09-27T11:00:00Z"),
+        ]),
+      ],
+      repository,
+    );
+
+    const result = await feed.refresh("model-company");
+    expect(result.unavailable).toEqual([{ source: "ФНС России", reason: "модельный таймаут" }]);
+    expect(result.notifications.map((item) => item.newStatus)).toEqual(["approved"]);
   });
 
   it("создаёт явно модельные адаптеры нескольких ведомств", async () => {

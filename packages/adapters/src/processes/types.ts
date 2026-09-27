@@ -11,6 +11,17 @@ export const PROCESS_STATUS_VALUES = [
 ] as const;
 export type ProcessStatusValue = (typeof PROCESS_STATUS_VALUES)[number];
 
+/** Статусы для текста пользователю: сырые коды в уведомление не попадают. */
+export const PROCESS_STATUS_LABELS: Readonly<Record<ProcessStatusValue, string>> = {
+  submitted: "подано",
+  accepted: "принято к рассмотрению",
+  in_review: "на рассмотрении",
+  action_required: "нужны действия заявителя",
+  approved: "одобрено",
+  rejected: "отказано",
+  completed: "завершено",
+};
+
 /** Локальный контракт 4-03; JSON-контракты v1 не изменяются. */
 export interface ProcessStatus {
   contractVersion: 1;
@@ -33,6 +44,18 @@ export interface ProcessStatusRepository {
   save(status: ProcessStatus): Promise<void>;
   hasNotification(dedupKey: string): Promise<boolean>;
   markNotification(dedupKey: string): Promise<void>;
+}
+
+/** Источник, который не ответил при опросе: его статусы не обновлялись, а не «не изменились». */
+export interface UnavailableProcessSource {
+  source: string;
+  reason: string;
+}
+
+export interface ProcessFeedResult {
+  notifications: ProcessStatusNotification[];
+  /** Пусто, если ответили все источники. */
+  unavailable: UnavailableProcessSource[];
 }
 
 export interface ProcessStatusNotification {

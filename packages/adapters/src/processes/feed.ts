@@ -1,9 +1,12 @@
 import type { Id } from "@max-hackathon/domain";
-import type {
-  ProcessStatus,
-  ProcessStatusNotification,
-  ProcessStatusRepository,
-  ProcessStatusSource,
+import {
+  PROCESS_STATUS_LABELS,
+  type ProcessFeedResult,
+  type ProcessStatus,
+  type ProcessStatusNotification,
+  type ProcessStatusRepository,
+  type ProcessStatusSource,
+  type UnavailableProcessSource,
 } from "./types.js";
 
 export class ProcessStatusFeed {
@@ -13,11 +16,23 @@ export class ProcessStatusFeed {
     private readonly now: () => number = Date.now,
   ) {}
 
-  async refresh(companyId: Id): Promise<ProcessStatusNotification[]> {
+  /**
+   * Опрашивает источники по очереди. Отказ одного ведомства не останавливает опрос остальных: такой источник
+   * возвращается в `unavailable`, чтобы вызывающий код показал «данные недоступны», а не «статус не изменился».
+   */
+  async refresh(companyId: Id): Promise<ProcessFeedResult> {
     const notifications: ProcessStatusNotification[] = [];
+    const unavailable: UnavailableProcessSource[] = [];
     for (const source of this.sources) {
       if (!source.info.isModel) throw new Error(`Источник ${source.info.name} должен быть явно помечен модельным`);
-      for (const current of await source.list(companyId)) {
+      let statuses: ProcessStatus[];
+      try {
+        statuses = await source.list(companyId);
+      } catch (error) {
+        unavailable.push({ source: source.info.name, reason: error instanceof Error ? error.message : String(error) });
+        continue;
+      }
+      for (const current of statuses) {
         if (!current.source.isModel) throw new Error(`Процесс ${current.processId} должен быть явно помечен модельным`);
         const previous = await this.repository.get(current.processId);
         if (previous && previous.updatedAt > current.updatedAt) continue;
@@ -31,7 +46,7 @@ export class ProcessStatusFeed {
         if (!previous || previous.updatedAt <= current.updatedAt) await this.repository.save(current);
       }
     }
-    return notifications;
+    return { notifications, unavailable };
   }
 
   private notification(previous: ProcessStatus, current: ProcessStatus, dedupKey: string): ProcessStatusNotification {
@@ -42,7 +57,7 @@ export class ProcessStatusFeed {
       processId: current.processId,
       previousStatus: previous.status,
       newStatus: current.status,
-      text: `Модельное уведомление: статус «${current.serviceName}» изменён: ${previous.status} → ${current.status}.`,
+      text: `Модельное уведомление: статус «${current.serviceName}» изменён: ${PROCESS_STATUS_LABELS[previous.status]} → ${PROCESS_STATUS_LABELS[current.status]}.`,
       sourceUrl: current.source.url ?? "https://example.invalid/model-process",
       isModel: true,
       createdAt,

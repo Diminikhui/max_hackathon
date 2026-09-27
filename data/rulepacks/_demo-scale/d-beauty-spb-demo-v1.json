@@ -1,0 +1,154 @@
+{
+  "contractVersion": 1,
+  "packId": "d-beauty-spb-demo",
+  "packVersion": 1,
+  "title": "Демонстрация тиражирования: направление D — парикмахерские (ОКВЭД 96.02) и регион Санкт-Петербург (МОДЕЛЬНЫЕ ДАННЫЕ)",
+  "owner": {
+    "name": "Команда MAX Hackathon"
+  },
+  "source": {
+    "system": "manual-curation",
+    "url": "https://github.com/Diminikhui/max_hackathon/blob/main/data/rulepacks/_demo-scale/README.md",
+    "recordId": "3-02-replication-demo-v1",
+    "retrievedAt": "2026-09-27T00:00:00Z",
+    "isModel": true
+  },
+  "publishedAt": "2026-09-27T00:00:00Z",
+  "validity": {
+    "from": "2026-09-27"
+  },
+  "isModel": true,
+  "requirements": [
+    {
+      "contractVersion": 1,
+      "id": "d.fed.household-services-information",
+      "packId": "d-beauty-spb-demo",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Раскрывать клиенту сведения об исполнителе и услугах",
+      "summary": "Довести до клиента сведения об исполнителе, перечне и цене услуг, порядке оплаты и сроках до заключения договора. Модельная запись демонстрации тиражирования: юридически не проверена.",
+      "basis": [
+        {
+          "act": "Постановление Правительства РФ от 21.09.2020 № 1514",
+          "article": "Правила бытового обслуживания населения",
+          "url": "https://publication.pravo.gov.ru/Document/View/0001202009290039"
+        }
+      ],
+      "deadline": "До заключения договора; поддерживать сведения актуальными",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "96.02"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "publication.pravo.gov.ru",
+        "url": "https://publication.pravo.gov.ru/Document/View/0001202009290039",
+        "recordId": "demo-pp-1514-information",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": true
+      },
+      "validity": {
+        "to": "2026-12-31"
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "d.fed.sanitary-beauty-services",
+      "packId": "d-beauty-spb-demo",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Соблюдать санитарные требования к парикмахерским услугам",
+      "summary": "Обеспечить обработку инструментов, смену белья и уборку помещений по санитарным правилам для организаций, оказывающих парикмахерские и косметические услуги. Модельная запись демонстрации тиражирования: юридически не проверена.",
+      "basis": [
+        {
+          "act": "Постановление Главного государственного санитарного врача РФ от 24.12.2020 № 44",
+          "article": "СП 2.1.3678-20",
+          "url": "https://publication.pravo.gov.ru/Document/View/0001202012310005"
+        }
+      ],
+      "deadline": "Постоянно, с начала работы",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "96.02"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "publication.pravo.gov.ru",
+        "url": "https://publication.pravo.gov.ru/Document/View/0001202012310005",
+        "recordId": "demo-sp-2-1-3678-20-beauty",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": true
+      },
+      "validity": {
+        "to": "2026-12-31"
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "d.fed.cash-register-receipt",
+      "packId": "d-beauty-spb-demo",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Применять ККТ при расчётах за услуги",
+      "summary": "При расчёте с клиентом применять зарегистрированную ККТ и выдавать кассовый чек, если расчёт не относится к исключениям закона. Модельная запись демонстрации тиражирования: юридически не проверена.",
+      "basis": [
+        {
+          "act": "Федеральный закон от 22.05.2003 № 54-ФЗ",
+          "article": "ст. 1.2",
+          "url": "https://www.kremlin.ru/acts/bank/19607"
+        }
+      ],
+      "deadline": "При каждом расчёте",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "96.02"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "kremlin.ru",
+        "url": "https://www.kremlin.ru/acts/bank/19607",
+        "recordId": "demo-54-fz-beauty",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": true
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "d.spb.signage-placement",
+      "packId": "d-beauty-spb-demo",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Разместить вывеску салона по правилам благоустройства Санкт-Петербурга",
+      "summary": "Размещать вывеску на фасаде по требованиям Правил благоустройства территории Санкт-Петербурга. Региональная модельная запись демонстрации тиражирования: юридически не проверена.",
+      "basis": [
+        {
+          "act": "Постановление Правительства Санкт-Петербурга от 09.11.2016 № 961",
+          "article": "Правила благоустройства территории Санкт-Петербурга",
+          "url": "https://kgainfo.spb.ru/zakon/proektirovanie-blagoustroistva/"
+        }
+      ],
+      "deadline": "До размещения вывески",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "96.02"
+          },
+          {
+            "type": "region",
+            "codes": ["78"]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "kgainfo.spb.ru",
+        "url": "https://kgainfo.spb.ru/zakon/proektirovanie-blagoustroistva/",
+        "recordId": "demo-spb-961-signage",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": true
+      }
+    }
+  ]
+}
