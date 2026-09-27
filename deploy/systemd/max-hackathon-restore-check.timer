@@ -1,0 +1,9 @@
+[Unit]
+Description=Check daily that the latest MAX Hackathon backup is fresh and restorable
+
+[Timer]
+OnCalendar=*-*-* 04:30:00 Europe/Moscow
+Persistent=true
+
+[Install]
+WantedBy=timers.target
