@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc -b",
     "start": "node dist/main.js",
-    "test": "vitest run"
+    "test": "vitest run --exclude spike/max-client.test.mjs && node --test spike/max-client.test.mjs"
   },
   "dependencies": {
     "@max-hackathon/domain": "workspace:*"

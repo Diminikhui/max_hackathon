@@ -1,0 +1,209 @@
+[
+  {
+    "contractVersion": 1,
+    "companyId": "k04a-model-cafe-msk",
+    "inn": "0000000018",
+    "entityType": "legal_entity",
+    "facts": [
+      {
+        "id": "k04a-model-cafe-msk-activity-okved_main",
+        "companyId": "k04a-model-cafe-msk",
+        "key": "activity.okved_main",
+        "value": "56.10",
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrul",
+          "recordId": "k04a-model-cafe-msk",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      },
+      {
+        "id": "k04a-model-cafe-msk-activity-okved_additional",
+        "companyId": "k04a-model-cafe-msk",
+        "key": "activity.okved_additional",
+        "value": ["56.30"],
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrul",
+          "recordId": "k04a-model-cafe-msk",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      },
+      {
+        "id": "k04a-model-cafe-msk-location-region_code",
+        "companyId": "k04a-model-cafe-msk",
+        "key": "location.region_code",
+        "value": "77",
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrul",
+          "recordId": "k04a-model-cafe-msk",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      }
+    ],
+    "isModel": true,
+    "updatedAt": "2026-09-25T00:00:00Z",
+    "displayName": "ООО «Модельная кофейня» (модельные данные)"
+  },
+  {
+    "contractVersion": 1,
+    "companyId": "k04a-model-auto-tatarstan",
+    "inn": "0000000025",
+    "entityType": "legal_entity",
+    "facts": [
+      {
+        "id": "k04a-model-auto-tatarstan-activity-okved_main",
+        "companyId": "k04a-model-auto-tatarstan",
+        "key": "activity.okved_main",
+        "value": "45.20",
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrul",
+          "recordId": "k04a-model-auto-tatarstan",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      },
+      {
+        "id": "k04a-model-auto-tatarstan-activity-okved_additional",
+        "companyId": "k04a-model-auto-tatarstan",
+        "key": "activity.okved_additional",
+        "value": ["45.31"],
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrul",
+          "recordId": "k04a-model-auto-tatarstan",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      },
+      {
+        "id": "k04a-model-auto-tatarstan-location-region_code",
+        "companyId": "k04a-model-auto-tatarstan",
+        "key": "location.region_code",
+        "value": "16",
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrul",
+          "recordId": "k04a-model-auto-tatarstan",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      }
+    ],
+    "isModel": true,
+    "updatedAt": "2026-09-25T00:00:00Z",
+    "displayName": "ООО «Модельный автосервис» (модельные данные)"
+  },
+  {
+    "contractVersion": 1,
+    "companyId": "k04a-model-retail-msk",
+    "inn": "0000000032",
+    "entityType": "legal_entity",
+    "facts": [
+      {
+        "id": "k04a-model-retail-msk-activity-okved_main",
+        "companyId": "k04a-model-retail-msk",
+        "key": "activity.okved_main",
+        "value": "47.11",
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrul",
+          "recordId": "k04a-model-retail-msk",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      },
+      {
+        "id": "k04a-model-retail-msk-location-region_code",
+        "companyId": "k04a-model-retail-msk",
+        "key": "location.region_code",
+        "value": "77",
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrul",
+          "recordId": "k04a-model-retail-msk",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      }
+    ],
+    "isModel": true,
+    "updatedAt": "2026-09-25T00:00:00Z",
+    "displayName": "ООО «Модельный магазин» (модельные данные)"
+  },
+  {
+    "contractVersion": 1,
+    "companyId": "k04a-model-cafe-ip",
+    "inn": "000000000184",
+    "entityType": "individual_entrepreneur",
+    "facts": [
+      {
+        "id": "k04a-model-cafe-ip-activity-okved_main",
+        "companyId": "k04a-model-cafe-ip",
+        "key": "activity.okved_main",
+        "value": "56.10",
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrip",
+          "recordId": "k04a-model-cafe-ip",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      }
+    ],
+    "isModel": true,
+    "updatedAt": "2026-09-25T00:00:00Z"
+  },
+  {
+    "contractVersion": 1,
+    "companyId": "k04a-model-auto-ip",
+    "inn": "000000000258",
+    "entityType": "individual_entrepreneur",
+    "facts": [
+      {
+        "id": "k04a-model-auto-ip-activity-okved_main",
+        "companyId": "k04a-model-auto-ip",
+        "key": "activity.okved_main",
+        "value": "45.20",
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrip",
+          "recordId": "k04a-model-auto-ip",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      },
+      {
+        "id": "k04a-model-auto-ip-activity-okved_additional",
+        "companyId": "k04a-model-auto-ip",
+        "key": "activity.okved_additional",
+        "value": ["45.32"],
+        "kind": "official",
+        "source": {
+          "system": "fixture:egrip",
+          "recordId": "k04a-model-auto-ip",
+          "retrievedAt": "2026-09-25T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-25T00:00:00Z"
+      }
+    ],
+    "isModel": true,
+    "updatedAt": "2026-09-25T00:00:00Z"
+  }
+]

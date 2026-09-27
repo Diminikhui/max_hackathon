@@ -1,0 +1,11 @@
+[Unit]
+Description=Check GitHub main for MAX Hackathon deployment
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
