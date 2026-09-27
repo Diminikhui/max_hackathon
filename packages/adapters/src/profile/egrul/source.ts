@@ -46,6 +46,11 @@ export interface EgrulProfileSourceOptions {
 export class EgrulProfileSource implements ProfileSource {
   readonly info: SourceInfo;
   readonly #load: EgrulProfileSourceOptions["load"];
+  /**
+   * Выгрузки читаются один раз за жизнь процесса. Новая выгрузка ФНС, положенная в `EGRUL_DATA_DIR`,
+   * подхватывается только после перезапуска процесса: до него ответы идут по старой выгрузке
+   * (с её датами `observedAt`, поэтому давность данных видна).
+   */
   #byInn: Promise<Map<string, EgrulRecord>> | undefined;
 
   constructor(options: EgrulProfileSourceOptions = {}) {

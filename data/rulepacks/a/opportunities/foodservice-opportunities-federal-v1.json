@@ -1,0 +1,186 @@
+{
+  "contractVersion": 1,
+  "packId": "a-foodservice-opportunities-fed",
+  "packVersion": 1,
+  "title": "Общепит (ОКВЭД 56): федеральные возможности",
+  "owner": {
+    "name": "Команда MAX Hackathon"
+  },
+  "source": {
+    "system": "nalog.gov.ru",
+    "url": "https://www.nalog.gov.ru/rn04/news/activities_fts/16651717/",
+    "recordId": "2-17-foodservice-opportunities-federal-v1",
+    "retrievedAt": "2026-09-27T00:00:00Z",
+    "isModel": false
+  },
+  "publishedAt": "2026-09-27T00:00:00Z",
+  "validity": {
+    "from": "2026-01-01"
+  },
+  "isModel": false,
+  "requirements": [
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-opportunities-fed",
+      "packVersion": 1,
+      "id": "a.opportunity.foodservice-vat-exemption",
+      "kind": "opportunity",
+      "title": "Освобождение услуг общепита от НДС",
+      "summary": "Организация или ИП может не облагать НДС услуги общепита, если доход за предыдущий календарный год не превысил 3 млрд рублей, не менее 70% дохода получено от услуг общепита, а среднемесячные выплаты работникам не ниже среднемесячной зарплаты по классу ОКВЭД 56.1 в регионе. Освобождение относится к услугам через объекты общепита и выездному обслуживанию; оно не распространяется на перечисленные в НК РФ исключения. Перед применением проверьте все условия по данным предыдущего года.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс Российской Федерации (часть вторая)",
+          "article": "ст. 149 п. 3 подп. 38",
+          "url": "https://www.nalog.gov.ru/rn04/news/activities_fts/16651717/"
+        }
+      ],
+      "deadline": "Условия проверяются по итогам календарного года, предшествующего году применения освобождения",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "56"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn04/news/activities_fts/16651717/",
+        "recordId": "vat-foodservice-general-2026",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-opportunities-fed",
+      "packVersion": 1,
+      "id": "a.opportunity.foodservice-vat-transition-2026",
+      "kind": "opportunity",
+      "title": "Временное освобождение от НДС для общепита на УСН и ПСН в 2026 году",
+      "summary": "Организация или ИП в сфере общепита, которые с 1 января 2026 года стали плательщиками НДС после УСН либо утратили право на ПСН, могут применять освобождение с 1 апреля по 31 декабря 2026 года. Доходы на УСН и ПСН за 2025 год должны быть не более 60 млн рублей, а доля доходов от общепита — не менее 70%. Для этой временной меры условие о размере зарплаты не применяется.",
+      "basis": [
+        {
+          "act": "Федеральный закон от 25.04.2026 № 104-ФЗ «О внесении изменений в часть вторую Налогового кодекса Российской Федерации»",
+          "url": "https://publication.pravo.gov.ru/document/0001202604250003"
+        },
+        {
+          "act": "Налоговый кодекс Российской Федерации (часть вторая)",
+          "article": "ст. 149 п. 3 подп. 38",
+          "url": "https://www.nalog.gov.ru/rn04/news/activities_fts/16651717/"
+        }
+      ],
+      "deadline": "Освобождение действует с 1 апреля по 31 декабря 2026 года включительно",
+      "validity": {
+        "from": "2026-04-01",
+        "to": "2026-12-31"
+      },
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "tax_regime",
+            "in": ["usn_income", "usn_income_expenses", "psn"]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn04/news/activities_fts/16651717/",
+        "recordId": "vat-foodservice-transition-2026",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-opportunities-fed",
+      "packVersion": 1,
+      "id": "a.opportunity.foodservice-reduced-insurance-rate",
+      "kind": "opportunity",
+      "title": "Пониженный тариф страховых взносов для МСП общепита",
+      "summary": "Субъект МСП в сфере общепита может применять тариф страховых взносов 15% к части ежемесячных выплат работнику сверх полуторакратного МРОТ. Для общепита дополнительно проверяются предусмотренные НК РФ критерии, в том числе доля профильных доходов и среднесписочная численность работников. Запись сообщает о праве на льготу, а не рекомендует её применение: перед расчётом подтвердите все показатели за требуемый период.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс Российской Федерации (часть вторая)",
+          "article": "ст. 427 п. 2 подп. 17, п. 13.1",
+          "url": "https://www.nalog.gov.ru/rn11/news/activities_fts/16601574/"
+        },
+        {
+          "act": "Федеральный закон от 28.11.2025 № 425-ФЗ",
+          "url": "https://publication.pravo.gov.ru/document/0001202511280017"
+        }
+      ],
+      "deadline": "Право и размер тарифа проверяются при расчёте взносов за каждый месяц",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "msp_category",
+            "in": ["micro", "small", "medium"]
+          },
+          {
+            "type": "has_employees",
+            "value": true
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn11/news/activities_fts/16601574/",
+        "recordId": "insurance-rate-foodservice-2026",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-opportunities-fed",
+      "packVersion": 1,
+      "id": "a.opportunity.foodservice-patent-tax-system",
+      "kind": "opportunity",
+      "title": "Патентная система налогообложения для ИП в общепите",
+      "summary": "Индивидуальный предприниматель может добровольно применять ПСН к услугам общепита, если этот вид деятельности введён законом региона. Патент в общем случае заменяет НДФЛ с доходов по патентной деятельности, налог на используемое в ней имущество и НДС с установленными законом исключениями. В 2026 году нужно отдельно проверить региональный закон, доход за 2025 год и с начала 2026 года не более 20 млн рублей, не более 15 работников и площадь зала: для общепита ПСН не применяется при площади зала более 150 м².",
+      "basis": [
+        {
+          "act": "Налоговый кодекс Российской Федерации (часть вторая)",
+          "article": "гл. 26.5, ст. 346.43, 346.45",
+          "url": "https://www.nalog.gov.ru/new2026/"
+        },
+        {
+          "act": "Федеральный закон от 28.11.2025 № 425-ФЗ",
+          "url": "https://publication.pravo.gov.ru/document/0001202511280017"
+        }
+      ],
+      "deadline": "Заявление подают до начала применения патента в срок, установленный НК РФ; возможность и стоимость проверяют по закону конкретного региона",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "headcount",
+            "max": 15
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/create_business/ip/in_progress/usn_patent/",
+        "recordId": "psn-foodservice-2026",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": false
+      }
+    }
+  ]
+}

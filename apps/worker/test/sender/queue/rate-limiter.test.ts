@@ -21,6 +21,15 @@ describe("TokenBucket", () => {
     expect(bucket.take(50_000)).toBe(1000);
   });
 
+  it("проверяет доступность без расходования токена", () => {
+    const bucket = new TokenBucket({ capacity: 1, refillPerSecond: 2 });
+    expect(bucket.availableIn(0)).toBe(0);
+    expect(bucket.availableIn(0)).toBe(0);
+    expect(bucket.take(0)).toBe(0);
+    expect(bucket.availableIn(0)).toBe(500);
+    expect(bucket.availableIn(500)).toBe(0);
+  });
+
   it("отклоняет неверные параметры", () => {
     expect(() => new TokenBucket({ capacity: 0, refillPerSecond: 1 })).toThrow();
     expect(() => new TokenBucket({ capacity: 1, refillPerSecond: 0 })).toThrow();

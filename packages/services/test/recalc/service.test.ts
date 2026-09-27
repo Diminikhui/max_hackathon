@@ -1,134 +1,44 @@
-import {
-  type ApplicabilityRepository,
-  type ApplicabilityResult,
-  type ChangeEvent,
-  type ChangeEventRepository,
-  CONTRACT_VERSION,
-  type CompanyProfile,
-  FACT_KEYS,
-  type ProfileRepository,
-  type Requirement,
-  type RequirementRepository,
-} from "@max-hackathon/domain";
+import { FACT_KEYS } from "@max-hackathon/domain";
 import { describe, expect, it } from "vitest";
-import { ProfileRecalculationService } from "../../src/recalc/index.js";
+import { ProfileRecalculationService, RecalculationBusyError } from "../../src/recalc/index.js";
+import {
+  MemoryApplicability,
+  MemoryEvents,
+  MemoryProfiles,
+  MemoryRecalculationState,
+  MemoryRequirements,
+  NOW,
+  profile,
+  requirement,
+} from "./support.js";
 
-const NOW = "2026-09-26T08:00:00Z";
-const source = { system: "model-fixture", retrievedAt: NOW, isModel: true } as const;
-
-const profile = (okved: string, size: string, updatedAt = NOW): CompanyProfile => ({
-  contractVersion: CONTRACT_VERSION,
-  companyId: "company:model-1",
-  inn: "7700000016",
-  entityType: "legal_entity",
-  isModel: true,
-  updatedAt,
-  facts: [
-    {
-      id: "fact:okved",
-      companyId: "company:model-1",
-      key: FACT_KEYS.okvedMain,
-      value: okved,
-      kind: "official",
-      source,
-      observedAt: NOW,
-    },
-    {
-      id: "fact:size",
-      companyId: "company:model-1",
-      key: FACT_KEYS.mspCategory,
-      value: size,
-      kind: "official",
-      source,
-      observedAt: NOW,
-    },
-  ],
+const setupDeps = (state: ReturnType<typeof setup>) => ({
+  profiles: state.profiles,
+  requirements: state.requirements,
+  applicability: state.applicability,
+  events: state.events,
+  recalculationState: state.recalculationState,
+  clock: () => NOW,
 });
-
-const requirement = (id: string, condition: Requirement["condition"]): Requirement => ({
-  contractVersion: CONTRACT_VERSION,
-  id,
-  packId: "pack:model",
-  packVersion: 1,
-  kind: "obligation",
-  title: id,
-  basis: [{ act: "Модельный нормативный акт", url: "https://example.invalid/model" }],
-  condition,
-  coverage: "full",
-  source,
-});
-
-class MemoryProfiles implements ProfileRepository {
-  constructor(public value: CompanyProfile) {}
-  async get(): Promise<CompanyProfile | undefined> {
-    return this.value;
-  }
-  async findByInn(): Promise<CompanyProfile | undefined> {
-    return this.value;
-  }
-  async save(value: CompanyProfile) {
-    this.value = value;
-  }
-  async addFacts() {}
-  async listCompanyIds() {
-    return [this.value.companyId];
-  }
-}
-
-class MemoryRequirements implements RequirementRepository {
-  constructor(readonly records: Requirement[]) {}
-  async listByPack(_packId: string, version?: number) {
-    return version === 1 ? this.records : [];
-  }
-  async latestVersion() {
-    return 1;
-  }
-  async listPackIds() {
-    return ["pack:model"];
-  }
-  async saveVersion() {}
-}
-
-class MemoryApplicability implements ApplicabilityRepository {
-  value: ApplicabilityResult[] = [];
-  failNextReplace = false;
-  async listByCompany() {
-    return structuredClone(this.value);
-  }
-  async replaceForCompany(_companyId: string, results: ApplicabilityResult[]) {
-    if (this.failNextReplace) {
-      this.failNextReplace = false;
-      throw new Error("model snapshot store unavailable");
-    }
-    this.value = structuredClone(results);
-  }
-}
-
-class MemoryEvents implements ChangeEventRepository {
-  readonly values: ChangeEvent[] = [];
-  failNextAppend = false;
-  async append(event: ChangeEvent) {
-    if (this.failNextAppend) {
-      this.failNextAppend = false;
-      throw new Error("model event store unavailable");
-    }
-    if (!this.values.some((item) => item.id === event.id)) this.values.push(event);
-  }
-  async get(id: string) {
-    return this.values.find((item) => item.id === id);
-  }
-}
 
 const setup = () => {
   const profiles = new MemoryProfiles(profile("47.11", "micro"));
   const applicability = new MemoryApplicability();
   const events = new MemoryEvents();
+  const recalculationState = new MemoryRecalculationState();
   const requirements = new MemoryRequirements([
     requirement("req:food", { type: "okved_prefix", prefix: "56" }),
     requirement("req:small", { type: "msp_category", in: ["small"] }),
   ]);
-  const service = new ProfileRecalculationService({ profiles, requirements, applicability, events, clock: () => NOW });
-  return { profiles, applicability, events, service };
+  const service = new ProfileRecalculationService({
+    profiles,
+    requirements,
+    applicability,
+    events,
+    recalculationState,
+    clock: () => NOW,
+  });
+  return { profiles, requirements, applicability, events, recalculationState, service };
 };
 
 describe("ProfileRecalculationService", () => {
@@ -203,6 +113,7 @@ describe("ProfileRecalculationService", () => {
       ]),
       applicability: state.applicability,
       events: state.events,
+      recalculationState: state.recalculationState,
       clock: () => times.shift() ?? "2026-09-26T08:03:00Z",
     });
     state.profiles.value = profile("56.10", "small", "2026-09-26T08:00:30Z");
@@ -221,15 +132,15 @@ describe("ProfileRecalculationService", () => {
     expect(state.applicability.value[0]?.evaluatedAt).toBe("2026-09-26T08:02:00Z");
   });
 
-  it("не подавляет новую такую же операцию после цикла изменений", async () => {
+  it("не подавляет одинаковые по значениям и timestamps переходы после цикла A→B→A→B", async () => {
     const state = setup();
-    state.profiles.value = profile("56.10", "small", "2026-09-26T08:01:00Z");
+    state.profiles.value = profile("56.10", "small", NOW);
     await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
     const firstForwardId = state.events.values[0]?.id;
 
-    state.profiles.value = profile("47.11", "micro", "2026-09-26T08:02:00Z");
+    state.profiles.value = profile("47.11", "micro", NOW);
     await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
-    state.profiles.value = profile("56.10", "small", "2026-09-26T08:03:00Z");
+    state.profiles.value = profile("56.10", "small", NOW);
     await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
 
     expect(state.events.values).toHaveLength(3);
@@ -244,5 +155,98 @@ describe("ProfileRecalculationService", () => {
       companyId: "missing",
     });
     expect(state.applicability.value).toEqual([]);
+  });
+
+  it("после snapshot success + сбой фиксации ревизии retry не дублирует event и не теряет переход", async () => {
+    const state = setup();
+    state.profiles.value = profile("56.10", "small");
+    const save = state.recalculationState.save.bind(state.recalculationState);
+    let failCommit = true;
+    state.recalculationState.save = async (companyId, lease, next) => {
+      if (failCommit && next.pending === undefined && next.committedRevision === 1) {
+        failCommit = false;
+        throw new Error("model state store unavailable");
+      }
+      return save(companyId, lease, next);
+    };
+
+    await expect(state.service.recalculate("company:model-1", { changedFactKeys: [] })).rejects.toThrow(
+      "model state store unavailable",
+    );
+    expect(state.events.values).toHaveLength(1);
+    expect((await state.recalculationState.get("company:model-1"))?.pending?.revision).toBe(1);
+
+    const retried = await state.service.recalculate("company:model-1", { changedFactKeys: [] });
+    expect(retried.status).toBe("changed");
+    expect(state.events.values).toHaveLength(1);
+    expect(await state.recalculationState.get("company:model-1")).toEqual({ committedRevision: 2 });
+  });
+
+  it("доигрывает чужую pending-операцию и затем применяет собственное изменение профиля", async () => {
+    const state = setup();
+    state.profiles.value = profile("56.10", "small");
+    state.applicability.failNextReplace = true;
+    await expect(state.service.recalculate("company:model-1", { changedFactKeys: [] })).rejects.toThrow();
+
+    state.profiles.value = profile("47.11", "micro");
+    const result = await state.service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] });
+
+    expect(result.status).toBe("changed");
+    if (result.status !== "changed") throw new Error("expected changed");
+    expect(result.delta.disappeared.map((item) => item.requirementId)).toEqual(["req:food", "req:small"]);
+    expect(state.events.values).toHaveLength(2);
+    expect(state.applicability.value.every((item) => item.status !== "applies")).toBe(true);
+  });
+
+  it("два одновременных пересчёта одной компании выполняются по очереди и дают по событию на переход", async () => {
+    const state = setup();
+    await state.service.recalculate("company:model-1", { changedFactKeys: [] });
+    state.profiles.value = profile("56.10", "small");
+    const service = new ProfileRecalculationService({
+      ...setupDeps(state),
+      leaseRetryMs: 1,
+      sleep: () => new Promise((resolve) => setImmediate(resolve)),
+    });
+
+    const results = await Promise.all([
+      service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] }),
+      service.recalculate("company:model-1", { changedFactKeys: [FACT_KEYS.okvedMain] }),
+    ]);
+
+    expect(results.map((item) => item.status).sort()).toEqual(["changed", "unchanged"]);
+    expect(state.events.values).toHaveLength(1);
+    expect(await state.recalculationState.get("company:model-1")).toEqual({ committedRevision: 3 });
+  });
+
+  it("занятая компания даёт RecalculationBusyError после ожидания, истёкшая аренда перехватывается", async () => {
+    const state = setup();
+    let now = 0;
+    state.recalculationState.now = () => now;
+    await state.recalculationState.acquire("company:model-1", 1_000);
+    const service = new ProfileRecalculationService({
+      ...setupDeps(state),
+      leaseWaitMs: 20,
+      leaseRetryMs: 10,
+      sleep: async () => {},
+    });
+
+    await expect(service.recalculate("company:model-1", { changedFactKeys: [] })).rejects.toBeInstanceOf(
+      RecalculationBusyError,
+    );
+    now = 1_000;
+    await expect(service.recalculate("company:model-1", { changedFactKeys: [] })).resolves.toMatchObject({
+      status: "unchanged",
+    });
+  });
+
+  it("потерянная аренда не даёт зафиксировать результат", async () => {
+    const state = setup();
+    state.profiles.value = profile("56.10", "small");
+    state.events.append = async () => {
+      state.recalculationState.leases.clear();
+      await state.recalculationState.acquire("company:model-1", 60_000);
+    };
+    await expect(state.service.recalculate("company:model-1", { changedFactKeys: [] })).rejects.toThrow("потеряна");
+    expect((await state.recalculationState.get("company:model-1"))?.committedRevision).toBe(0);
   });
 });
