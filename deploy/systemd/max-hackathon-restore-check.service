@@ -1,0 +1,11 @@
+[Unit]
+Description=Restore drill of the latest MAX Hackathon backup (5-07)
+Wants=docker.service
+After=docker.service max-hackathon-backup.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/max-hackathon/backup/max-restore.sh verify
+TimeoutStartSec=30min
+Nice=10
+IOSchedulingClass=idle
