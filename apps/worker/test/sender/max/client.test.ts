@@ -1,6 +1,7 @@
 import type { Notification } from "@max-hackathon/domain";
 import { describe, expect, it } from "vitest";
-import { buildMessageBody, type MaxFetch, MaxMessageSender, parseRetryAfter } from "../../../src/sender/max/index.js";
+import { buildMessageBody, MaxMessageSender, parseRetryAfter } from "../../../src/sender/max/index.js";
+import { type MaxFetch, RateLimitedMaxTransport } from "../../../src/sender/queue/max-transport.js";
 
 const notification = (overrides: Partial<Notification> = {}): Notification => ({
   contractVersion: 1,
@@ -20,7 +21,7 @@ const notification = (overrides: Partial<Notification> = {}): Notification => ({
 });
 
 interface Call {
-  input: string | URL;
+  input: string;
   init: RequestInit | undefined;
 }
 
@@ -36,13 +37,18 @@ function modelFetch(response: Response | Error): { fetch: MaxFetch; calls: Call[
   };
 }
 
+/** Настоящий общий транспорт с модельным fetch: так тест проверяет и заголовки, которые добавляет транспорт. */
+const modelTransport = (fetch: MaxFetch, token = "model-token", baseUrl = "https://platform-api2.max.ru") =>
+  new RateLimitedMaxTransport({ baseUrl, token, fetch });
+
+const senderWith = (fetch: MaxFetch, options: { maxRetryAfterMs?: number } = {}) =>
+  new MaxMessageSender({ transport: modelTransport(fetch), ...options });
+
 describe("MaxMessageSender", () => {
   it("отправляет текст и оба типа кнопок, не раскрывая токен в URL", async () => {
     const transport = modelFetch(new Response('{"message":{"body":{"mid":"model-mid"}}}', { status: 200 }));
     const sender = new MaxMessageSender({
-      token: "model-secret-token",
-      baseUrl: "https://platform-api2.max.ru/api/",
-      fetch: transport.fetch,
+      transport: modelTransport(transport.fetch, "model-secret-token", "https://platform-api2.max.ru/api/"),
     });
     const result = await sender.send(
       notification({
@@ -58,10 +64,9 @@ describe("MaxMessageSender", () => {
     const call = transport.calls[0];
     expect(String(call?.input)).toBe("https://platform-api2.max.ru/api/messages?chat_id=-900000000001");
     expect(String(call?.input)).not.toContain("model-secret-token");
-    expect(call?.init?.headers).toMatchObject({
-      Authorization: "model-secret-token",
-      "Content-Type": "application/json",
-    });
+    const headers = new Headers(call?.init?.headers);
+    expect(headers.get("Authorization")).toBe("model-secret-token");
+    expect(headers.get("Content-Type")).toBe("application/json");
     expect(JSON.parse(String(call?.init?.body))).toEqual({
       text: "Модельное уведомление. Сформировано автоматически: https://example.test/source",
       attachments: [
@@ -108,18 +113,13 @@ describe("MaxMessageSender", () => {
     [503, "DEPENDENCY_UNAVAILABLE", true],
     [504, "DEPENDENCY_TIMEOUT", true],
   ])("мапит HTTP %i в K-27 %s", async (status, code, retryable) => {
-    const sender = new MaxMessageSender({
-      token: "model-token",
-      fetch: modelFetch(new Response("model error", { status })).fetch,
-    });
+    const sender = senderWith(modelFetch(new Response("model error", { status })).fetch);
     await expect(sender.send(notification())).resolves.toMatchObject({ ok: false, code, retryable });
   });
 
   it("передаёт ограниченный Retry-After очереди", async () => {
-    const sender = new MaxMessageSender({
-      token: "model-token",
+    const sender = senderWith(modelFetch(new Response("", { status: 429, headers: { "Retry-After": "120" } })).fetch, {
       maxRetryAfterMs: 60_000,
-      fetch: modelFetch(new Response("", { status: 429, headers: { "Retry-After": "120" } })).fetch,
     });
     await expect(sender.send(notification())).resolves.toMatchObject({
       ok: false,
@@ -130,10 +130,7 @@ describe("MaxMessageSender", () => {
   });
 
   it("считает сетевую ошибку и таймаут неизвестным исходом без повтора", async () => {
-    const networkSender = new MaxMessageSender({
-      token: "model-token",
-      fetch: modelFetch(new TypeError("model network failure")).fetch,
-    });
+    const networkSender = senderWith(modelFetch(new TypeError("model network failure")).fetch);
     await expect(networkSender.send(notification())).resolves.toMatchObject({
       ok: false,
       code: "delivery_unknown",
@@ -142,7 +139,7 @@ describe("MaxMessageSender", () => {
 
     const timeout = new Error("model timeout");
     timeout.name = "TimeoutError";
-    const timeoutSender = new MaxMessageSender({ token: "model-token", fetch: modelFetch(timeout).fetch });
+    const timeoutSender = senderWith(modelFetch(timeout).fetch);
     await expect(timeoutSender.send(notification())).resolves.toMatchObject({
       ok: false,
       code: "delivery_unknown",
@@ -153,7 +150,7 @@ describe("MaxMessageSender", () => {
 
   it("отклоняет сообщение и клавиатуру вне лимитов до запроса", async () => {
     const transport = modelFetch(new Response("{}"));
-    const sender = new MaxMessageSender({ token: "model-token", fetch: transport.fetch });
+    const sender = senderWith(transport.fetch);
 
     await expect(sender.send(notification({ text: "x".repeat(4_001) }))).resolves.toMatchObject({
       ok: false,
@@ -177,9 +174,9 @@ describe("MaxMessageSender", () => {
   });
 
   it("валидирует конфигурацию при создании", () => {
-    expect(() => new MaxMessageSender({ token: "" })).toThrow("MAX_BOT_TOKEN");
-    expect(() => new MaxMessageSender({ token: "model", baseUrl: "http://platform-api2.max.ru" })).toThrow("HTTPS");
-    expect(() => new MaxMessageSender({ token: "model", timeoutMs: 0 })).toThrow("timeoutMs");
+    const transport = modelTransport(modelFetch(new Response("{}")).fetch);
+    expect(() => new MaxMessageSender({ transport, timeoutMs: 0 })).toThrow("timeoutMs");
+    expect(() => new MaxMessageSender({ transport, maxRetryAfterMs: -1 })).toThrow("maxRetryAfterMs");
   });
 });
 
