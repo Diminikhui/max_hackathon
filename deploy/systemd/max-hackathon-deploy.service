@@ -1,0 +1,9 @@
+[Unit]
+Description=Deploy reviewed main branch to MAX Hackathon VPS
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/max-hackathon-deploy
+TimeoutStartSec=30min
