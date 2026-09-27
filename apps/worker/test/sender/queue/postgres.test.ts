@@ -2,15 +2,26 @@
 // ошибки, сбой между send и updateStatus не даёт дубля; прочитанные документы проходят схему notification v1.
 
 import { PGlite } from "@electric-sql/pglite";
-import type { Notification, NotificationRepository } from "@max-hackathon/domain";
+import type { Notification } from "@max-hackathon/domain";
 import { createPgliteClient, PostgresNotificationRepository, runMigrations } from "@max-hackathon/storage";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { DELIVERY_UNKNOWN, FakeMessageSender, SendQueueWorker } from "../../../src/sender/queue/index.js";
+import {
+  DELIVERY_UNKNOWN,
+  FakeMessageSender,
+  type SendQueueRepository,
+  SendQueueWorker,
+} from "../../../src/sender/queue/index.js";
 import { manualClock, notificationValidator, queued } from "./support/fixtures.js";
-import { bind } from "./support/memory-repository.js";
 
 let db: PGlite;
 let repository: PostgresNotificationRepository;
+
+// PostgresNotificationRepository сам реализует честную выборку listQueuedFair (#247).
+const schedulerRepository = (repo: PostgresNotificationRepository): SendQueueRepository => ({
+  findByIdempotencyKey: repo.findByIdempotencyKey.bind(repo),
+  updateStatus: repo.updateStatus.bind(repo),
+  listQueuedFair: repo.listQueuedFair.bind(repo),
+});
 
 beforeEach(async () => {
   db = new PGlite();
@@ -34,7 +45,13 @@ describe("SendQueueWorker + PostgresNotificationRepository", () => {
     await repository.enqueue(queued("n2", { createdAt: "2026-09-25T12:00:01Z" }));
     const clock = manualClock();
     const sender = new FakeMessageSender([{ ok: true }, { ok: false, code: "max_unavailable", retryable: true }]);
-    const worker = new SendQueueWorker({ repository, sender, now: clock.now, backoff: { baseMs: 1000, maxMs: 1000 } });
+    const worker = new SendQueueWorker({
+      repository: schedulerRepository(repository),
+      sender,
+      now: clock.now,
+      backoff: { baseMs: 1000, maxMs: 1000 },
+      perChatRateLimit: { capacity: 100, refillPerSecond: 100 },
+    });
 
     expect(await worker.processBatch()).toMatchObject({ sent: ["n1"], retried: ["n2"] });
     expect(await read("key-n1")).toMatchObject({ status: "sent", attempts: 1 });
@@ -46,7 +63,7 @@ describe("SendQueueWorker + PostgresNotificationRepository", () => {
     expect(n2).toMatchObject({ status: "sent", attempts: 2 });
     expect(n2.error).toBeUndefined();
 
-    await new SendQueueWorker({ repository, sender, now: clock.now }).processBatch();
+    await new SendQueueWorker({ repository: schedulerRepository(repository), sender, now: clock.now }).processBatch();
     expect(sender.countFor("key-n1")).toBe(1);
     expect(sender.countFor("key-n2")).toBe(2);
   });
@@ -55,8 +72,8 @@ describe("SendQueueWorker + PostgresNotificationRepository", () => {
     await repository.enqueue(queued("n1"));
     const clock = manualClock();
     const sender = new FakeMessageSender();
-    const crashing: NotificationRepository = {
-      ...bind(repository),
+    const crashing: SendQueueRepository = {
+      ...schedulerRepository(repository),
       updateStatus: async (id, update) => {
         if (update.status === "sent") throw new Error("процесс упал");
         return repository.updateStatus(id, update);
@@ -66,7 +83,7 @@ describe("SendQueueWorker + PostgresNotificationRepository", () => {
       new SendQueueWorker({ repository: crashing, sender, now: clock.now }).processBatch(),
     ).rejects.toThrow();
 
-    const restarted = new SendQueueWorker({ repository, sender, now: clock.now });
+    const restarted = new SendQueueWorker({ repository: schedulerRepository(repository), sender, now: clock.now });
     expect((await restarted.processBatch()).failed).toEqual([{ id: "n1", code: DELIVERY_UNKNOWN }]);
     await restarted.processBatch();
     expect(await read("key-n1")).toMatchObject({ status: "failed", attempts: 1, error: { code: DELIVERY_UNKNOWN } });

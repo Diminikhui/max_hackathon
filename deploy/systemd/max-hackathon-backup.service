@@ -1,0 +1,11 @@
+[Unit]
+Description=Back up MAX Hackathon PostgreSQL database (5-07)
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/max-hackathon/backup/max-backup.sh
+TimeoutStartSec=30min
+Nice=10
+IOSchedulingClass=idle
