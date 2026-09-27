@@ -5,8 +5,11 @@
 не должны принимать `fetch` или callback запроса: каждый вызов `send`, `upload` или `service` резервирует
 один token общей квоты и выполняет ровно один HTTP-запрос.
 
-`SendQueueWorker` требует `SendQueueRepository.listQueuedFair`. Запрос обязан возвращать round-robin
-между чатами, сохранять FIFO внутри чата и соблюдать `maxScan`. Старый `listQueued(limit)` не обеспечивает
-fairness, если чат B находится за длинным префиксом чата A, поэтому напрямую подключать обычный
-`NotificationRepository` нельзя. Реализация fair query в production storage находится вне зоны K-21a;
-до неё гарантия fairness относится только к данному контракту и тестовой indexed-реализации.
+`SendQueueWorker` требует `SendQueueRepository.listQueuedFair`: round-robin между чатами, FIFO внутри чата
+и не больше `maxScan` прочитанных записей. Production-реализация — `PostgresNotificationRepository.listQueuedFair`
+(`@max-hackathon/storage`, миграция `k-21a-001`): чаты перебираются skip scan-ом по индексу
+`notifications_queue_by_chat` с курсором по кругу, поэтому длинная очередь одного чата не загораживает другие.
+
+Сборка — `createMaxSenderRuntime` (`composition.ts`): берёт transport из `MaxTransportRegistry` (один на token
+в процессе) и создаёт на нём `MaxMessageSender`, `MaxUploadClient`, `MaxServiceClient` и воркер. Тест
+`composition.test.ts` проверяет, что `fetch` вызывается только в `max-transport.ts`.
