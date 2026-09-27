@@ -49,17 +49,12 @@
           },
           {
             "type": "region",
-            "codes": [
-              "16"
-            ]
+            "codes": ["16"]
           },
           {
             "type": "fact_in",
             "key": "sales.alcohol",
-            "values": [
-              "beer",
-              "strong"
-            ]
+            "values": ["beer", "strong"]
           }
         ]
       },
@@ -100,9 +95,7 @@
           },
           {
             "type": "region",
-            "codes": [
-              "16"
-            ]
+            "codes": ["16"]
           }
         ]
       },
