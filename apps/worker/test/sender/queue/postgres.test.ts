@@ -16,15 +16,11 @@ import { manualClock, notificationValidator, queued } from "./support/fixtures.j
 let db: PGlite;
 let repository: PostgresNotificationRepository;
 
-// Временный bounded adapter для интеграционных тестов. Он не заявляет fairness для большого backlog:
-// production storage обязан реализовать listQueuedFair до подключения этого scheduler.
+// PostgresNotificationRepository сам реализует честную выборку listQueuedFair (#247).
 const schedulerRepository = (repo: PostgresNotificationRepository): SendQueueRepository => ({
   findByIdempotencyKey: repo.findByIdempotencyKey.bind(repo),
   updateStatus: repo.updateStatus.bind(repo),
-  listQueuedFair: async ({ maxItems, maxScan }) => {
-    const items = await repo.listQueued(Math.min(maxItems, maxScan));
-    return { items, scanned: items.length };
-  },
+  listQueuedFair: repo.listQueuedFair.bind(repo),
 });
 
 beforeEach(async () => {

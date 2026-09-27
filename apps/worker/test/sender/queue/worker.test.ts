@@ -267,6 +267,7 @@ describe("SendQueueWorker", () => {
     expect(sender.calls.map((call) => call.id)).toEqual(["a-00", "b-1"]);
   });
 
+  // 10 000 enqueue в память на медленном раннере CI занимают больше стандартных 5 с.
   it("ограничивает чтение при огромном backlog и видит B за A через fair index", async () => {
     for (let index = 0; index < 10_000; index += 1) {
       await repository.enqueue(
@@ -302,7 +303,7 @@ describe("SendQueueWorker", () => {
     });
     expect((await worker.processBatch()).sent).toEqual(["a-0", "b-boundary"]);
     expect(observedScanned).toBeLessThanOrEqual(20);
-  });
+  }, 30_000);
 
   it("удаляет idle chat buckets по TTL", async () => {
     await repository.enqueue(queued("a1", { recipient: { channel: "max_bot", chatId: "chat-a" } }));
