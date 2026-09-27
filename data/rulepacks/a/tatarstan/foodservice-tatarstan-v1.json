@@ -1,0 +1,122 @@
+{
+  "contractVersion": 1,
+  "packId": "a-foodservice-ru-16",
+  "packVersion": 1,
+  "title": "Общепит (ОКВЭД 56): региональное дополнение Республики Татарстан",
+  "owner": {
+    "name": "Команда MAX Hackathon"
+  },
+  "source": {
+    "system": "manual-curation",
+    "url": "https://github.com/Diminikhui/max_hackathon/blob/main/data/rulepacks/_golden/a/checklist.yaml",
+    "recordId": "k-17d-foodservice-tatarstan-v1",
+    "retrievedAt": "2026-09-27T00:00:00Z",
+    "isModel": false
+  },
+  "publishedAt": "2026-09-27T00:00:00Z",
+  "validity": {
+    "from": "2025-03-01"
+  },
+  "isModel": false,
+  "requirements": [
+    {
+      "contractVersion": 1,
+      "id": "a.tatarstan.alcohol-regional-restrictions",
+      "packId": "a-foodservice-ru-16",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Ограничения продажи алкоголя в общепите Татарстана",
+      "summary": "В Татарстане пиво, сидр, пуаре и медовуху в общепите можно продавать только в ресторанах, барах, кафе и буфетах. Если заведение находится в жилом многоквартирном доме или на прилегающей к нему территории, действуют ещё два ограничения: продажа алкоголя запрещена с 22:00 до 10:00 (кроме ресторанов), и продажа алкоголя запрещена совсем, если зал обслуживания меньше 50 м² (в моногородах с населением больше 500 тыс. — меньше 100 м²); площадь сезонной веранды не учитывается. Если заведение не в жилом доме и не на прилегающей к нему территории, эти два ограничения не действуют. Мы не знаем, где расположено ваше заведение и какая площадь зала, поэтому эти условия нужно сопоставить с объектом.",
+      "basis": [
+        {
+          "act": "Закон Республики Татарстан от 06.03.2015 № 10-ЗРТ",
+          "article": "ст. 2, ч. 1 п. 2.1, 3, 4; ч. 2 (в ред. законов РТ от 04.09.2020 № 51-ЗРТ, от 21.03.2022 № 9-ЗРТ, от 26.07.2024 № 59-ЗРТ)",
+          "url": "https://pravo.tatarstan.ru/gossov/zakon.htm?npa_id=1425"
+        },
+        {
+          "act": "Закон Республики Татарстан от 26.07.2024 № 59-ЗРТ",
+          "article": "ст. 1 (действует с 01.03.2025)",
+          "url": "https://pravo.tatarstan.ru/gossov/zakon.htm?npa_id=1446691"
+        }
+      ],
+      "deadline": "До первой продажи алкоголя и при каждом изменении адреса, формата объекта или региональных правил",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "region",
+            "codes": [
+              "16"
+            ]
+          },
+          {
+            "type": "fact_in",
+            "key": "sales.alcohol",
+            "values": [
+              "beer",
+              "strong"
+            ]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "validity": {
+        "from": "2025-03-01"
+      },
+      "source": {
+        "system": "pravo.tatarstan.ru",
+        "url": "https://pravo.tatarstan.ru/gossov/zakon.htm?npa_id=1425",
+        "recordId": "10-zrt-foodservice-alcohol",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "id": "a.tatarstan.energy-drinks-places",
+      "packId": "a-foodservice-ru-16",
+      "packVersion": 1,
+      "kind": "obligation",
+      "title": "Татарстан: запрет продажи энергетиков в зданиях образования, медицины, культуры и спорта",
+      "summary": "С 1 сентября 2026 года в Татарстане запрещено продавать энергетики в зданиях и помещениях, где ведётся образовательная или медицинская деятельность, деятельность в области культуры, физической культуры и спорта (например, кафе или буфет в школе, вузе, поликлинике, театре, спорткомплексе). Кабинет Министров РТ может дополнительно ограничивать продажу во время массовых и спортивных мероприятий.",
+      "basis": [
+        {
+          "act": "Закон Республики Татарстан от 03.01.2026 № 5-ЗРТ",
+          "article": "ст. 3",
+          "url": "https://pravo.tatarstan.ru/gossov/zakon.htm?npa_id=1773674"
+        }
+      ],
+      "deadline": "При каждой продаже с 01.09.2026",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "region",
+            "codes": [
+              "16"
+            ]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "validity": {
+        "from": "2026-09-01"
+      },
+      "source": {
+        "system": "pravo.tatarstan.ru",
+        "url": "https://pravo.tatarstan.ru/gossov/zakon.htm?npa_id=1773674",
+        "recordId": "5-zrt-energy-drinks-places",
+        "retrievedAt": "2026-09-27T00:00:00Z",
+        "isModel": false
+      }
+    }
+  ]
+}
