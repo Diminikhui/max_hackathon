@@ -54,16 +54,22 @@ importers:
 
   apps/worker:
     dependencies:
+      '@max-hackathon/bot':
+        specifier: workspace:*
+        version: link:../bot
       '@max-hackathon/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@max-hackathon/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
+      '@max-hackathon/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
     devDependencies:
       '@electric-sql/pglite':
         specifier: ^0.5.8
         version: 0.5.8
-      '@max-hackathon/storage':
-        specifier: workspace:*
-        version: link:../../packages/storage
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
