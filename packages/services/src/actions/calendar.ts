@@ -5,7 +5,10 @@ import type { Id, IsoDate, Requirement } from "@max-hackathon/domain";
  * а не выведено эвристикой: дата появляется только там, где её можно назвать без догадок.
  */
 export type DueRule =
-  /** Действие повторяется каждый день: срок — дата расчёта. */
+  /**
+   * Обязанность повторяется каждый день: срок — дата расчёта. `action` называет обязанность («Ежедневная
+   * влажная уборка…»), а не командует: граница продукта — сообщаем об обязанности, не рекомендуем действие.
+   */
   | { type: "daily"; action: string }
   /** Срок наступает при событии (продажа, поставка, допуск работника); календарной даты нет. */
   | { type: "event"; trigger: string }
@@ -61,11 +64,11 @@ export const DEFAULT_DUE_CALENDAR: readonly DueCalendarEntry[] = [
   food("incoming-control-traceability", { type: "event", trigger: "при каждой поставке" }),
   food("storage-and-temperature-control", {
     type: "daily",
-    action: "Записать температуру (на складах — и влажность) за день",
+    action: "Ежедневная запись температуры (на складах — и влажности)",
   }),
   food("staff-medical-and-hygiene", { type: "periodic", period: "периодический медосмотр — раз в год" }),
-  food("staff-daily-health-check", { type: "daily", action: "Проверить здоровье работников смены" }),
-  food("cleaning-pest-control", { type: "daily", action: "Провести влажную уборку производственных помещений" }),
+  food("staff-daily-health-check", { type: "daily", action: "Ежедневный осмотр здоровья работников смены" }),
+  food("cleaning-pest-control", { type: "daily", action: "Ежедневная влажная уборка производственных помещений" }),
   food("consumer-information-menu", { type: "event", trigger: "при заключении договора (заказа)" }),
   food("cash-register-before-payment", { type: "event", trigger: "при каждом расчёте" }),
   food("mercury-incoming-evsd", { type: "event", trigger: "в течение 24 часов после доставки или реализации партии" }),

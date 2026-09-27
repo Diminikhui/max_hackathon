@@ -60,7 +60,7 @@ const applicability = (item: Requirement, status: ApplicabilityStatus = "applies
 const profile: CompanyProfile = {
   contractVersion: 1,
   companyId,
-  inn: "7707083893",
+  inn: "7700000016",
   entityType: "legal_entity",
   facts: [],
   isModel: true,
