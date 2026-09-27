@@ -1,7 +1,7 @@
 # K-05b: запуск мини-приложения из бота, MAX Bridge, проверка `initData`, deep links
 
 - Дата: 2026-09-27
-- Статус: проверка подписи реализована и покрыта модельными тестами; живой запуск из бота в MAX **ещё не проверен** (нужны VPS с HTTPS и привязка URL в платформе партнёров — шаги ниже)
+- Статус: проверка подписи реализована, покрыта модельными тестами и сверена с документацией; живой запуск из бота в MAX **ещё не проверен** (VPS с HTTPS готов в K-08; нужна привязка URL в платформе партнёров — шаги ниже)
 - Код: [`apps/miniapp/spike/`](../../apps/miniapp/spike/)
 - Основа: бот и клиент из K-05a ([k05a-max-bot-connection.md](k05a-max-bot-connection.md)), лимиты — [k05c-max-bot-api-limits.md](k05c-max-bot-api-limits.md)
 
@@ -48,13 +48,36 @@
 
 ## Как проверить вживую (осталось)
 
-1. На VPS из K-05a: `node --env-file=.env apps/miniapp/spike/server.mjs 8787` за HTTPS-прокси (MAX принимает только HTTPS URL, до 1 024 символов).
-2. В платформе партнёров MAX: Чаты → Настройки → вставить URL страницы, выбрать тип кнопки, сохранить.
-3. Открыть бота в MAX и нажать кнопку мини-приложения; ожидается «Подпись initData верна».
-4. `node --env-file=.env apps/miniapp/spike/send-launch.mjs <chat_id> k05b_check` → нажать кнопку в сообщении; ожидается `start_param: k05b_check`.
-5. Повторить на Android, iOS, desktop и web; записать `platform` и `version` (без данных пользователя) в Issue #69.
+Сверено с документацией 27.09.2026: алгоритм [проверки `initData`](https://dev.max.ru/docs/webapps/validation) совпадает с реализованным; в описании [клавиатуры](https://dev.max.ru/docs-api/use-cases/sending-messages/keyboard) у кнопки `open_app` по-прежнему нет перечня полей, поэтому остаётся кнопка `link` с deep link.
 
-Критерий приёмки «тестовое мини-приложение открывается из бота» считается выполненным только после шагов 1–4.
+Шаги выполняет владелец сервера и бота (@Diminikhui): нужны root на VPS из K-08, доступ к платформе партнёров MAX и устройства. Спайк временно публикуется под префиксом `/k05b/`; страница обращается к API по относительному пути, поэтому код менять не нужно.
+
+1. **Запустить спайк на VPS** (токен уже лежит в `/etc/max-hackathon/bot.env`, в репозиторий и вывод не попадает):
+
+   ```bash
+   cd /srv/max-hackathon/repo && git fetch origin diminikhui/claude/research-k-05b-next-stream
+   git worktree add /opt/max-k05b FETCH_HEAD
+   sudo systemd-run --unit=k05b-spike --property=EnvironmentFile=/etc/max-hackathon/bot.env \
+     node /opt/max-k05b/apps/miniapp/spike/server.mjs 8787
+   ```
+
+2. **Временно проксировать** в `server { listen 443 … }` файла `/etc/nginx/sites-enabled/` (не коммитить в `deploy/`):
+
+   ```nginx
+   location /k05b/ {
+       proxy_pass http://127.0.0.1:8787/;
+       proxy_set_header Host $host;
+   }
+   ```
+
+   Затем `sudo nginx -t && sudo systemctl reload nginx` и проверка `curl -fsS https://135.106.227.207/k05b/ | head -3`.
+3. **Платформа партнёров MAX**: Чаты → бот → Настройки → URL мини-приложения `https://135.106.227.207/k05b/` → сохранить.
+4. **Открыть из бота**: в MAX нажать кнопку мини-приложения у бота; ожидается «Подпись initData верна».
+5. **Deep link**: `sudo systemd-run --pipe --wait --property=EnvironmentFile=/etc/max-hackathon/bot.env node /opt/max-k05b/apps/miniapp/spike/send-launch.mjs <chat_id> k05b_check` (токен читается из файла окружения и не попадает в аргументы процесса) → нажать кнопку в сообщении; ожидается `start_param: k05b_check`.
+6. Повторить шаги 4–5 на web, desktop, Android и iOS; записать в Issue #69 только `platform`, `version` и результат (без идентификаторов и данных пользователя).
+7. **Убрать временный контур**: `sudo systemctl stop k05b-spike`, удалить `location /k05b/`, `sudo nginx -t && sudo systemctl reload nginx`, `git -C /srv/max-hackathon/repo worktree remove /opt/max-k05b`. URL в платформе партнёров заменить на адрес мини-приложения, когда оно появится (2-01a).
+
+Критерий приёмки «тестовое мини-приложение открывается из бота» считается выполненным только после шагов 1–5.
 
 ## Запуск тестов
 

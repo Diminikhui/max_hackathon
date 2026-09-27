@@ -2,9 +2,10 @@
 // Запуск за HTTPS-прокси (MAX принимает только HTTPS URL):
 //   node --env-file=.env apps/miniapp/spike/server.mjs [порт, по умолчанию 8787]
 // В лог пишутся только код результата и платформа, без initData и данных пользователя.
-import { createServer } from "node:http";
+
 import { readFile } from "node:fs/promises";
-import { validateInitData, InitDataError } from "./init-data.mjs";
+import { createServer } from "node:http";
+import { InitDataError, validateInitData } from "./init-data.mjs";
 
 const token = process.env.MAX_BOT_TOKEN;
 if (!token) throw new Error("MAX_BOT_TOKEN не задан");
@@ -19,7 +20,8 @@ function send(res, status, body, type = "application/json; charset=utf-8") {
 
 createServer((req, res) => {
   const path = new URL(req.url, "http://local").pathname;
-  if (req.method === "GET" && (path === "/" || path === "/index.html")) return send(res, 200, page, "text/html; charset=utf-8");
+  if (req.method === "GET" && (path === "/" || path === "/index.html"))
+    return send(res, 200, page, "text/html; charset=utf-8");
   if (req.method !== "POST" || path !== "/api/validate") return send(res, 404, { ok: false, code: "not_found" });
 
   let body = "";

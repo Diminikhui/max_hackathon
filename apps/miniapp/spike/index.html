@@ -22,7 +22,7 @@
     const info = document.getElementById("info");
     document.getElementById("close").onclick = () => app?.close();
 
-    if (!app || !app.initData) {
+    if (!app?.initData) {
       status.textContent = "Открыто не из MAX: initData отсутствует";
       status.className = "fail";
     } else {
@@ -31,7 +31,7 @@
       fetch("api/validate", { method: "POST", headers: { "Content-Type": "text/plain" }, body: app.initData })
         .then((r) => r.json())
         .then((res) => {
-          status.textContent = res.ok ? "Подпись initData верна" : "Подпись отклонена: " + res.code;
+          status.textContent = res.ok ? "Подпись initData верна" : `Подпись отклонена: ${res.code}`;
           status.className = res.ok ? "ok" : "fail";
           info.textContent = JSON.stringify({ platform: app.platform, version: app.version, ...res }, null, 2);
         })
