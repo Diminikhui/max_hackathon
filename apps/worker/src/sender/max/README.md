@@ -1,7 +1,14 @@
 # MAX sender (K-21b)
 
 `MaxMessageSender` реализует порт `MessageSender` из `sender/queue`: отправляет текст и inline-кнопки методом
-`POST /messages?chat_id=…`, передаёт токен только в заголовке `Authorization` и возвращает ошибки без исключений.
+`POST /messages?chat_id=…` через общий `MaxApiTransport` (`sender/queue/max-transport.ts`) и возвращает ошибки без
+исключений. Собственного `fetch`, токена и базового URL у клиента нет: их держит транспорт, поэтому отправка делит
+квоту MAX с upload- и service-клиентами, а токен передаётся только в заголовке `Authorization`.
+
+```ts
+const transport = defaultMaxTransportRegistry.forToken({ token, baseUrl });
+const sender = new MaxMessageSender({ transport });
+```
 
 HTTP-ответы отображаются в стабильные коды K-27 (`INVALID_INPUT`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`,
 `CONFLICT`, `RATE_LIMITED`, `DEPENDENCY_TIMEOUT`, `DEPENDENCY_UNAVAILABLE`, `INTERNAL_ERROR`). Для `429`
@@ -10,8 +17,8 @@ HTTP-ответы отображаются в стабильные коды K-27
 
 ## Конфигурация и TLS
 
-- `MAX_BOT_TOKEN` — обязательный токен; не логируется и не включается в URL;
-- `MAX_API_BASE_URL` — опциональный URL, по умолчанию `https://platform-api2.max.ru`;
+- `MAX_BOT_TOKEN` и `MAX_API_BASE_URL` читает точка входа процесса и передаёт в транспорт (`MaxTransportRegistry`);
+  токен не логируется и не включается в URL;
 - сертификат НУЦ Минцифры подключается процессу Node через `NODE_EXTRA_CA_CERTS`, проверка TLS не отключается.
 
 Пример запуска собранного приложения:

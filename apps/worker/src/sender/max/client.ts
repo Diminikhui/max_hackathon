@@ -1,4 +1,5 @@
 import type { Notification, NotificationButton } from "@max-hackathon/domain";
+import type { MaxApiTransport } from "../queue/max-transport.js";
 import { DELIVERY_UNKNOWN, type MessageSender, type SendFailure, type SendResult } from "../queue/sender.js";
 
 export const MAX_MESSAGE_TEXT_LIMIT = 4_000;
@@ -10,16 +11,15 @@ export const MAX_LARGE_BUTTONS_PER_ROW = 3;
 const MAX_BUTTON_TEXT_LIMIT = 128;
 const MAX_CALLBACK_PAYLOAD_LIMIT = 1_024;
 const MAX_LINK_URL_LIMIT = 2_048;
-const DEFAULT_BASE_URL = "https://platform-api2.max.ru";
 const DEFAULT_TIMEOUT_MS = 40_000;
 const DEFAULT_MAX_RETRY_AFTER_MS = 300_000;
 
-export type MaxFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
-
 export interface MaxMessageSenderOptions {
-  token: string;
-  baseUrl?: string;
-  fetch?: MaxFetch;
+  /**
+   * Общий rate-limited транспорт MAX Bot API (sender/queue/max-transport.ts): токен, базовый URL и HTTP
+   * находятся только в нём, поэтому отправка делит квоту 30 rps с upload- и service-клиентами.
+   */
+  transport: MaxApiTransport;
   timeoutMs?: number;
   maxRetryAfterMs?: number;
   now?: () => number;
@@ -54,19 +54,13 @@ interface MaxMessageBody {
  * возвращаются как SendFailure, чтобы очередь могла безопасно принять решение о повторе.
  */
 export class MaxMessageSender implements MessageSender {
-  private readonly token: string;
-  private readonly baseUrl: URL;
-  private readonly fetchImpl: MaxFetch;
+  private readonly transport: MaxApiTransport;
   private readonly timeoutMs: number;
   private readonly maxRetryAfterMs: number;
   private readonly now: () => number;
 
   constructor(options: MaxMessageSenderOptions) {
-    this.token = options.token.trim();
-    if (!this.token) throw new Error("MAX_BOT_TOKEN не задан");
-
-    this.baseUrl = parseBaseUrl(options.baseUrl ?? DEFAULT_BASE_URL);
-    this.fetchImpl = options.fetch ?? ((input, init) => fetch(input, init));
+    this.transport = options.transport;
     this.timeoutMs = positiveInteger(options.timeoutMs ?? DEFAULT_TIMEOUT_MS, "timeoutMs");
     this.maxRetryAfterMs = positiveInteger(options.maxRetryAfterMs ?? DEFAULT_MAX_RETRY_AFTER_MS, "maxRetryAfterMs");
     this.now = options.now ?? Date.now;
@@ -76,23 +70,23 @@ export class MaxMessageSender implements MessageSender {
     const invalid = validateNotification(notification);
     if (invalid) return failure("INVALID_INPUT", false, invalid);
 
-    const url = new URL("messages", this.baseUrl);
-    url.searchParams.set("chat_id", notification.recipient.chatId);
-
     let response: Response;
     try {
-      response = await this.fetchImpl(url, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization: this.token,
-          "Content-Type": "application/json",
+      // Токен добавляет транспорт в заголовок Authorization; в URL он не попадает.
+      response = await this.transport.send({
+        path: `messages?chat_id=${encodeURIComponent(notification.recipient.chatId)}`,
+        init: {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(buildMessageBody(notification)),
+          signal: AbortSignal.timeout(this.timeoutMs),
         },
-        body: JSON.stringify(buildMessageBody(notification)),
-        signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (error) {
-      // После передачи запроса fetch не позволяет надёжно отличить сбой до отправки
+      // После передачи запроса транспорт не позволяет надёжно отличить сбой до отправки
       // от сбоя после приёма MAX. Повтор мог бы создать дубликат.
       const timeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
       return failure(
@@ -115,14 +109,6 @@ export class MaxMessageSender implements MessageSender {
     await discardBody(response);
     return result;
   }
-}
-
-/** Создаёт клиент из process.env без чтения или вывода секретов. */
-export function maxMessageSenderFromEnv(env: NodeJS.ProcessEnv = process.env): MaxMessageSender {
-  return new MaxMessageSender({
-    token: env.MAX_BOT_TOKEN ?? "",
-    ...(env.MAX_API_BASE_URL ? { baseUrl: env.MAX_API_BASE_URL } : {}),
-  });
 }
 
 export function buildMessageBody(notification: Notification): MaxMessageBody {
@@ -239,20 +225,6 @@ function failure(code: string, retryable: boolean, message: string, retryAfterMs
 
 async function discardBody(response: Response): Promise<void> {
   await response.body?.cancel().catch(() => undefined);
-}
-
-function parseBaseUrl(value: string): URL {
-  let url: URL;
-  try {
-    url = new URL(value.endsWith("/") ? value : `${value}/`);
-  } catch (cause) {
-    throw new Error("MAX_API_BASE_URL некорректен", { cause });
-  }
-  if (url.protocol !== "https:") throw new Error("MAX_API_BASE_URL должен использовать HTTPS");
-  if (url.username || url.password || url.search || url.hash) {
-    throw new Error("MAX_API_BASE_URL не должен содержать учётные данные, query или fragment");
-  }
-  return url;
 }
 
 function positiveInteger(value: number, name: string): number {
