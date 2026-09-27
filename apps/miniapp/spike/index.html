@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>K-05b spike</title>
+  <script src="https://st.max.ru/js/max-web-app.js"></script>
+  <style>
+    body { font: 16px/1.4 system-ui, sans-serif; margin: 16px; }
+    pre { background: #f2f2f2; padding: 8px; white-space: pre-wrap; word-break: break-all; }
+    .ok { color: #0a7a2f; } .fail { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Проверка мини-приложения</h1>
+  <p id="status">Проверяем подпись…</p>
+  <pre id="info"></pre>
+  <button id="close" type="button">Закрыть</button>
+  <script>
+    const app = window.WebApp;
+    const status = document.getElementById("status");
+    const info = document.getElementById("info");
+    document.getElementById("close").onclick = () => app?.close();
+
+    if (!app || !app.initData) {
+      status.textContent = "Открыто не из MAX: initData отсутствует";
+      status.className = "fail";
+    } else {
+      app.ready?.();
+      // На сервер уходит только строка initData; initDataUnsafe не доверяем.
+      fetch("api/validate", { method: "POST", headers: { "Content-Type": "text/plain" }, body: app.initData })
+        .then((r) => r.json())
+        .then((res) => {
+          status.textContent = res.ok ? "Подпись initData верна" : "Подпись отклонена: " + res.code;
+          status.className = res.ok ? "ok" : "fail";
+          info.textContent = JSON.stringify({ platform: app.platform, version: app.version, ...res }, null, 2);
+        })
+        .catch(() => { status.textContent = "Сервер проверки недоступен"; status.className = "fail"; });
+    }
+  </script>
+</body>
+</html>
