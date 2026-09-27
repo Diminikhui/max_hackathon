@@ -22,11 +22,15 @@ export class TokenBucket {
    * до появления следующего токена.
    */
   take(nowMs: number): number {
+    const wait = this.availableIn(nowMs);
+    if (wait === 0) this.tokens -= 1;
+    return wait;
+  }
+
+  /** Время до следующего токена без его расходования. */
+  availableIn(nowMs: number): number {
     this.refill(nowMs);
-    if (this.tokens >= 1) {
-      this.tokens -= 1;
-      return 0;
-    }
+    if (this.tokens >= 1) return 0;
     return Math.ceil(((1 - this.tokens) * 1000) / this.options.refillPerSecond);
   }
 

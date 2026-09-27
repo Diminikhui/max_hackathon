@@ -22,7 +22,7 @@ import {
 } from "./sender.js";
 
 export interface SendQueueWorkerOptions {
-  repository: NotificationRepository;
+  repository: SendQueueRepository;
   sender: MessageSender;
   /** Текущее время в миллисекундах Unix. В тестах — управляемые часы. */
   now: () => number;
@@ -32,8 +32,8 @@ export interface SendQueueWorkerOptions {
   maxAttempts?: number;
   /** Отсрочка повтора: base * 2^(попытка-1), не больше maxMs. По умолчанию 1 с и 5 мин. */
   backoff?: { baseMs: number; maxMs: number };
-  /** Ограничение скорости отправки. По умолчанию 10 сообщений в секунду, всплеск до 10. */
-  rateLimit?: TokenBucketOptions;
+  /** Лимит отправки в один чат. По умолчанию не более 2 сообщений/с без всплеска. */
+  perChatRateLimit?: TokenBucketOptions;
   /**
    * Что делать с уведомлением, исход отправки которого неизвестен (воркер упал после начала отправки,
    * отправитель бросил исключение). "fail" (по умолчанию) — failed с кодом delivery_unknown: без дублей,
@@ -43,6 +43,22 @@ export interface SendQueueWorkerOptions {
   unknownOutcome?: "fail" | "retry";
   /** Пауза, если работы нет. По умолчанию 5 с. */
   idleDelayMs?: number;
+  /** Жёсткая верхняя граница записей, которые fair query вправе просмотреть за tick. */
+  maxScanPerTick?: number;
+  /** Неактивные per-chat buckets удаляются после этого срока. По умолчанию 10 минут. */
+  chatBucketIdleTtlMs?: number;
+}
+
+export interface FairQueuedBatch {
+  /** Round-robin по чатам, FIFO внутри каждого чата. */
+  items: Notification[];
+  /** Реальное число просмотренных хранилищем записей, не больше maxScan. */
+  scanned: number;
+}
+
+/** Обязательный query-контракт scheduler. Обычный FIFO listQueued недостаточен для честности. */
+export interface SendQueueRepository extends Pick<NotificationRepository, "findByIdempotencyKey" | "updateStatus"> {
+  listQueuedFair(options: { maxItems: number; maxScan: number }): Promise<FairQueuedBatch>;
 }
 
 export interface BatchReport {
@@ -59,15 +75,18 @@ export interface BatchReport {
 }
 
 export class SendQueueWorker {
-  private readonly repository: NotificationRepository;
+  private readonly repository: SendQueueRepository;
   private readonly sender: MessageSender;
   private readonly now: () => number;
   private readonly batchSize: number;
   private readonly maxAttempts: number;
   private readonly backoff: { baseMs: number; maxMs: number };
-  private readonly bucket: TokenBucket;
+  private readonly perChatLimit: TokenBucketOptions;
+  private readonly chatBuckets = new Map<string, { bucket: TokenBucket; lastUsedAt: number }>();
   private readonly unknownOutcome: "fail" | "retry";
   private readonly idleDelayMs: number;
+  private readonly maxScanPerTick: number;
+  private readonly chatBucketIdleTtlMs: number;
   /** Не раньше какого момента повторять уведомление (в памяти: после перезапуска повтор наступит раньше). */
   private readonly notBefore = new Map<Id, number>();
   /** Общая пауза после ответа с retryAfterMs (например, 429). */
@@ -81,11 +100,17 @@ export class SendQueueWorker {
     this.batchSize = options.batchSize ?? 20;
     this.maxAttempts = options.maxAttempts ?? 5;
     this.backoff = options.backoff ?? { baseMs: 1000, maxMs: 300_000 };
-    this.bucket = new TokenBucket(options.rateLimit ?? { capacity: 10, refillPerSecond: 10 });
+    this.perChatLimit = options.perChatRateLimit ?? { capacity: 1, refillPerSecond: 2 };
+    // Проверяем настройки сразу, даже если очередь пока пуста.
+    new TokenBucket(this.perChatLimit);
     this.unknownOutcome = options.unknownOutcome ?? "fail";
     this.idleDelayMs = options.idleDelayMs ?? 5000;
+    this.maxScanPerTick = options.maxScanPerTick ?? Math.max(100, this.batchSize * 10);
+    this.chatBucketIdleTtlMs = options.chatBucketIdleTtlMs ?? 600_000;
     if (!Number.isInteger(this.batchSize) || this.batchSize < 1) throw new Error("batchSize должен быть >= 1");
     if (!Number.isInteger(this.maxAttempts) || this.maxAttempts < 1) throw new Error("maxAttempts должен быть >= 1");
+    if (!Number.isInteger(this.maxScanPerTick) || this.maxScanPerTick < this.batchSize)
+      throw new Error("maxScanPerTick должен быть целым и не меньше batchSize");
   }
 
   /** Одна итерация очереди. Параллельные вызовы на одном воркере запрещены. */
@@ -102,16 +127,21 @@ export class SendQueueWorker {
   private async run(): Promise<BatchReport> {
     const report: BatchReport = { sent: [], retried: [], failed: [], skipped: [], throttled: false, nextDelayMs: 0 };
     const startedAt = this.now();
+    this.evictIdleChatBuckets(startedAt);
     if (startedAt < this.pausedUntil) {
       report.throttled = true;
       report.nextDelayMs = this.pausedUntil - startedAt;
       return report;
     }
 
-    // Запас на отложенные уведомления, чтобы они не вытесняли готовые к отправке.
-    const fetchLimit = this.batchSize + this.notBefore.size;
-    const queued = await this.repository.listQueued(fetchLimit);
-    if (queued.length < fetchLimit) this.pruneBackoff(queued);
+    const selection = await this.repository.listQueuedFair({
+      maxItems: this.maxScanPerTick,
+      maxScan: this.maxScanPerTick,
+    });
+    if (selection.scanned > this.maxScanPerTick || selection.items.length > this.maxScanPerTick)
+      throw new Error("listQueuedFair нарушил maxScanPerTick");
+    const queued = selection.items;
+    this.pruneBackoff(queued);
 
     let handled = 0;
     let delay: number | undefined;
@@ -140,12 +170,18 @@ export class SendQueueWorker {
         continue;
       }
 
-      const wait = this.bucket.take(this.now());
-      if (wait > 0) {
-        report.throttled = true;
-        delay = wait;
-        break;
+      const now = this.now();
+      const chatBucket = this.chatBucket(current.recipient.chatId);
+      const chatWait = chatBucket.availableIn(now);
+      if (chatWait > 0) {
+        // Не блокируем другие чаты: они используют отдельные квоты.
+        report.skipped.push(item.id);
+        delay = Math.min(delay ?? Number.POSITIVE_INFINITY, chatWait);
+        continue;
       }
+
+      // Общий MAX API budget расходует общий transport; здесь — только квота конкретного чата.
+      chatBucket.take(now);
 
       handled += 1;
       const paused = await this.deliver(current, report);
@@ -235,6 +271,28 @@ export class SendQueueWorker {
 
   private backoffDelay(attempts: number): number {
     return Math.min(this.backoff.maxMs, this.backoff.baseMs * 2 ** (attempts - 1));
+  }
+
+  private chatBucket(chatId: string): TokenBucket {
+    const now = this.now();
+    let entry = this.chatBuckets.get(chatId);
+    if (!entry) {
+      entry = { bucket: new TokenBucket(this.perChatLimit), lastUsedAt: now };
+      this.chatBuckets.set(chatId, entry);
+    }
+    entry.lastUsedAt = now;
+    return entry.bucket;
+  }
+
+  private evictIdleChatBuckets(now: number): void {
+    for (const [chatId, entry] of this.chatBuckets) {
+      if (now - entry.lastUsedAt >= this.chatBucketIdleTtlMs) this.chatBuckets.delete(chatId);
+    }
+  }
+
+  /** Диагностика bounded cache; не раскрывает chatId. */
+  activeChatBucketCount(): number {
+    return this.chatBuckets.size;
   }
 
   private idleDelay(): number {
