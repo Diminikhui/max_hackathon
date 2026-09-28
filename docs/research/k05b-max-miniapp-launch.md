@@ -38,6 +38,7 @@
 - Поля: `initData`, `initDataUnsafe` (`user`, `chat {id, type}`, `start_param`, `auth_date`, `query_id`), `platform` (`ios | android | desktop | web`), `version`.
 - Методы, нужные MVP: `ready()`, `close()`, `openLink(url)`, `openMaxLink(url)`, `requestContact()`, `BackButton.show()/hide()`.
 - Источник: [MAX Bridge](https://dev.max.ru/docs/webapps/bridge).
+- Компоненты интерфейса: официальная библиотека MAX UI (`@maxhub/max-ui`) — подключает 2-01a, подробности в [max-official-repos.md](max-official-repos.md).
 
 ## Deep links
 

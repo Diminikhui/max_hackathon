@@ -116,6 +116,7 @@ MAX описывает Mini App как одну web-кодовую базу, н�
 ### Подтверждено сейчас
 
 - Главная страница Bot API, страницы методов, руководство по созданию бота и официальная [OpenAPI-схема версии 0.0.32 от 2026-07-01](https://github.com/max-messenger-bot/max-bot-api-schemas/blob/main/schema_2026_07_01.json) используют `https://platform-api2.max.ru`.
+- На 2026-09-28 в репозитории [max-messenger/api-schema](https://github.com/max-messenger/api-schema) опубликована схема 0.0.33; расхождения с 0.0.32 не проверялись. Обзор официальных репозиториев — [max-official-repos.md](max-official-repos.md).
 - Документация прямо просит направлять запросы на `platform-api2.max.ru` вместо `platform-api.max.ru` и добавить сертификат Минцифры в доверенные.
 - Использовать `-k`, `verify=false` или глобально отключать TLS нельзя. Решение проекта с `NODE_EXTRA_CA_CERTS` согласуется с требованиями MAX.
 
