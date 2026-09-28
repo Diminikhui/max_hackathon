@@ -1,0 +1,108 @@
+[
+  {
+    "contractVersion": 1,
+    "companyId": "demo-beauty-spb",
+    "inn": "7800000010",
+    "entityType": "legal_entity",
+    "displayName": "Салон «Модель», Санкт-Петербург (модельные данные)",
+    "isModel": true,
+    "updatedAt": "2026-09-27T00:00:00Z",
+    "facts": [
+      {
+        "id": "demo-beauty-spb.okved",
+        "companyId": "demo-beauty-spb",
+        "key": "activity.okved_main",
+        "value": "96.02",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "3-02",
+          "retrievedAt": "2026-09-27T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-27T00:00:00Z"
+      },
+      {
+        "id": "demo-beauty-spb.region",
+        "companyId": "demo-beauty-spb",
+        "key": "location.region_code",
+        "value": "78",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "3-02",
+          "retrievedAt": "2026-09-27T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-27T00:00:00Z"
+      },
+      {
+        "id": "demo-beauty-spb.msp",
+        "companyId": "demo-beauty-spb",
+        "key": "scale.msp_category",
+        "value": "micro",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "3-02",
+          "retrievedAt": "2026-09-27T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-27T00:00:00Z"
+      }
+    ]
+  },
+  {
+    "contractVersion": 1,
+    "companyId": "demo-beauty-vrn",
+    "inn": "3600000015",
+    "entityType": "legal_entity",
+    "displayName": "Салон «Модель», Воронеж (модельные данные)",
+    "isModel": true,
+    "updatedAt": "2026-09-27T00:00:00Z",
+    "facts": [
+      {
+        "id": "demo-beauty-vrn.okved",
+        "companyId": "demo-beauty-vrn",
+        "key": "activity.okved_main",
+        "value": "96.02",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "3-02",
+          "retrievedAt": "2026-09-27T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-27T00:00:00Z"
+      },
+      {
+        "id": "demo-beauty-vrn.region",
+        "companyId": "demo-beauty-vrn",
+        "key": "location.region_code",
+        "value": "36",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "3-02",
+          "retrievedAt": "2026-09-27T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-27T00:00:00Z"
+      },
+      {
+        "id": "demo-beauty-vrn.msp",
+        "companyId": "demo-beauty-vrn",
+        "key": "scale.msp_category",
+        "value": "micro",
+        "kind": "official",
+        "source": {
+          "system": "fixture",
+          "recordId": "3-02",
+          "retrievedAt": "2026-09-27T00:00:00Z",
+          "isModel": true
+        },
+        "observedAt": "2026-09-27T00:00:00Z"
+      }
+    ]
+  }
+]

@@ -12,7 +12,18 @@ import type { SqlClient } from "../db/sql-client.js";
 
 export type NotificationStatusUpdate = Parameters<NotificationRepository["updateStatus"]>[1];
 
+/** Выборка для планировщика отправки (контракт SendQueueRepository.listQueuedFair из apps/worker). */
+export interface FairQueuedBatch {
+  /** Round-robin по чатам, FIFO внутри каждого чата. */
+  items: Notification[];
+  /** Оценка сверху числа прочитанных записей: не больше maxScan. */
+  scanned: number;
+}
+
 export class PostgresNotificationRepository implements NotificationRepository {
+  /** Последний чат прошлой выборки: следующая начинается после него и идёт по кругу. */
+  #fairCursor: string | undefined;
+
   constructor(private readonly db: SqlClient) {}
 
   /**
@@ -91,6 +102,68 @@ export class PostgresNotificationRepository implements NotificationRepository {
       [limit],
     );
     return rows.map((row) => row.data);
+  }
+
+  /**
+   * Честная выборка очереди: round-robin между чатами, FIFO внутри чата, не больше maxScan прочитанных записей
+   * независимо от размера очереди. Чаты перебираются skip scan-ом по индексу notifications_queue_by_chat,
+   * начиная после чата, на котором закончилась прошлая выборка этого экземпляра, с переходом через начало.
+   * Поэтому длинная очередь одного чата не загораживает остальные: каждый чат попадает в выборку не реже
+   * одного раза за полный круг. Курсор хранится в памяти экземпляра — рассчитано на одного отправителя.
+   */
+  async listQueuedFair({ maxItems, maxScan }: { maxItems: number; maxScan: number }): Promise<FairQueuedBatch> {
+    if (!Number.isInteger(maxItems) || maxItems < 0) throw new Error(`Неверный maxItems: ${maxItems}`);
+    if (!Number.isInteger(maxScan) || maxScan < 2) throw new Error(`Неверный maxScan: ${maxScan}`);
+    if (maxItems === 0) return { items: [], scanned: 0 };
+
+    // Половина бюджета — на поиск чатов (одна строка индекса на чат), остальное — на их головы.
+    const chatLimit = Math.min(maxItems, Math.floor(maxScan / 2));
+    const chats = await this.#queuedChatsAfter(this.#fairCursor, chatLimit);
+    if (chats.length < chatLimit && this.#fairCursor !== undefined) {
+      const wrapped = await this.#queuedChatsAfter(undefined, chatLimit - chats.length);
+      const seen = new Set(chats);
+      chats.push(...wrapped.filter((chat) => !seen.has(chat)));
+    }
+    if (chats.length === 0) {
+      this.#fairCursor = undefined;
+      return { items: [], scanned: 0 };
+    }
+    this.#fairCursor = chats[chats.length - 1];
+
+    const perChat = Math.max(1, Math.floor((maxScan - chats.length) / chats.length));
+    const { rows } = await this.db.query<{ data: Notification }>(
+      `SELECT heads.data FROM unnest($1::text[]) WITH ORDINALITY AS c(chat_id, ord)
+       CROSS JOIN LATERAL (
+         SELECT n.data, row_number() OVER (ORDER BY n.created_at, n.id) AS position
+         FROM (SELECT data, created_at, id FROM notifications
+               WHERE status = 'queued' AND chat_id = c.chat_id
+               ORDER BY created_at, id LIMIT $2) AS n
+       ) AS heads
+       ORDER BY heads.position, c.ord
+       LIMIT $3`,
+      [chats, perChat, maxItems],
+    );
+    return { items: rows.map((row) => row.data), scanned: chats.length + chats.length * perChat };
+  }
+
+  /** До limit чатов с queued-уведомлениями по возрастанию chat_id после after (skip scan: одна строка на чат). */
+  async #queuedChatsAfter(after: string | undefined, limit: number): Promise<string[]> {
+    if (limit <= 0) return [];
+    const { rows } = await this.db.query<{ chat_id: string }>(
+      `WITH RECURSIVE chats(chat_id, n) AS (
+         (SELECT chat_id, 1 FROM notifications
+          WHERE status = 'queued' AND chat_id IS NOT NULL AND ($1::text IS NULL OR chat_id > $1)
+          ORDER BY chat_id LIMIT 1)
+         UNION ALL
+         SELECT (SELECT next.chat_id FROM notifications AS next
+                 WHERE next.status = 'queued' AND next.chat_id > chats.chat_id
+                 ORDER BY next.chat_id LIMIT 1), chats.n + 1
+         FROM chats WHERE chats.chat_id IS NOT NULL AND chats.n < $2
+       )
+       SELECT chat_id FROM chats WHERE chat_id IS NOT NULL`,
+      [after ?? null, limit],
+    );
+    return rows.map((row) => row.chat_id);
   }
 
   /**
