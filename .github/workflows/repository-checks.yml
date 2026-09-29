@@ -26,6 +26,8 @@ jobs:
 
       # Версия pnpm берётся из packageManager в package.json.
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -57,6 +59,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Remove stale gitleaks download
+        shell: bash
+        run: |
+          : "${TMPDIR:?runner temp directory must be set}"
+          rm -f -- "${TMPDIR%/}/gitleaks.tmp"
+
       - name: Scan for secrets
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
@@ -69,6 +77,8 @@ jobs:
 
       # Версия pnpm берётся из packageManager в package.json.
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:

@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { createPgliteClient, PostgresNotificationRepository, runMigrations } from "@max-hackathon/storage";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createMaxSenderRuntime, MaxTransportRegistry } from "../../../src/sender/queue/index.js";
 import { manualClock, queued } from "./support/fixtures.js";
 
@@ -12,13 +12,17 @@ const MODEL_MAX = { token: "model-token", baseUrl: "https://max.example.test" } 
 
 let db: PGlite;
 let repository: PostgresNotificationRepository;
-beforeEach(async () => {
+let client: ReturnType<typeof createPgliteClient>;
+beforeAll(async () => {
   db = new PGlite();
-  const client = createPgliteClient(db);
+  client = createPgliteClient(db);
   await runMigrations(client);
+});
+beforeEach(async () => {
+  await client.exec("TRUNCATE TABLE notifications RESTART IDENTITY CASCADE");
   repository = new PostgresNotificationRepository(client);
 });
-afterEach(() => db.close());
+afterAll(() => db.close());
 
 describe("createMaxSenderRuntime", () => {
   it("send, upload и service одной сборки и повторная сборка с тем же token делят один бюджет", async () => {

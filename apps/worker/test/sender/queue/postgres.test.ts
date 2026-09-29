@@ -4,7 +4,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import type { Notification } from "@max-hackathon/domain";
 import { createPgliteClient, PostgresNotificationRepository, runMigrations } from "@max-hackathon/storage";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   DELIVERY_UNKNOWN,
   FakeMessageSender,
@@ -15,6 +15,7 @@ import { manualClock, notificationValidator, queued } from "./support/fixtures.j
 
 let db: PGlite;
 let repository: PostgresNotificationRepository;
+let client: ReturnType<typeof createPgliteClient>;
 
 // PostgresNotificationRepository сам реализует честную выборку listQueuedFair (#247).
 const schedulerRepository = (repo: PostgresNotificationRepository): SendQueueRepository => ({
@@ -23,13 +24,16 @@ const schedulerRepository = (repo: PostgresNotificationRepository): SendQueueRep
   listQueuedFair: repo.listQueuedFair.bind(repo),
 });
 
-beforeEach(async () => {
+beforeAll(async () => {
   db = new PGlite();
-  const client = createPgliteClient(db);
+  client = createPgliteClient(db);
   await runMigrations(client);
+});
+beforeEach(async () => {
+  await client.exec("TRUNCATE TABLE notifications RESTART IDENTITY CASCADE");
   repository = new PostgresNotificationRepository(client);
 });
-afterEach(() => db.close());
+afterAll(() => db.close());
 
 const read = async (key: string): Promise<Notification> => {
   const item = await repository.findByIdempotencyKey(key);
