@@ -259,3 +259,21 @@ describe("модельная компания начинается с фикст
     expect((await cafe.press("❔ Уточнить данные")).text).toContain(EMPLOYEES_QUESTION);
   });
 });
+
+describe("K-34: пояснение о покрытии над перечнем", () => {
+  it("ОКВЭД вне направлений: перечень объясняет, почему он пуст, и предлагает тестовые ИНН", async () => {
+    const shop = chat("7001");
+    await shop.onboard("770000000082");
+    const list = await shop.press("📋 Мой перечень");
+    expect(list.text).toContain("пока не входит в проверяемые направления");
+    expect(list.text).toContain("Сейчас бот проверяет общепит (ОКВЭД 56) и автосервис (ОКВЭД 45.2).");
+  });
+
+  it("покрытые направление и регион: перечень без пояснения", async () => {
+    const cafe = chat("7002");
+    await cafe.onboard(CAFE_INN);
+    const list = await cafe.press("📋 Мой перечень");
+    expect(list.text).not.toContain("проверяемые направления");
+    expect(list.text).not.toContain("вне покрытия — показаны только федеральные");
+  });
+});
