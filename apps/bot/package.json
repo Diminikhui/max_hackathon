@@ -10,6 +10,7 @@
     "test": "vitest run --exclude spike/max-client.test.mjs && node --test spike/max-client.test.mjs"
   },
   "dependencies": {
+    "@max-hackathon/classifier": "workspace:*",
     "@max-hackathon/domain": "workspace:*"
   },
   "devDependencies": {

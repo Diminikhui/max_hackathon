@@ -1,9 +1,12 @@
 // K-30b. Настройки процесса из окружения. Секреты (токен MAX, secret webhook) не выводятся ни в лог, ни в ошибки.
+import { type ExplainProviderChoice, explainProviderFromEnv } from "@max-hackathon/bot/dist/flows/explain/index.js";
 
 export interface AppConfig {
   readonly databaseUrl: string;
   /** Опциональные функции бота, включаемые владельцем сервера списком через запятую. */
   readonly botFeatures?: readonly string[];
+  /** 2-22: провайдер пересказа «Простым языком»; только при `BOT_FEATURES` с `explain`. */
+  readonly explain?: ExplainProviderChoice;
   /** Принимать события MAX и отправлять ответы. Локально — `false` (ADR-0003: токен только на VPS). */
   readonly maxEventsEnabled: boolean;
   readonly max?: {
@@ -30,16 +33,19 @@ export const readConfig = (env: NodeJS.ProcessEnv): AppConfig => {
   if (!Number.isInteger(port) || port <= 0 || port > 65_535)
     throw new Error("BOT_HTTP_PORT должен быть портом 1–65535");
 
+  const botFeatures = [
+    ...new Set(
+      (env.BOT_FEATURES ?? "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+
   return {
     databaseUrl: required(env, "DATABASE_URL"),
-    botFeatures: [
-      ...new Set(
-        (env.BOT_FEATURES ?? "")
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-      ),
-    ],
+    botFeatures,
+    ...(botFeatures.includes("explain") ? { explain: explainProviderFromEnv(env) } : {}),
     maxEventsEnabled,
     ...(maxEventsEnabled
       ? {

@@ -12,6 +12,7 @@ import {
   demoChangeButton,
 } from "../flows/demo/index.js";
 import { createExamplesFlow, type ExampleCompany } from "../flows/examples/index.js";
+import { createExplainFlow, explainButton, type LlmProvider } from "../flows/explain/index.js";
 import {
   createOnboardingFlow,
   InMemoryOnboardingSessions,
@@ -19,6 +20,7 @@ import {
   type ProfileGateway,
 } from "../flows/onboarding/index.js";
 import { createSettingsFlow, decodeSettingsPayload, type NotificationSettingsStore } from "../flows/settings/index.js";
+import { createWhatIfFlow, type ScenarioDeltaSource, whatIfButton } from "../flows/whatif/index.js";
 import { encodeButtonPayload, type InboundHandler, type TransportLogger } from "../transport/index.js";
 import { type ChatDirectory, DialogChatDirectory } from "./chat-directory.js";
 
@@ -87,6 +89,10 @@ export interface BotAppDeps {
   readonly demo?: BotDemoDeps;
   /** Без очереди действий кнопка «📅 Что и когда» и payload flow не подключаются. */
   readonly deadlines?: { readonly queue: ActionQueueSource };
+  /** Без сценарного сервиса кнопка «🔮 Что будет, если…» и payload flow не подключаются. */
+  readonly whatif?: { readonly delta: ScenarioDeltaSource };
+  /** 2-22, флаг `BOT_FEATURES=explain`: кнопка «💬 Простым языком» на карточке. Без зависимости кнопки нет. */
+  readonly explain?: { readonly provider?: LlmProvider };
   /** Модельные профили K-28, доступные кнопками на шаге ввода ИНН. Без зависимости функция выключена. */
   readonly examples?: readonly ExampleCompany[];
 }
@@ -122,7 +128,11 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   const companyOf = (dialogId: string) => sessions.companyOf(dialogId);
 
   const { unrecognized, ...onboarding } = createOnboardingFlow({ profiles: deps.profiles, sessions });
-  const checklistFlow = createChecklistFlow({ checklist: deps.checklist, companyOf });
+  const checklistFlow = createChecklistFlow({
+    checklist: deps.checklist,
+    companyOf,
+    ...(deps.explain ? { cardButtons: (item) => [explainButton(item.requirement.id)] } : {}),
+  });
   const settingsFlow = createSettingsFlow({ settings: deps.settings, companyOf });
   const clarify = createClarifyFlow({
     checklist: deps.checklist,
@@ -135,6 +145,10 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     ? createDemoChangeFlow({ ...deps.demo, checklist: deps.checklist, companyOf, recipients: { remember: () => {} } })
     : undefined;
   const deadlines = deps.deadlines ? createDeadlinesFlow({ queue: deps.deadlines.queue, companyOf }) : undefined;
+  const whatif = deps.whatif ? createWhatIfFlow({ delta: deps.whatif.delta, companyOf }) : undefined;
+  const explain = deps.explain
+    ? createExplainFlow({ ...deps.explain, checklist: deps.checklist, companyOf, logger: deps.logger })
+    : undefined;
   const examples = deps.examples ? createExamplesFlow(deps.examples) : undefined;
   const router = createDialogRouter<FlowReply>({ ...onboarding, ...checklistFlow, ...settingsFlow.handlers });
 
@@ -154,7 +168,7 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     return { reply: result, state: result.stateOverride ?? transition.state, route: transition.route };
   };
 
-  /** Кнопки вне машины диалога: уточнения `c:`, настройки `s:`, демо. `undefined` — payload не распознан. */
+  /** Кнопки вне машины диалога: уточнения `c:`, настройки `s:`, пересказ `explain:`, демо. `undefined` — payload не распознан. */
   const callback = async (
     dialogId: string,
     chatId: string,
@@ -163,6 +177,8 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   ): Promise<Outcome | undefined> => {
     const deadlineReply = await deadlines?.handle(dialogId, payload);
     if (deadlineReply) return { reply: deadlineReply, state: deadlineReply.stateOverride ?? "menu" };
+    const scenario = await whatif?.handle(dialogId, payload);
+    if (scenario) return { reply: scenario, state: "menu" };
     if (examples && state === "awaiting_inn") {
       const event = examples.eventFor(payload);
       if (event) return dispatch(dialogId, state, event);
@@ -177,6 +193,9 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
       return { reply: result, state: result.stateOverride ?? transition.state, route: transition.route };
     }
 
+    const explained = explain ? await explain.handle(dialogId, payload) : undefined;
+    if (explained) return { reply: explained, state: explained.stateOverride ?? state };
+
     if (demo && payload === DEMO_CHANGE_CALLBACK_PAYLOAD) {
       // Нажатие делает этот чат получателем push компании до прогона контура уведомлений.
       const companyId = await companyOf(dialogId);
@@ -190,6 +209,12 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   /** Кнопки, которые сценарии сами не добавляют: демо в меню, уточнение под перечнем с «недостаточно данных». */
   const decorate = async (dialogId: string, outcome: Outcome): Promise<FlowReply> => {
     let { reply } = outcome;
+    if (whatif && outcome.state === "menu" && hasPayload(reply.buttons, OPEN_REQUIREMENTS)) {
+      const button = whatIfButton();
+      if ("payload" in button && !hasPayload(reply.buttons, button.payload)) {
+        reply = { ...reply, buttons: [...reply.buttons, button] };
+      }
+    }
     if (deadlines && outcome.state === "menu" && hasPayload(reply.buttons, OPEN_REQUIREMENTS)) {
       const button = deadlinesButton();
       if ("payload" in button && !hasPayload(reply.buttons, button.payload)) {
