@@ -91,4 +91,12 @@ describe("initialStack", () => {
     expect(initialStack("unknown")).toEqual([HOME]);
     expect(initialStack(undefined)).toEqual([HOME]);
   });
+
+  it("открывает карточку требования из непрозрачного deep link", () => {
+    expect(initialStack("requirement_6b32382e77617465722d6d61726b696e67")).toEqual([
+      HOME,
+      { screen: "checklist", params: { requirementId: "k28.water-marking" } },
+    ]);
+    expect(initialStack("requirement_bad")).toEqual([HOME]);
+  });
 });

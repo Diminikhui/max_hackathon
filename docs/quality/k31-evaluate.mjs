@@ -22,7 +22,10 @@ const golden = JSON.parse(
     },
   ),
 );
-const packA = read("data/rulepacks/a/foodservice-federal-v1.json");
+// Направление A — федеральный пакет и региональное дополнение Татарстана (K-17d): эталон содержит оба.
+const packAFed = read("data/rulepacks/a/foodservice-federal-v1.json");
+const packA16 = read("data/rulepacks/a/tatarstan/foodservice-tatarstan-v1.json");
+const packA = { requirements: [...packAFed.requirements, ...packA16.requirements] };
 const packB = read("data/rulepacks/b/autoservice-federal-v1.json");
 const companies = read("data/fixtures/k28-companies.json");
 
@@ -42,6 +45,7 @@ for (const [id, g] of goldenById) {
 const report = {
   golden: golden.requirements.length,
   packA: packA.requirements.length,
+  packAByPack: { [packAFed.packId]: packAFed.requirements.length, [packA16.packId]: packA16.requirements.length },
   identical: same.length,
   changed,
   onlyGolden: [...goldenById.keys()].filter((id) => !packById.has(id)),

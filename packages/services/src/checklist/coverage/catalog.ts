@@ -5,6 +5,8 @@ export interface CoveredRegion {
   code: string;
   /** Что показала проверка, например «отличий от федеральных правил нет». */
   note: string;
+  /** Региональные дополнения: показываются и датируют перечень только у компаний этого региона. */
+  packIds?: readonly Id[];
 }
 
 /** Направление (отрасль), для которого есть пакет правил. */
@@ -13,7 +15,7 @@ export interface CoverageDirection {
   title: string;
   /** Префиксы основного ОКВЭД, например `56` или `45.2`. */
   okvedPrefixes: readonly string[];
-  /** Пакеты направления: федеральный и региональные дополнения. */
+  /** Пакеты направления, общие для всех регионов (федеральные). Региональные — в `regions[].packIds`. */
   packIds: readonly Id[];
   /** Регионы с проверенной региональной частью; остальные — «вне покрытия». */
   regions: readonly CoveredRegion[];
@@ -34,7 +36,7 @@ export interface CoverageCatalog {
 
 /**
  * Покрытие MVP. Новый регион или направление добавляется строкой здесь вместе с пакетом:
- * K-17d — `{ code: "16", ... }` в направление A, новые направления — отдельным элементом.
+ * регион — элементом `regions` (с региональным пакетом в его `packIds`), направление — отдельным элементом.
  */
 export const DEFAULT_COVERAGE_CATALOG: CoverageCatalog = {
   directions: [
@@ -43,8 +45,16 @@ export const DEFAULT_COVERAGE_CATALOG: CoverageCatalog = {
       title: "Общепит",
       okvedPrefixes: ["56"],
       packIds: ["a-foodservice-fed"],
-      // K-17a: для Москвы отличий от федеральных правил не найдено (data/rulepacks/a/README.md).
-      regions: [{ code: "77", note: "региональных отличий от федеральных правил не найдено" }],
+      regions: [
+        // K-17a: для Москвы отличий от федеральных правил не найдено (data/rulepacks/a/README.md).
+        { code: "77", note: "региональных отличий от федеральных правил не найдено" },
+        // K-17d: региональное дополнение data/rulepacks/a/tatarstan/ (алкоголь и энергетики).
+        {
+          code: "16",
+          note: "региональные ограничения продажи алкоголя и энергетиков включены в перечень",
+          packIds: ["a-foodservice-ru-16"],
+        },
+      ],
     },
     {
       id: "b",

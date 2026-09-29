@@ -1,11 +1,13 @@
 import type { DialogRouteContext, DialogRouteHandler } from "../../dialog/index.js";
 import { renderNoCompany, renderRequirementCard, renderRequirementList } from "./render.js";
-import type { ChecklistSource, FlowReply } from "./types.js";
+import type { BotButton, ChecklistItemView, ChecklistSource, FlowReply } from "./types.js";
 
 export interface ChecklistFlowDeps {
   readonly checklist: ChecklistSource;
   /** Компания, привязанная к диалогу после онбординга (K-24a). `undefined` — ИНН ещё не введён. */
   readonly companyOf: (dialogId: string) => Promise<string | undefined>;
+  /** Кнопки необязательных сценариев на карточке (2-22 «Простым языком»): ставятся перед навигацией. */
+  readonly cardButtons?: (item: ChecklistItemView) => readonly BotButton[];
 }
 
 export interface ChecklistFlowHandlers {
@@ -17,7 +19,11 @@ export interface ChecklistFlowHandlers {
  * Обработчики маршрутов K-22b для перечня и карточки. Перечень строится заново при каждом показе: так карточка
  * и список всегда соответствуют последней версии пакета и профиля.
  */
-export const createChecklistFlow = ({ checklist, companyOf }: ChecklistFlowDeps): ChecklistFlowHandlers => {
+export const createChecklistFlow = ({
+  checklist,
+  companyOf,
+  cardButtons,
+}: ChecklistFlowDeps): ChecklistFlowHandlers => {
   const load = async (dialogId: string) => {
     const companyId = await companyOf(dialogId);
     if (companyId === undefined) return undefined;
@@ -47,7 +53,8 @@ export const createChecklistFlow = ({ checklist, companyOf }: ChecklistFlowDeps)
         stateOverride: "requirement_list",
       };
     }
-    return renderRequirementCard(item);
+    const card = renderRequirementCard(item);
+    return cardButtons ? { ...card, buttons: [...cardButtons(item), ...card.buttons] } : card;
   };
 
   return { show_requirement_list: showList, show_requirement_details: showDetails };

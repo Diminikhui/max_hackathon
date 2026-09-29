@@ -166,6 +166,23 @@ describe("assessRequirement", () => {
     expect(assessRequirement(requirement(), scenario, { ...options, mode: "scenario" }).status).toBe("applies");
   });
 
+  it("entity_type берётся из profile.entityType; без него — needs_review", () => {
+    const onlyIp = requirement({
+      condition: {
+        type: "all",
+        items: [
+          { type: "okved_prefix", prefix: "56" },
+          { type: "entity_type", in: ["individual_entrepreneur"] },
+        ],
+      },
+    });
+    expect(assessRequirement(onlyIp, { ...profile, entityType: "individual_entrepreneur" }, options).status).toBe(
+      "applies",
+    );
+    expect(assessRequirement(onlyIp, { ...profile, entityType: "legal_entity" }, options).status).toBe("not_applies");
+    expect(assessRequirement(onlyIp, profile, options).status).toBe("needs_review");
+  });
+
   it("воспроизводим: одинаковый вход — одинаковый результат", () => {
     const reversed = { ...profile, facts: [...profile.facts].reverse() };
     expect(assessRequirement(requirement(), profile, options)).toEqual(

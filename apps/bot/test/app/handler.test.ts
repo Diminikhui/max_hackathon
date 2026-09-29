@@ -1,11 +1,12 @@
 // K-30b: сквозной диалог через сборку бота на модельных сервисах K-28 (ИНН 1600000011 — кафе в Казани).
 // Отправка в MAX модельная: ответы собираются в массив, реальный MAX не вызывается.
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBotApp, layoutButtons } from "../../src/app/index.js";
-import type { FlowReply } from "../../src/flows/checklist/index.js";
+import type { ChecklistSource, FlowReply } from "../../src/flows/checklist/index.js";
 import { createMemorySettingsStore } from "../../src/flows/settings/index.js";
 import type { InboundEvent, TransportLogger } from "../../src/transport/index.js";
 import { toDialogEvent } from "../../src/transport/index.js";
+import { modelChecklist, modelItems } from "../flows/checklist/support/model-checklist.js";
 import { createK28Services } from "../flows/clarify/support/k28.js";
 
 const CHAT = "100500";
@@ -19,6 +20,7 @@ const setup = (options: { readonly clearWorks?: boolean } = {}) => {
   const sent: { chatId: string; reply: FlowReply; messageId: string }[] = [];
   const cleared: string[] = [];
   const acknowledged: string[] = [];
+  const order: string[] = [];
   const app = createBotApp({
     profiles: services.profiles,
     checklist: services.checklist,
@@ -27,6 +29,7 @@ const setup = (options: { readonly clearWorks?: boolean } = {}) => {
     reply: {
       send: async (chatId, reply) => {
         const messageId = `m${sent.length + 1}`;
+        order.push("send");
         sent.push({ chatId, reply, messageId });
         return { messageId, text: reply.text };
       },
@@ -35,6 +38,7 @@ const setup = (options: { readonly clearWorks?: boolean } = {}) => {
         cleared.push(message.messageId);
       },
       acknowledge: async (callbackId) => {
+        order.push("acknowledge");
         acknowledged.push(callbackId);
       },
     },
@@ -71,7 +75,13 @@ const setup = (options: { readonly clearWorks?: boolean } = {}) => {
     return press("✅ Всё верно");
   };
 
-  return { app, services, settings, sent, cleared, acknowledged, press, type, start, onboard, last };
+  /** Нажатие кнопки из конкретного сообщения бота: MAX передаёт его идентификатор в `message.body.mid`. */
+  const pressFrom = async (messageId: string, payload: string): Promise<void> => {
+    const event: InboundEvent = { kind: "callback", callbackId: `cb${++counter}`, payload, messageId, ...base() };
+    await app.handle({ event, dialogEvent: toDialogEvent(event) });
+  };
+
+  return { app, services, settings, sent, cleared, acknowledged, order, press, pressFrom, type, start, onboard, last };
 };
 
 describe("сборка бота K-30b", () => {
@@ -167,6 +177,112 @@ describe("сборка бота K-30b", () => {
   });
 });
 
+describe("правки по ручному прогону в MAX", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("подтверждение нажатия уходит раньше ответа: индикатор загрузки на кнопке гаснет сразу", async () => {
+    const { onboard, order, press } = setup();
+    await onboard();
+    order.length = 0;
+
+    await press("📋 Мой перечень");
+
+    expect(order.indexOf("acknowledge")).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf("acknowledge")).toBeLessThan(order.indexOf("send"));
+  });
+
+  it("быстрые повторные нажатия одной кнопки дают один ответ, но каждое подтверждено", async () => {
+    const { onboard, sent, acknowledged, pressFrom, last } = setup();
+    const menu = await onboard();
+    const menuId = (sent.at(-1) as { messageId: string }).messageId;
+    const settings = menu.buttons.find((button) => button.text === "🔔 Уведомления");
+    if (settings === undefined || !("payload" in settings)) throw new Error("нет кнопки уведомлений");
+    const before = sent.length;
+    const acknowledgedBefore = acknowledged.length;
+
+    // Три нажатия подряд из одного сообщения, пока индикатор «грузится».
+    await pressFrom(menuId, settings.payload);
+    await pressFrom(menuId, settings.payload);
+    await pressFrom(menuId, settings.payload);
+
+    expect(sent.length - before).toBe(1);
+    expect(last().text).toContain("Настройки уведомлений");
+    expect(acknowledged.length - acknowledgedBefore).toBe(3);
+  });
+
+  it("нажатие из заменённого сообщения спустя время обрабатывается как обычно", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const { onboard, sent, pressFrom } = setup();
+    const menu = await onboard();
+    const menuId = (sent.at(-1) as { messageId: string }).messageId;
+    const button = menu.buttons.find((candidate) => candidate.text === "📋 Мой перечень");
+    if (button === undefined || !("payload" in button)) throw new Error("нет кнопки перечня");
+    await pressFrom(menuId, button.payload);
+    const before = sent.length;
+
+    vi.setSystemTime(Date.now() + 60_000);
+    await pressFrom(menuId, button.payload);
+
+    expect(sent.length - before).toBe(1);
+  });
+
+  describe("кнопка «❔ Уточнить данные» под перечнем", () => {
+    const withMissing = (keys: string[]): ChecklistSource => {
+      const blocked = modelItems.find((item) => item.applicability.status === "insufficient_data");
+      if (blocked === undefined) throw new Error("в модельном перечне нет записи «недостаточно данных»");
+      const checklist = modelChecklist([
+        ...modelItems.filter((item) => item.applicability.status !== "insufficient_data"),
+        { ...blocked, applicability: { ...blocked.applicability, missingFactKeys: keys } },
+      ]);
+      return { build: async () => ({ status: "ok", profile: { isModel: true }, checklist }) };
+    };
+    const listWith = async (keys: string[]) => {
+      const services = createK28Services();
+      const sent: FlowReply[] = [];
+      const app = createBotApp({
+        profiles: services.profiles,
+        checklist: withMissing(keys),
+        settings: createMemorySettingsStore(),
+        logger: silent,
+        reply: {
+          send: async (_chatId, reply) => {
+            sent.push(reply);
+            return { messageId: `m${sent.length}`, text: reply.text };
+          },
+        },
+      });
+      let counter = 0;
+      const receive = async (event: InboundEvent) => {
+        await app.handle({ event, dialogEvent: toDialogEvent(event) });
+        return sent.at(-1) as FlowReply;
+      };
+      const base = () => ({ eventId: `e${++counter}`, chatId: CHAT, userId: "u", occurredAt: "2026-09-29T10:00:00Z" });
+      const press = (reply: FlowReply, text: string) => {
+        const button = reply.buttons.find((candidate) => candidate.text === text);
+        if (button === undefined || !("payload" in button)) throw new Error(`Нет кнопки «${text}»`);
+        return receive({ kind: "callback", callbackId: `cb${counter}`, payload: button.payload, ...base() });
+      };
+      await receive({ kind: "started", ...base() });
+      await receive({ kind: "text", text: KZN_INN, ...base() });
+      const menu = await press(sent.at(-1) as FlowReply, "✅ Всё верно");
+      return press(menu, "📋 Мой перечень");
+    };
+
+    it("есть, если бот может задать вопрос о недостающем факте", async () => {
+      const list = await listWith(["sales.alcohol"]);
+      expect(list.buttons.map((button) => button.text)).toContain("❔ Уточнить данные");
+    });
+
+    it("нет, если запись ждёт данных, о которых бот не спрашивает (численность, регион из реестра)", async () => {
+      const list = await listWith(["employment.headcount"]);
+      expect(list.text).toContain("Недостаточно данных");
+      expect(list.buttons.map((button) => button.text)).not.toContain("❔ Уточнить данные");
+    });
+  });
+});
+
 describe("раскладка клавиатуры", () => {
   it("номера — в общий ряд до 7, длинные подписи — по одной в ряд", () => {
     const numbers = Array.from({ length: 9 }, (_, index) => ({ text: String(index + 1), payload: `d:${index}` }));
@@ -178,6 +294,14 @@ describe("раскладка клавиатуры", () => {
   it("ссылка превращается в link-кнопку MAX", () => {
     expect(layoutButtons([{ text: "Первоисточник", url: "https://pravo.gov.ru/" }])).toEqual([
       [{ type: "link", text: "Первоисточник", url: "https://pravo.gov.ru/" }],
+    ]);
+  });
+
+  it("карточка превращается в open_app-кнопку MAX", () => {
+    expect(
+      layoutButtons([{ text: "Открыть карточку", webApp: "t214_hakaton_max_bot", payload: "requirement_6d" }]),
+    ).toEqual([
+      [{ type: "open_app", text: "Открыть карточку", web_app: "t214_hakaton_max_bot", payload: "requirement_6d" }],
     ]);
   });
 });

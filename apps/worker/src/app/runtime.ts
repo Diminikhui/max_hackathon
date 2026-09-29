@@ -8,6 +8,8 @@ import { join } from "node:path";
 import { FixtureProfileSource, loadFixtureProfiles, MspProfileSource } from "@max-hackathon/adapters";
 import { type BotApp, type BotReplyPort, createBotApp } from "@max-hackathon/bot/dist/app/index.js";
 import { DEMO_PACK_FILE, loadDemoPack } from "@max-hackathon/bot/dist/flows/demo/index.js";
+import { selectExampleCompanies } from "@max-hackathon/bot/dist/flows/examples/index.js";
+import type { ExplainProviderChoice } from "@max-hackathon/bot/dist/flows/explain/index.js";
 import type { PendingProfile } from "@max-hackathon/bot/dist/flows/onboarding/index.js";
 import {
   createBotHttpServer,
@@ -17,7 +19,7 @@ import {
   type InboundDispatcher,
   type TransportLogger,
 } from "@max-hackathon/bot/dist/transport/index.js";
-import { ChecklistService, ProfileService } from "@max-hackathon/services";
+import { ActionQueueService, ChecklistService, ProfileService, ScenarioDeltaService } from "@max-hackathon/services";
 import {
   createPgClient,
   PostgresBotDialogRepository,
@@ -41,7 +43,7 @@ import {
   SendQueueWorker,
 } from "../sender/queue/index.js";
 import type { AppConfig } from "./config.js";
-import { modelProfilesOnly, onlyPack, UNCONSUMED_EVENTS } from "./demo.js";
+import { demoNotificationSink, modelProfilesOnly, onlyPack, UNCONSUMED_EVENTS } from "./demo.js";
 import { createMaxReplyPort } from "./max-reply.js";
 import { createProfileGateway } from "./profiles.js";
 import { REPO_ROOT, seedRulepacks, withModelPackBoundary } from "./rulepacks.js";
@@ -61,6 +63,9 @@ export interface AssembleOptions {
   readonly realSource?: ConstructorParameters<typeof ProfileService>[0]["source"];
   readonly now?: () => Date;
   readonly root?: string;
+  /** 2-22: пересказ «Простым языком». Без него кнопки на карточке нет. */
+  readonly explain?: ExplainProviderChoice;
+  readonly botFeatures?: readonly string[];
 }
 
 /** Сборка без сети и HTTP-сервера: её же проходят тесты на PGlite с модельной отправкой. */
@@ -110,7 +115,7 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
   const recipients = new PostgresChatDirectoryRepository(db);
   const demoPipeline = new NotificationPipeline({
     profiles: modelProfilesOnly(profileRepository),
-    notifications,
+    notifications: demoNotificationSink(notifications),
     recipients,
     history: new PostgresNotificationHistory(db),
     settings,
@@ -127,8 +132,18 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     directory: recipients,
     logger,
     reply: options.reply,
+    ...(options.botFeatures?.includes("deadlines")
+      ? { deadlines: { queue: new ActionQueueService({ checklists: checklist }) } }
+      : {}),
+    ...(options.botFeatures?.includes("whatif")
+      ? { whatif: { delta: new ScenarioDeltaService({ profiles: profileRepository, requirements, clock }) } }
+      : {}),
+    ...(options.explain ? { explain: { provider: options.explain.provider } } : {}),
+    ...(options.botFeatures?.includes("examples") ? { examples: selectExampleCompanies(modelCompanies) } : {}),
     demo: {
       pack: demoPack,
+      // Кнопка «Открыть карточку» включается флагом `cards`, когда корень сайта отдаёт мини-приложение (Issue #347).
+      ...(options.botFeatures?.includes("cards") ? { cardLink: true } : {}),
       requirements,
       notifications,
       now: clock,
@@ -187,6 +202,14 @@ export const startApp = async (
     return { port: undefined, stop: () => db.close() };
   }
 
+  if (config.explain) {
+    // Имя провайдера и причина отката — без значения ключа.
+    logger.info("app.explain.enabled", "Plain-language retelling is enabled", {
+      provider: config.explain.provider.name,
+      ...(config.explain.fallbackReason ? { fallbackReason: config.explain.fallbackReason } : {}),
+    });
+  }
+
   const registry = options.registry ?? defaultMaxTransportRegistry;
   const transport = registry.forToken({
     token: config.max.token,
@@ -198,6 +221,8 @@ export const startApp = async (
     logger,
     reply: createMaxReplyPort(transport, logger),
     sender: new MaxMessageSender({ transport }),
+    ...(config.explain ? { explain: config.explain } : {}),
+    ...(config.botFeatures ? { botFeatures: config.botFeatures } : {}),
     ...(options.realSource ? { realSource: options.realSource } : {}),
     ...(options.now ? { now: options.now } : {}),
   });

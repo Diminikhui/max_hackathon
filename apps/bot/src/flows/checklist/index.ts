@@ -8,4 +8,11 @@ export {
   renderRequirementCard,
   renderRequirementList,
 } from "./render.js";
-export type { ChecklistItemView, ChecklistOutcomeView, ChecklistSource, ChecklistView, FlowReply } from "./types.js";
+export type {
+  BotButton,
+  ChecklistItemView,
+  ChecklistOutcomeView,
+  ChecklistSource,
+  ChecklistView,
+  FlowReply,
+} from "./types.js";

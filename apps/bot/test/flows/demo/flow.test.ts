@@ -99,7 +99,7 @@ const checklistFor = (requirements: MemoryRequirements, newStatus: Applicability
 });
 
 /** Модель контура K-30a: при первом прогоне после публикации ставит уведомление чату из справочника. */
-const setup = (options: { newStatus?: ApplicabilityStatus; company?: string | undefined } = {}) => {
+const setup = (options: { newStatus?: ApplicabilityStatus; company?: string | undefined; cardLink?: boolean } = {}) => {
   const requirements = new MemoryRequirements();
   const recipients = new DemoRecipientDirectory();
   const queued = new Map<string, Notification>();
@@ -128,6 +128,7 @@ const setup = (options: { newStatus?: ApplicabilityStatus; company?: string | un
       },
     },
     now: () => "2026-09-29T10:00:00.000Z",
+    ...(options.cardLink === true ? { cardLink: true } : {}),
   });
   return { flow, requirements, recipients, queued, runNotifications };
 };
@@ -164,6 +165,20 @@ describe("демо-триггер K-29", () => {
     expect(reply.text).toContain("Текст сформирован автоматически");
     expect(reply.text).toContain("Модельные данные");
     expect(reply.automated).toBe(true);
+    // Кнопка «Открыть карточку» по умолчанию скрыта (Issue #347): в ответе только выход в меню.
+    expect(reply.buttons.map((button) => button.text)).toEqual(["🏠 Меню"]);
+  });
+
+  it("с флагом cardLink ответ содержит кнопку «Открыть карточку» с payload требования", async () => {
+    const { flow } = setup({ cardLink: true });
+
+    const reply = await flow.handle({ dialogId: "d1", chatId: "model-chat-1" });
+
+    expect(reply.buttons).toContainEqual({
+      text: "Открыть карточку",
+      webApp: "t214_hakaton_max_bot",
+      payload: "requirement_6d2e6e6577",
+    });
   });
 
   it("повторное нажатие даёт тот же ответ и не создаёт второе уведомление", async () => {
@@ -213,6 +228,18 @@ describe("демо-триггер K-29", () => {
     expect(chats).toEqual(["model-chat-1", "model-chat-2"]);
     const copy = [...queued.values()].find((item) => item.recipient.chatId === "model-chat-2");
     expect(copy).toMatchObject({ status: "queued", attempts: 0, createdAt: "2026-09-29T10:00:00.000Z" });
+  });
+
+  it("уже отправленное раньше уведомление не обещает нового: «уже отправлено раньше»", async () => {
+    const { flow, queued } = setup();
+
+    const first = await flow.handle({ dialogId: "d1", chatId: "model-chat-1" });
+    expect(first.text).toContain("приходит в этот чат");
+    for (const [key, notification] of queued) queued.set(key, { ...notification, status: "sent" });
+    const repeat = await flow.handle({ dialogId: "d1", chatId: "model-chat-1" });
+
+    expect(repeat.text).toContain("уже отправлено в этот чат раньше");
+    expect(repeat.text).not.toContain("приходит в этот чат");
   });
 
   it("без компании просит ИНН и ничего не публикует", async () => {
