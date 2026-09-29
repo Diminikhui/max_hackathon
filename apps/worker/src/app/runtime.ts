@@ -45,7 +45,7 @@ import {
 import type { AppConfig } from "./config.js";
 import { demoNotificationSink, modelProfilesOnly, onlyPack, UNCONSUMED_EVENTS } from "./demo.js";
 import { createMaxReplyPort } from "./max-reply.js";
-import { createProfileGateway } from "./profiles.js";
+import { createProfileGateway, freshModelProfiles } from "./profiles.js";
 import { REPO_ROOT, seedRulepacks, withModelPackBoundary } from "./rulepacks.js";
 
 export interface AppAssembly {
@@ -90,7 +90,7 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
   const profiles = createProfileGateway({
     model: new ProfileService({
       source: new FixtureProfileSource(modelCompanies),
-      repository: profileRepository,
+      repository: freshModelProfiles(profileRepository),
       clock,
     }),
     real: new ProfileService({

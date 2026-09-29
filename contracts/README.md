@@ -31,6 +31,7 @@
 - **Четыре типа фактов:** `official`, `declared`, `derived` (с обязательным `derivedFrom`), `scenario`. Заявленный факт хранится рядом с официальным и не затирает его.
 - **Модельные данные:** `SourceRef.isModel`, `CompanyProfile.isModel`, `ChangeEvent.isModel`, `Notification.isModel`. Если `true` — интерфейс помечает данные модельными.
 - **Первоисточник:** у `Requirement` минимум одно основание со ссылкой; у `Notification` минимум одна ссылка в `sourceUrls`; шаг объяснения `source` обязан иметь `url`. `Notification.automated` — в тексте есть пометка об автоматической обработке.
+- **Последствия нарушения:** необязательный `Requirement.consequences` хранит отдельно тип, субъекта, простое описание, дословную выдержку и собственное правовое основание. Для `administrative_fine` обязательна сумма в рублях; штрафы ИП и организации записываются отдельными элементами. Отсутствие массива означает «не исследовано», а не «последствий нет».
 - **Условие применимости** (`Requirement.condition`) в v1 — объект с полем `type`; полный формат задаёт K-15a в `contracts/rulepack/conditions/`. `Requirement.coverage`: `full`, `partial` (результат не выше `needs_review`), `none` (`out_of_coverage`).
 - **Лента изменений** даёт только ранний сигнал: кандидат `early_signal` имеет статус не выше `needs_review`. Сферы regulation.gov.ru (`sphereIds`) — не коды ОКВЭД.
 
