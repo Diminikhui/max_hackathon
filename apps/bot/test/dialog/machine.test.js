@@ -17,6 +17,7 @@ const transitions = [
   ["confirming_profile", { type: "home" }, "idle", "show_welcome"],
   ["menu", { type: "open_requirements" }, "requirement_list", "show_requirement_list"],
   ["menu", { type: "open_notification_settings" }, "notification_settings", "show_notification_settings"],
+  ["menu", { type: "edit_profile" }, "awaiting_inn", "request_inn"],
   ["menu", { type: "home" }, "menu", "show_menu"],
   [
     "requirement_list",

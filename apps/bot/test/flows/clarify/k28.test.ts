@@ -96,6 +96,37 @@ describe("K-09 на сценарии K-28: кафе в Казани без да�
     ]);
   });
 
+  it("строка о смене статуса идёт со ссылкой на первоисточник записи", async () => {
+    const { flow, press, checklist, companyId } = await setup();
+    const second = await press(await start(flow), "Да");
+
+    const outcome = await checklist.build(companyId);
+    if (outcome.status !== "ok") throw new Error("перечень не построен");
+    const url = outcome.checklist.items.find((item) => item.requirement.id === "k28.employer-duty")?.requirement
+      .basis[0]?.url;
+    expect(url).toBeDefined();
+    expect(second.text).toContain(`Первоисточник: ${url}`);
+    expect(second.sourceUrls).toContain(url);
+  });
+
+  it("кнопка из старого сообщения не переписывает уже данный ответ", async () => {
+    const { flow, press, repository, companyId, onDeclared } = await setup();
+    const first = await start(flow);
+    await press(first, "Да");
+
+    // Повторное нажатие «Нет» в первом сообщении: вопрос о работниках больше не задаётся.
+    const stale = await press(first, "Нет");
+    expect(stale.text).toContain("Эта кнопка устарела: сейчас этот вопрос не задаётся.");
+    expect(stale.text).not.toContain("Записали по вашим словам");
+
+    const profile = await repository.get(companyId);
+    const hasEmployees = profile?.facts.find(
+      (fact) => fact.key === "employment.has_employees" && fact.kind === "declared",
+    );
+    expect(hasEmployees?.value).toBe(true);
+    expect(onDeclared).toHaveBeenCalledTimes(1);
+  });
+
   it("ответы «нет» тоже дают итоговый статус: не применяется", async () => {
     const { flow, press, statuses } = await setup();
     const second = await press(await start(flow), "Нет");

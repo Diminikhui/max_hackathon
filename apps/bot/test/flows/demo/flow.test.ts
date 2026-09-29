@@ -121,7 +121,13 @@ const setup = (options: { newStatus?: ApplicabilityStatus; company?: string | un
     companyOf: async () => ("company" in options ? options.company : "model-cafe"),
     recipients,
     runNotifications,
-    notifications: { findByIdempotencyKey: async (key) => queued.get(key) },
+    notifications: {
+      findByIdempotencyKey: async (key) => queued.get(key),
+      enqueue: async (notification) => {
+        if (!queued.has(notification.idempotencyKey)) queued.set(notification.idempotencyKey, notification);
+      },
+    },
+    now: () => "2026-09-29T10:00:00.000Z",
   });
   return { flow, requirements, recipients, queued, runNotifications };
 };
@@ -195,13 +201,18 @@ describe("демо-триггер K-29", () => {
     expect(reply.text).not.toContain("🔔");
   });
 
-  it("говорит, что уведомление ушло в другой чат, если кнопку раньше нажали там", async () => {
-    const { flow } = setup();
+  it("второй чат той же компании получает свою копию уведомления, повтор дубля не даёт", async () => {
+    const { flow, queued } = setup();
 
     await flow.handle({ dialogId: "d1", chatId: "model-chat-1" });
     const reply = await flow.handle({ dialogId: "d2", chatId: "model-chat-2" });
+    await flow.handle({ dialogId: "d2", chatId: "model-chat-2" });
 
-    expect(reply.text).toContain("для чата, где кнопку нажали первым");
+    expect(reply.text).toContain("приходит в этот чат");
+    const chats = [...queued.values()].map((item) => item.recipient.chatId).sort();
+    expect(chats).toEqual(["model-chat-1", "model-chat-2"]);
+    const copy = [...queued.values()].find((item) => item.recipient.chatId === "model-chat-2");
+    expect(copy).toMatchObject({ status: "queued", attempts: 0, createdAt: "2026-09-29T10:00:00.000Z" });
   });
 
   it("без компании просит ИНН и ничего не публикует", async () => {

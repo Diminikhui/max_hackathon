@@ -4,7 +4,18 @@ import { renderNoCompany } from "../checklist/index.js";
 import { type ClarifyAction, decodeClarifyPayload } from "./payload.js";
 import { planClarification } from "./plan.js";
 import { questionFor } from "./questions.js";
-import { renderAnswerPreface, renderDeclareFailed, renderFinished, renderQuestion, statusChanges } from "./render.js";
+import {
+  changeSourceUrls,
+  renderAnswerPreface,
+  renderDeclareFailed,
+  renderFinished,
+  renderQuestion,
+  statusChanges,
+} from "./render.js";
+
+/** Добавляет к ответу ссылки на первоисточники, упомянутые в тексте. */
+const withSources = (reply: FlowReply, urls: readonly string[]): FlowReply =>
+  urls.length === 0 ? reply : { ...reply, sourceUrls: [...new Set([...reply.sourceUrls, ...urls])] };
 
 /** Порт сохранения ответа. `ProfileService.declare` (K-25b) подходит без переходника. */
 export interface FactDeclarer {
@@ -72,7 +83,14 @@ export const createClarifyFlow = (deps: ClarifyFlowDeps): ClarifyFlow => {
   };
 
   /** Следующий вопрос по текущему перечню или итог, если спрашивать больше нечего. */
-  const next = async (dialogId: string, loaded: Loaded, preface?: readonly string[]): Promise<FlowReply> => {
+  const next = async (
+    dialogId: string,
+    loaded: Loaded,
+    preface?: readonly string[],
+    sourceUrls: readonly string[] = [],
+  ): Promise<FlowReply> => withSources(await nextScreen(dialogId, loaded, preface), sourceUrls);
+
+  const nextScreen = async (dialogId: string, loaded: Loaded, preface?: readonly string[]): Promise<FlowReply> => {
     const skippedKeys = await skips.get(dialogId);
     const plan = planClarification(loaded.checklist, new Set(skippedKeys));
     const question = plan.questions[0];
@@ -98,6 +116,11 @@ export const createClarifyFlow = (deps: ClarifyFlowDeps): ClarifyFlow => {
     if (question === undefined || option === undefined) {
       return next(dialogId, before, ["Эта кнопка устарела. Продолжим с актуального вопроса."]);
     }
+    // Кнопка из старого сообщения (в том числе после смены компании): вопрос сейчас не задаётся, ответ не пишем.
+    // Пропущенные вопросы по-прежнему принимают ответ, поэтому план строится без учёта пропусков.
+    if (!planClarification(before.checklist).questions.some((candidate) => candidate.key === key)) {
+      return next(dialogId, before, ["Эта кнопка устарела: сейчас этот вопрос не задаётся. Продолжим с актуального."]);
+    }
 
     const outcome = await deps.profiles.declare(before.companyId, key, option.value);
     if (outcome.status === "company_not_found") return renderNoCompany();
@@ -109,7 +132,8 @@ export const createClarifyFlow = (deps: ClarifyFlowDeps): ClarifyFlow => {
 
     const after = await load(dialogId);
     if (after === undefined) return renderNoCompany();
-    return next(dialogId, after, renderAnswerPreface(option, statusChanges(before.checklist, after.checklist)));
+    const changes = statusChanges(before.checklist, after.checklist);
+    return next(dialogId, after, renderAnswerPreface(option, changes), changeSourceUrls(changes));
   };
 
   const run = async (dialogId: string, action: ClarifyAction): Promise<FlowReply> => {

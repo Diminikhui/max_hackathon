@@ -10,9 +10,12 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@max-hackathon/adapters": "workspace:*",
     "@max-hackathon/bot": "workspace:*",
     "@max-hackathon/domain": "workspace:*",
+    "@max-hackathon/observability": "workspace:*",
     "@max-hackathon/rules": "workspace:*",
+    "@max-hackathon/services": "workspace:*",
     "@max-hackathon/storage": "workspace:*"
   },
   "devDependencies": {
