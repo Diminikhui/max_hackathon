@@ -89,6 +89,9 @@ services:
     build:
       <<: *app-build
       target: miniapp-api
+    environment:
+      <<: *app-environment
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
     command:
       - node
       - --input-type=module
