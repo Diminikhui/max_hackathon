@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
-import { CONDITION_TYPES, MSP_CATEGORIES, OKVED_SCOPES, TAX_REGIMES } from "../src/index.js";
+import { CONDITION_TYPES, ENTITY_TYPES, MSP_CATEGORIES, OKVED_SCOPES, TAX_REGIMES } from "../src/index.js";
 
 const contractsDir = join(import.meta.dirname, "../../../contracts");
 const conditionsDir = join(contractsDir, "rulepack/conditions");
@@ -54,6 +54,7 @@ describe("формат условий", () => {
     ["MspCategory", schema.$defs.MspCategory.properties.in.items.enum, MSP_CATEGORIES],
     ["TaxRegime", schema.$defs.TaxRegime.properties.in.items.enum, TAX_REGIMES],
     ["OkvedScope", schema.$defs.OkvedPrefix.properties.scope.enum, OKVED_SCOPES],
+    ["EntityType", schema.$defs.EntityType.properties.in.items.enum, ENTITY_TYPES],
   ] as const)("перечисление %s совпадает со схемой", (_name, fromSchema, fromTs) => {
     expect(fromSchema).toEqual([...fromTs]);
   });
