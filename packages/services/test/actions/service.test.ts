@@ -11,6 +11,7 @@ import type {
   RequirementRepository,
 } from "@max-hackathon/domain";
 import { describe, expect, it } from "vitest";
+import { STARTUP_RULEPACKS } from "../../../../apps/worker/src/app/rulepacks.js";
 import {
   type ActionPriority,
   ActionQueueService,
@@ -112,6 +113,9 @@ const realPacks = [
   readJson<PackFile>("data/rulepacks/a/foodservice-federal-v1.json"),
   readJson<PackFile>("data/rulepacks/b/autoservice-federal-v1.json"),
 ];
+
+/** Пакеты, которые runtime действительно публикует при старте, включая модельный K-28. */
+const publishedPacks = STARTUP_RULEPACKS.map((path) => readJson<PackFile>(path));
 
 const packRepository = (
   packs: readonly PackFile[],
@@ -264,8 +268,17 @@ describe("календарь сроков", () => {
     });
   });
 
-  it("покрывает каждое требование со сроком в текущих пакетах и только их", () => {
-    const withDeadline = realPacks.flatMap((pack) =>
+  it("использует только пакеты из списка публикации runtime", () => {
+    const packIds = publishedPacks.map((pack) => pack.packId);
+
+    expect(packIds).toEqual(expect.arrayContaining(["a-foodservice-ru-16", "a-foodservice-opportunities-fed"]));
+    expect(packIds).toEqual(expect.arrayContaining(realPacks.map((pack) => pack.packId)));
+    expect(packIds).toContain("k28-model");
+    expect(packIds).not.toContain("d-beauty-spb-demo");
+  });
+
+  it("покрывает каждое требование со сроком в опубликованных пакетах и только их", () => {
+    const withDeadline = publishedPacks.flatMap((pack) =>
       pack.requirements.filter((item) => item.deadline).map((item) => `${pack.packId}:${pack.packVersion}:${item.id}`),
     );
     const calendar = DEFAULT_DUE_CALENDAR.map((item) => `${item.packId}:${item.packVersion}:${item.requirementId}`);
