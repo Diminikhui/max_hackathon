@@ -253,6 +253,16 @@ describe("выбор провайдера пересказа", () => {
     expect(mentionsStatus("Недостаточно данных для вывода")).toBe(true);
     expect(mentionsStatus("Запись применима к вашей деятельности")).toBe(true);
     expect(mentionsStatus("Мы сверили основной вид деятельности и регион")).toBe(false);
+    expect(mentionsStatus("Эта льгота может применяться к вам")).toBe(true);
+    expect(mentionsStatus("Эту льготу можно применить к вашей компании")).toBe(true);
+    expect(mentionsStatus("Правило будет применено к вам")).toBe(true);
+    expect(mentionsStatus("Норма применена к кафе")).toBe(true);
+    expect(mentionsStatus("Требование распространяется на вас")).toBe(true);
+    expect(mentionsStatus("Вы обязаны вести журнал")).toBe(true);
+    expect(mentionsStatus("К вам это не относится")).toBe(true);
     expect(mentionsStatus("Для применения льготы важна категория МСП")).toBe(false);
+    expect(mentionsStatus("Правила применения ККТ описаны в законе")).toBe(false);
+    expect(mentionsStatus("Применение зависит от региона")).toBe(false);
+    expect(mentionsStatus("Обязанность связана с видом деятельности кафе")).toBe(false);
   });
 });
