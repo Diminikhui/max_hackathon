@@ -219,6 +219,8 @@ describe("выбор провайдера пересказа", () => {
   it("фильтр слов о статусе", () => {
     expect(mentionsStatus("Эта обязанность применяется к вам")).toBe(true);
     expect(mentionsStatus("Недостаточно данных для вывода")).toBe(true);
+    expect(mentionsStatus("Запись применима к вашей деятельности")).toBe(true);
     expect(mentionsStatus("Мы сверили основной вид деятельности и регион")).toBe(false);
+    expect(mentionsStatus("Для применения льготы важна категория МСП")).toBe(false);
   });
 });
