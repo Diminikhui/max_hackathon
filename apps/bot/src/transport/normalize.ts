@@ -107,6 +107,7 @@ export const normalizeMaxUpdate = (update: unknown): NormalizeResult => {
         return ignore(updateType, "missing_field");
       }
 
+      const messageId = stringOf(field(field(update.message, "body"), "mid"));
       return ok({
         kind: "callback",
         eventId: `callback:${callbackId}`,
@@ -114,6 +115,7 @@ export const normalizeMaxUpdate = (update: unknown): NormalizeResult => {
         userId,
         callbackId,
         payload,
+        ...(messageId === undefined ? {} : { messageId }),
         occurredAt,
       });
     }
