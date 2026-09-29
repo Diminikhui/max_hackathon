@@ -13,6 +13,7 @@
     "@max-hackathon/domain": "workspace:*"
   },
   "devDependencies": {
+    "@max-hackathon/services": "workspace:*",
     "vitest": "^5.0.1"
   }
 }
