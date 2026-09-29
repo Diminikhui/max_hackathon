@@ -33,7 +33,13 @@ import {
 import { NotificationPipeline, PostgresNotificationHistory, runRulepackNotifications } from "../notify/index.js";
 import { MaxMessageSender } from "../sender/max/index.js";
 import type { MessageSender } from "../sender/queue/index.js";
-import { defaultMaxTransportRegistry, runSendLoop, SendQueueWorker } from "../sender/queue/index.js";
+import {
+  defaultMaxTransportRegistry,
+  type MaxFetch,
+  type MaxTransportRegistry,
+  runSendLoop,
+  SendQueueWorker,
+} from "../sender/queue/index.js";
 import type { AppConfig } from "./config.js";
 import { modelProfilesOnly, onlyPack, UNCONSUMED_EVENTS } from "./demo.js";
 import { createMaxReplyPort } from "./max-reply.js";
@@ -136,32 +142,64 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     },
   });
 
-  const queue = new SendQueueWorker({ repository: notifications, sender: options.sender, now: () => now().getTime() });
+  // Опрос пустой очереди раз в секунду: демо-уведомление приходит вслед за ответом на кнопку, а не через 5 с.
+  const queue = new SendQueueWorker({
+    repository: notifications,
+    sender: options.sender,
+    now: () => now().getTime(),
+    idleDelayMs: 1_000,
+  });
   return { bot, queue, notifications };
 };
 
 export interface RunningApp {
+  /** Порт, на котором слушает HTTP-сервер бота; `undefined`, если события MAX выключены. */
+  readonly port: number | undefined;
   stop(): Promise<void>;
 }
 
+/** Подмена внешних зависимостей для e2e-тестов: база, HTTP-клиент MAX, реестр транспортов. */
+export interface StartOptions {
+  /** Готовое подключение к базе вместо `DATABASE_URL` (PGlite в тестах). Закрывается при `stop()`. */
+  readonly db?: SqlClient & { close(): Promise<void> };
+  /** HTTP-клиент для запросов к MAX; по умолчанию глобальный `fetch`. */
+  readonly fetch?: MaxFetch;
+  /** Реестр транспортов; тест берёт свой, чтобы не делить лимит запросов с другими тестами. */
+  readonly registry?: MaxTransportRegistry;
+  /** Источник профиля для ИНН не из K-28; по умолчанию реестр МСП. */
+  readonly realSource?: AssembleOptions["realSource"];
+  readonly now?: () => Date;
+}
+
 /** Запуск на сервере: PostgreSQL, приём webhook MAX, отправка ответов и очереди уведомлений. */
-export const startApp = async (config: AppConfig, logger: TransportLogger): Promise<RunningApp> => {
-  const db = createPgClient(config.databaseUrl);
+export const startApp = async (
+  config: AppConfig,
+  logger: TransportLogger,
+  options: StartOptions = {},
+): Promise<RunningApp> => {
+  const db = options.db ?? createPgClient(config.databaseUrl);
 
   if (!config.maxEventsEnabled || config.max === undefined) {
     // Локальный контур (ADR-0003): база и пакеты готовятся, события MAX не принимаются и ничего не отправляется.
     await runMigrations(db);
     await seedRulepacks(new PostgresRequirementRepository(db));
     logger.info("app.max.disabled", "MAX events are disabled: set MAX_EVENTS_ENABLED=true on the server");
-    return { stop: () => db.close() };
+    return { port: undefined, stop: () => db.close() };
   }
 
-  const transport = defaultMaxTransportRegistry.forToken({ token: config.max.token, baseUrl: config.max.baseUrl });
+  const registry = options.registry ?? defaultMaxTransportRegistry;
+  const transport = registry.forToken({
+    token: config.max.token,
+    baseUrl: config.max.baseUrl,
+    ...(options.fetch ? { fetch: options.fetch } : {}),
+  });
   const { bot, queue } = await assembleApp({
     db,
     logger,
     reply: createMaxReplyPort(transport, logger),
     sender: new MaxMessageSender({ transport }),
+    ...(options.realSource ? { realSource: options.realSource } : {}),
+    ...(options.now ? { now: options.now } : {}),
   });
 
   const dispatcher: InboundDispatcher = createInboundDispatcher({ handle: bot.handle, logger });
@@ -173,7 +211,9 @@ export const startApp = async (config: AppConfig, logger: TransportLogger): Prom
   });
   const server: Server = createBotHttpServer({ webhook });
   await new Promise<void>((resolve) => server.listen(config.botHttpPort, config.botHttpHost, resolve));
-  logger.info("app.started", "Bot is listening for MAX webhook", { port: config.botHttpPort });
+  const address = server.address();
+  const port = typeof address === "object" && address !== null ? address.port : config.botHttpPort;
+  logger.info("app.started", "Bot is listening for MAX webhook", { port });
 
   const abort = new AbortController();
   const sending = runSendLoop(queue, {
@@ -182,6 +222,7 @@ export const startApp = async (config: AppConfig, logger: TransportLogger): Prom
   });
 
   return {
+    port,
     async stop() {
       await new Promise<void>((resolve) => server.close(() => resolve()));
       await dispatcher.drain();
