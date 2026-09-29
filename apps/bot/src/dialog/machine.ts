@@ -33,6 +33,8 @@ const TRANSITIONS = {
       state: "notification_settings",
       route: "show_notification_settings",
     },
+    // Смена компании: новая привязка заменит текущую только после «Всё верно».
+    edit_profile: { state: "awaiting_inn", route: "request_inn" },
     home: { state: "menu", route: "show_menu" },
   },
   requirement_list: {
