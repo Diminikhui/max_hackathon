@@ -6,7 +6,7 @@ import type { FlowReply } from "@max-hackathon/bot/dist/flows/checklist/index.js
 import { DEMO_CHANGE_CALLBACK_PAYLOAD } from "@max-hackathon/bot/dist/flows/demo/index.js";
 import { type InboundEvent, toDialogEvent } from "@max-hackathon/bot/dist/transport/index.js";
 import type { CompanyProfile, ProfileSource } from "@max-hackathon/domain";
-import { createPgliteClient } from "@max-hackathon/storage";
+import { createPgliteClient, PostgresBotDialogRepository } from "@max-hackathon/storage";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { withModelPackBoundary } from "../../src/app/rulepacks.js";
 import { type AppAssembly, assembleApp } from "../../src/app/runtime.js";
@@ -158,6 +158,49 @@ describe("процесс K-30b на модельных данных", () => {
     await again.onboard(CAFE_INN);
     const reply = await again.press(DEMO_BUTTON);
     expect(reply.text).toContain("приходит в этот чат");
+  });
+});
+
+describe("перезапуск процесса (#312): состояние хранится в PostgreSQL", () => {
+  /** Новая сборка на той же базе — то же, что перезапуск контейнера. */
+  const restart = async () => {
+    app = await assemble();
+  };
+
+  it("диалог продолжается с того же места: привязка и состояние сохранены", async () => {
+    const cafe = chat("5001");
+    await cafe.onboard(CAFE_INN);
+    await restart();
+
+    expect(await app.bot.stateOf("5001")).toBe("menu");
+    const list = await cafe.press("📋 Мой перечень");
+    expect(list.text).toContain("МОДЕЛЬНЫЕ ДАННЫЕ");
+    expect(await app.bot.stateOf("5001")).toBe("requirement_list");
+  });
+
+  it("чат компании для push сохраняется", async () => {
+    const cafe = chat("5002");
+    await cafe.onboard(CAFE_INN);
+    const companyId = await new PostgresBotDialogRepository(createPgliteClient(db)).companyOf("5002");
+    expect(companyId).toBeDefined();
+    await restart();
+
+    expect(await app.bot.directory.chatFor(companyId as string)).toBe("5002");
+  });
+
+  it("отключение уведомлений действует и после перезапуска", async () => {
+    const cafe = chat("5003");
+    await cafe.onboard(CAFE_INN);
+    await cafe.press("🔔 Уведомления");
+    await cafe.press("🔕 Отключить уведомления");
+    await restart();
+
+    const settings = await cafe.press("🔔 Настройки");
+    expect(settings.buttons.map((b) => b.text)).toContain("🔔 Включить уведомления");
+
+    await cafe.pressPayload(DEMO_CHANGE_CALLBACK_PAYLOAD);
+    expect(await queuedChats()).toEqual([]);
+    expect(await flushQueue()).toBe(0);
   });
 });
 

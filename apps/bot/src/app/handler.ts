@@ -2,9 +2,9 @@
 // Здесь только связывание портов; сервисы профиля и перечня, хранилище и отправка передаются снаружи (точка
 // сборки процесса — apps/worker/src/main.ts, потому что контур уведомлений живёт в worker, а worker видит бота).
 import type { NotificationButton } from "@max-hackathon/domain";
-import { createDialogRouter, type DialogEvent, type DialogState } from "../dialog/index.js";
+import { createDialogRouter, DIALOG_STATES, type DialogEvent, type DialogState } from "../dialog/index.js";
 import { type ChecklistSource, createChecklistFlow, type FlowReply } from "../flows/checklist/index.js";
-import { clarifyButton, createClarifyFlow, type FactDeclarer } from "../flows/clarify/index.js";
+import { type ClarifySkipStore, clarifyButton, createClarifyFlow, type FactDeclarer } from "../flows/clarify/index.js";
 import {
   createDemoChangeFlow,
   DEMO_CHANGE_CALLBACK_PAYLOAD,
@@ -19,7 +19,7 @@ import {
 } from "../flows/onboarding/index.js";
 import { createSettingsFlow, decodeSettingsPayload, type NotificationSettingsStore } from "../flows/settings/index.js";
 import { encodeButtonPayload, type InboundHandler, type TransportLogger } from "../transport/index.js";
-import { DialogChatDirectory } from "./chat-directory.js";
+import { type ChatDirectory, DialogChatDirectory } from "./chat-directory.js";
 
 /** Сообщение бота, отправленное в чат: по нему у сообщения потом снимаются кнопки. */
 export interface SentMessage {
@@ -41,6 +41,30 @@ export interface BotReplyPort {
   acknowledge?(callbackId: string): Promise<void>;
 }
 
+/**
+ * Хранение состояния машины диалога. Реализация на PostgreSQL (#312) — `PostgresBotDialogRepository`
+ * из @max-hackathon/storage: после перезапуска процесса диалог продолжается с того же места.
+ */
+export interface DialogStateStore {
+  /** Строка из хранилища; неизвестное значение (например, после переименования состояния) читается как `idle`. */
+  stateOf(dialogId: string): Promise<string | undefined>;
+  saveState(dialogId: string, state: DialogState): Promise<void>;
+}
+
+/** Хранение в памяти процесса: для тестов. После перезапуска диалог начнётся заново. */
+export const createMemoryDialogStateStore = (): DialogStateStore => {
+  const states = new Map<string, DialogState>();
+  return {
+    stateOf: async (dialogId) => states.get(dialogId),
+    saveState: async (dialogId, state) => {
+      states.set(dialogId, state);
+    },
+  };
+};
+
+const isDialogState = (value: string | undefined): value is DialogState =>
+  value !== undefined && (DIALOG_STATES as readonly string[]).includes(value);
+
 /** Демо-триггер K-29 без портов, которые даёт сборка бота. */
 export type BotDemoDeps = Omit<DemoChangeFlowDeps, "checklist" | "companyOf" | "recipients">;
 
@@ -52,18 +76,21 @@ export interface BotAppDeps {
   readonly settings: NotificationSettingsStore;
   readonly reply: BotReplyPort;
   readonly logger: TransportLogger;
+  /** Порты хранения ниже по умолчанию — в памяти процесса; сборка процесса передаёт PostgreSQL (#312). */
   readonly sessions?: OnboardingSessions;
+  readonly states?: DialogStateStore;
+  readonly skips?: ClarifySkipStore;
   /** Тот же экземпляр передаётся контуру уведомлений как `recipients`. */
-  readonly directory?: DialogChatDirectory;
+  readonly directory?: ChatDirectory;
   /** Без демо кнопка «🧪 Показать пример изменения (модельное)» в меню не показывается. */
   readonly demo?: BotDemoDeps;
 }
 
 export interface BotApp {
   readonly handle: InboundHandler;
-  readonly directory: DialogChatDirectory;
+  readonly directory: ChatDirectory;
   /** Сохранённое состояние диалога: для тестов и диагностики. */
-  stateOf(dialogId: string): DialogState;
+  stateOf(dialogId: string): Promise<DialogState>;
 }
 
 const OPEN_REQUIREMENTS = encodeButtonPayload({ type: "open_requirements" });
@@ -86,19 +113,28 @@ const FAILURE_REPLY: FlowReply = {
 export const createBotApp = (deps: BotAppDeps): BotApp => {
   const sessions = deps.sessions ?? new InMemoryOnboardingSessions();
   const directory = deps.directory ?? new DialogChatDirectory();
+  const states = deps.states ?? createMemoryDialogStateStore();
   const companyOf = (dialogId: string) => sessions.companyOf(dialogId);
 
   const { unrecognized, ...onboarding } = createOnboardingFlow({ profiles: deps.profiles, sessions });
   const checklistFlow = createChecklistFlow({ checklist: deps.checklist, companyOf });
   const settingsFlow = createSettingsFlow({ settings: deps.settings, companyOf });
-  const clarify = createClarifyFlow({ checklist: deps.checklist, companyOf, profiles: deps.profiles });
+  const clarify = createClarifyFlow({
+    checklist: deps.checklist,
+    companyOf,
+    profiles: deps.profiles,
+    ...(deps.skips ? { skips: deps.skips } : {}),
+  });
+  // Демо-сценарий запоминает чат синхронно и не ждёт записи, поэтому чат привязывается в `callback` до нажатия.
   const demo = deps.demo
-    ? createDemoChangeFlow({ ...deps.demo, checklist: deps.checklist, companyOf, recipients: directory })
+    ? createDemoChangeFlow({ ...deps.demo, checklist: deps.checklist, companyOf, recipients: { remember: () => {} } })
     : undefined;
   const router = createDialogRouter<FlowReply>({ ...onboarding, ...checklistFlow, ...settingsFlow.handlers });
 
-  const states = new Map<string, DialogState>();
-  const stateOf = (dialogId: string): DialogState => states.get(dialogId) ?? "idle";
+  const stateOf = async (dialogId: string): Promise<DialogState> => {
+    const stored = await states.stateOf(dialogId);
+    return isDialogState(stored) ? stored : "idle";
+  };
 
   interface Outcome {
     readonly reply: FlowReply;
@@ -128,6 +164,9 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     }
 
     if (demo && payload === DEMO_CHANGE_CALLBACK_PAYLOAD) {
+      // Нажатие делает этот чат получателем push компании до прогона контура уведомлений.
+      const companyId = await companyOf(dialogId);
+      if (companyId !== undefined) await directory.track(chatId, companyId);
       const reply = await demo.handle({ dialogId, chatId });
       return { reply, state: reply.stateOverride ?? state };
     }
@@ -204,7 +243,7 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   const handle: InboundHandler = async (delivery) => {
     const { event } = delivery;
     const dialogId = event.chatId;
-    const state = stateOf(dialogId);
+    const state = await stateOf(dialogId);
 
     let outcome: Outcome;
     try {
@@ -215,8 +254,8 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
       return;
     }
 
-    states.set(dialogId, outcome.state);
-    directory.track(event.chatId, await companyOf(dialogId));
+    await states.saveState(dialogId, outcome.state);
+    await directory.track(event.chatId, await companyOf(dialogId));
     await deliver(event, await decorate(dialogId, outcome));
   };
 

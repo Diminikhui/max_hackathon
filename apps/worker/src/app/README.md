@@ -11,7 +11,7 @@ MAX ──webhook──► createBotHttpServer (POST /webhook, GET /health)
 runSendLoop → SendQueueWorker → MaxMessageSender K-21b ──► MAX (push из очереди)
 ```
 
-Почему один процесс: настройки уведомлений, привязка «диалог ↔ компания» и получатели push хранятся в памяти, а `apps/worker` зависит от `apps/bot`, поэтому бот не может импортировать контур уведомлений (решение — комментарий в Issue #143).
+Почему один процесс: бот и контур уведомлений читают одни настройки уведомлений и один справочник получателей push, а `apps/worker` зависит от `apps/bot`, поэтому бот не может импортировать контур уведомлений (решение — комментарий в Issue #143).
 
 | Файл | Что делает |
 | --- | --- |
@@ -49,25 +49,24 @@ runSendLoop → SendQueueWorker → MaxMessageSender K-21b ──► MAX (push �
 
 ## Ограничения
 
-- **Состояние диалога, привязки «чат → компания» и настройки уведомлений хранятся в памяти процесса.** После перезапуска контейнера пользователь вводит ИНН заново, а отключённые уведомления снова включены. Профили, пакеты, кандидаты и очередь уведомлений хранятся в PostgreSQL. Сервер перезапускается при каждом слиянии в `main` (таймер `max-hackathon-deploy.timer`, раз в 5 минут), поэтому **на время оценки 30.09–14.10 деплой замораживается** (см. ниже).
+- **Всё состояние хранится в PostgreSQL** (#312): диалог, привязки, настройки уведомлений, чат компании для push и пропущенные вопросы уточнения, а также профили, пакеты, кандидаты и очередь уведомлений. Перезапуск контейнера диалог не сбрасывает. В памяти остаются только дедупликация событий webhook и последнее сообщение бота с кнопками: после перезапуска у этого сообщения кнопки не снимаются, а нажатие на них работает как обычно.
 - Фоновый цикл уведомлений по реальным пакетам (`runNotificationLoop`) и лента regulation.gov.ru в этой сборке не запускаются: до сдачи новые версии реальных пакетов не публикуются, а изменение показывается демо-кнопкой.
 - Ранние сигналы в настройках сохраняются, но сейчас не отправляются (флаг `earlySignals` контура выключен).
 
 ## Заморозка деплоя на время оценки
 
-После тега `online-submission` (3-11b) сервер не обновляется: изменения идут в ветки и PR, но в `main`, откуда деплой берёт код, не сливаются до объявления результатов (это же сказано в чеклисте сдачи `docs/submission.md`, PR #300). Иначе перезапуск контейнера посреди проверки сбросит состояние диалога. Если исправление всё же необходимо, слияние согласуется с владельцем сервера, а проверяющих не должно быть посреди сценария. Для остановки обновлений: `sudo systemctl stop max-hackathon-deploy.timer`, для возобновления: `sudo systemctl start max-hackathon-deploy.timer`.
+После тега `online-submission` (3-11b) сервер не обновляется: изменения идут в ветки и PR, но в `main`, откуда деплой берёт код, не сливаются до объявления результатов (это же сказано в чеклисте сдачи `docs/submission.md`, PR #300). Состояние диалога перезапуск уже не сбрасывает (#312), но на время перезапуска бот недоступен, а новый код может изменить сценарий посреди проверки. Если исправление всё же необходимо, слияние согласуется с владельцем сервера, а проверяющих не должно быть посреди сценария. Для остановки обновлений: `sudo systemctl stop max-hackathon-deploy.timer`, для возобновления: `sudo systemctl start max-hackathon-deploy.timer`.
 
-## Вариант Б (не сделан): хранить состояние в PostgreSQL
+## Где хранится состояние бота (#312)
 
-Если заморозки деплоя недостаточно, состояние переносится в базу. Что переносить и куда подключать:
+Миграция `packages/storage/migrations/k-30b-001-bot-dialogs.sql`, репозитории — `packages/storage/src/bot/`. Сборка передаёт их в `createBotApp` и контур уведомлений в `assembleApp`.
 
-| Что | Где сейчас | Порт, который заменить |
+| Что | Таблица | Репозиторий → порт бота |
 | --- | --- | --- |
-| привязка «диалог → компания» | `InMemoryOnboardingSessions` (`apps/bot/src/flows/onboarding/sessions.ts`) | `OnboardingSessions`: при смене компании `bindCompany` вызывается повторно, нужен upsert |
-| состояние диалога | `Map` в `createBotApp` (`apps/bot/src/app/handler.ts`, `states`) | добавить порт хранения состояния |
-| настройки уведомлений | `createMemorySettingsStore` (`apps/bot/src/flows/settings/flow.ts`) | `NotificationSettingsStore`; тот же экземпляр читает `NotificationPipeline` (`settings`) |
-| чат компании для push | `DialogChatDirectory` (`apps/bot/src/app/chat-directory.ts`) | считать из таблицы привязок: чат = последний, где компания выбрана |
-| пропущенные вопросы уточнения | `createMemorySkipStore` (`apps/bot/src/flows/clarify/flow.ts`) | `ClarifySkipStore` |
-| последнее сообщение бота с кнопками | `withKeyboard` в `deliver` (`handler.ts`) | по желанию: после перезапуска старые кнопки просто останутся |
+| состояние диалога | `bot_dialogs.state` | `PostgresBotDialogRepository` → `DialogStateStore`; неизвестное значение читается как `idle` |
+| профиль до подтверждения, привязка «диалог → компания» | `bot_dialogs.pending_profile`, `company_id` | `PostgresBotDialogRepository` → `OnboardingSessions`; смена компании (#310) перезаписывает привязку |
+| пропущенные вопросы уточнения | `bot_dialogs.clarify_skipped` | `PostgresClarifySkipRepository` → `ClarifySkipStore` |
+| чат компании для push | `bot_chat_companies` | `PostgresChatDirectoryRepository` → `ChatDirectory` и `RecipientDirectory` K-30a: чат — последний, где компания выбрана |
+| настройки уведомлений | `notification_settings` | `PostgresNotificationSettingsRepository` → `NotificationSettingsStore`; тот же экземпляр читает `NotificationPipeline` |
 
-Миграция — в `packages/storage/migrations/` с префиксом потока, репозитории — в `packages/storage/src/`. Задача: Issue #312 «хранить состояние диалога, привязки и настройки в PostgreSQL (вариант Б K-30b)».
+Реализации в памяти (`DialogChatDirectory`, `createMemoryDialogStateStore`, `createMemorySettingsStore`, `InMemoryOnboardingSessions`, `createMemorySkipStore`) остаются для тестов бота. Проверка перезапуска — `apps/worker/test/app/runtime.test.ts`: `assembleApp` повторно на той же базе PGlite.

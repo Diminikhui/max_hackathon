@@ -1,13 +1,14 @@
 // K-30b. Точка сборки процесса: бот (K-22a транспорт, сценарии K-24/K-09/K-29), сервисы профиля и перечня
 // (K-25b, K-26), хранилище (K-10), контур уведомлений демо-кнопки (K-30a) и отправка очереди в MAX (K-21).
-// Всё в одном процессе: настройки, привязки «диалог ↔ компания» и получатели push живут в памяти и общие
-// у бота и контура уведомлений (решение по сборке — комментарий в Issue #143).
+// Всё в одном процессе: бот и контур уведомлений читают одни настройки и один справочник получателей push
+// (решение по сборке — комментарий в Issue #143). Состояние диалога, привязки и настройки хранятся в PostgreSQL
+// (#312), поэтому перезапуск процесса диалог не сбрасывает.
 import type { Server } from "node:http";
 import { join } from "node:path";
 import { FixtureProfileSource, loadFixtureProfiles, MspProfileSource } from "@max-hackathon/adapters";
 import { type BotApp, type BotReplyPort, createBotApp } from "@max-hackathon/bot/dist/app/index.js";
 import { DEMO_PACK_FILE, loadDemoPack } from "@max-hackathon/bot/dist/flows/demo/index.js";
-import { createMemorySettingsStore } from "@max-hackathon/bot/dist/flows/settings/index.js";
+import type { PendingProfile } from "@max-hackathon/bot/dist/flows/onboarding/index.js";
 import {
   createBotHttpServer,
   createInboundDispatcher,
@@ -19,7 +20,11 @@ import {
 import { ChecklistService, ProfileService } from "@max-hackathon/services";
 import {
   createPgClient,
+  PostgresBotDialogRepository,
+  PostgresChatDirectoryRepository,
+  PostgresClarifySkipRepository,
   PostgresNotificationRepository,
+  PostgresNotificationSettingsRepository,
   PostgresProfileRepository,
   PostgresRequirementRepository,
   runMigrations,
@@ -91,14 +96,12 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     seeded.modelPackIds,
   );
 
-  const settings = createMemorySettingsStore();
+  const settings = new PostgresNotificationSettingsRepository(db);
+  const dialogs = new PostgresBotDialogRepository<PendingProfile>(db);
   const demoPack = await loadDemoPack(join(root, DEMO_PACK_FILE));
 
   // Получатели push — тот же справочник, что строит бот: последний чат, в котором выбрана компания.
-  let bot: BotApp | undefined;
-  const recipients = {
-    chatFor: (companyId: string) => (bot ? bot.directory.chatFor(companyId) : Promise.resolve(undefined)),
-  };
+  const recipients = new PostgresChatDirectoryRepository(db);
   const demoPipeline = new NotificationPipeline({
     profiles: modelProfilesOnly(profileRepository),
     notifications,
@@ -108,10 +111,14 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     now,
   });
 
-  bot = createBotApp({
+  const bot = createBotApp({
     profiles,
     checklist,
     settings,
+    sessions: dialogs,
+    states: dialogs,
+    skips: new PostgresClarifySkipRepository(db),
+    directory: recipients,
     logger,
     reply: options.reply,
     demo: {
