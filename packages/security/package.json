@@ -2,7 +2,7 @@
   "name": "@max-hackathon/security",
   "version": "0.0.0",
   "private": true,
-  "description": "Проверка подписи initData, работа с секретами, минимизация персональных данных.",
+  "description": "Проверка подписи initData, минимизация персональных данных, сроки хранения и доступ к данным.",
   "type": "module",
   "exports": {
     ".": {
@@ -11,6 +11,11 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@max-hackathon/observability": "workspace:*",
+    "vitest": "^5.0.1"
   }
 }
