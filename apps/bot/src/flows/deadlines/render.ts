@@ -41,8 +41,9 @@ const backButton = (): NotificationButton => ({
 
 const isDated = (item: GroupItem): item is DatedActionView => "dueDate" in item;
 
-const isModelQueue = (queue: ActionQueueView): boolean =>
-  [...queue.actions, ...queue.undated].some((item) => item.isModel);
+/** Модельная пометка нужна, если модельна компания (K-28) или хотя бы одна запись очереди. */
+const isModelQueue = (queue: ActionQueueView, modelCompany: boolean): boolean =>
+  modelCompany || [...queue.actions, ...queue.undated].some((item) => item.isModel);
 
 /** Группировка использует только готовые `dueDate` и `reason`; текст срока здесь не интерпретируется. */
 export const deadlineGroups = (queue: ActionQueueView): DeadlineGroup[] => {
@@ -82,9 +83,9 @@ const sourceUrls = (items: readonly GroupItem[]): string[] => [
   ...new Set(items.flatMap((item) => item.basis[0]?.url ?? []).filter(Boolean)),
 ];
 
-export const renderDeadlines = (queue: ActionQueueView, notice?: string): FlowReply => {
+export const renderDeadlines = (queue: ActionQueueView, notice?: string, modelCompany = false): FlowReply => {
   const groups = deadlineGroups(queue);
-  const isModel = isModelQueue(queue);
+  const isModel = isModelQueue(queue, modelCompany);
   const note = renderAutomaticProcessingNote(isModel);
   const lines = [`📅 Что и когда делать${modelLabel(isModel)}`, ""];
   if (notice) lines.push(notice, "");
@@ -115,8 +116,8 @@ export const renderDeadlines = (queue: ActionQueueView, notice?: string): FlowRe
   };
 };
 
-export const renderDeadlineGroup = (queue: ActionQueueView, group: DeadlineGroup): FlowReply => {
-  const isModel = isModelQueue(queue);
+export const renderDeadlineGroup = (queue: ActionQueueView, group: DeadlineGroup, modelCompany = false): FlowReply => {
+  const isModel = isModelQueue(queue, modelCompany);
   const note = renderAutomaticProcessingNote(isModel);
   const lines = [`📅 ${group.title}${modelLabel(isModel)}`, ""];
   const shown: GroupItem[] = [];
