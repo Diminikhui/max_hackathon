@@ -1,4 +1,5 @@
 import { GigaChatProvider, type LlmProvider, TemplateProvider } from "@max-hackathon/classifier";
+import { buildRetellPrompt } from "./retell.js";
 
 /** Критерий 2-22: ответ модели ждём не дольше 8 секунд, дальше — шаблон. */
 export const EXPLAIN_TIMEOUT_MS = 8_000;
@@ -33,6 +34,8 @@ export const explainProviderFromEnv = (env: NodeJS.ProcessEnv): ExplainProviderC
         ...(authUrl ? { authUrl } : {}),
         ...(apiBaseUrl ? { apiBaseUrl } : {}),
         ...(model ? { model } : {}),
+        // Свой промпт пересказа вместо промпта классификации документов.
+        prompt: buildRetellPrompt,
         // Пользователь ждёт ответа в чате: без повторов после 429, запрос из очереди старше срока не отправляется.
         timeoutMs: EXPLAIN_TIMEOUT_MS,
         maxRetries: 0,

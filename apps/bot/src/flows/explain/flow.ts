@@ -19,9 +19,12 @@ import {
 import { decodeExplainPayload } from "./payload.js";
 import { EXPLAIN_TIMEOUT_MS } from "./provider.js";
 import {
+  composeRetell,
   isEmptyInput,
+  looksTechnical,
   mentionsStatus,
   RETELL_SCHEMA,
+  type RetellDraft,
   type RetellInput,
   retellDocumentText,
   retellInputOf,
@@ -67,7 +70,7 @@ export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
     const sourceUrl = item.requirement.basis[0]?.url;
     if (sourceUrl === undefined) return template;
     try {
-      const result = await classifyDocument(
+      const result = await classifyDocument<RetellDraft>(
         {
           id: input.requirementId,
           title: input.title,
@@ -76,7 +79,7 @@ export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
           isModel: item.requirement.source.isModel,
         },
         provider,
-        { responseSchema: RETELL_SCHEMA, template: () => ({ summary: template.summary }), timeoutMs },
+        { responseSchema: RETELL_SCHEMA, template: () => ({ summary: template.summary, points: [] }), timeoutMs },
       );
       if (result.usedFallback) {
         deps.logger?.warn("bot.explain.fallback", "Model retelling failed, template shown", {
@@ -84,13 +87,20 @@ export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
         });
         return template;
       }
-      if (mentionsStatus(result.summary)) {
+      const text = composeRetell(result.draft);
+      if (result.draft.summary.trim() === "" || looksTechnical(text)) {
+        deps.logger?.warn("bot.explain.unusable", "Model retelling was empty or technical, template shown", {
+          provider: provider.name,
+        });
+        return template;
+      }
+      if (mentionsStatus(text)) {
         deps.logger?.warn("bot.explain.status_comment", "Model retelling commented on the status, template shown", {
           provider: provider.name,
         });
         return template;
       }
-      return { summary: result.summary, provider: result.provider };
+      return { summary: text, provider: result.provider };
     } catch (error) {
       deps.logger?.warn("bot.explain.failed", "Retelling failed, template shown", { provider: provider.name, error });
       return template;
