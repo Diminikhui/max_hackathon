@@ -6,6 +6,16 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@max-hackathon/domain": "workspace:*",
+    "@max-hackathon/security": "workspace:*",
+    "@max-hackathon/services": "workspace:*",
+    "@max-hackathon/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.1"
   }
 }
