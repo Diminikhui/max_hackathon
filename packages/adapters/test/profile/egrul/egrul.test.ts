@@ -10,6 +10,7 @@ import {
   loadEgrulDirectory,
   parseEgrulXml,
 } from "../../../src/index.js";
+import { parseXml } from "../../../src/profile/egrul/xml.js";
 import { createProfileValidator, describeProfileSourceContract } from "../contract.js";
 
 /** Модельная выгрузка в формате ФНС (windows-1251). Не ответы ФНС. */
@@ -121,6 +122,13 @@ describe("EgrulProfileSource", () => {
 });
 
 describe("parseEgrulXml", () => {
+  it("не падает на числовой сущности вне диапазона Unicode", () => {
+    expect(parseXml('<EGRUL hex="&#x110000;" decimal="&#99999999;"/>').attrs).toEqual({
+      hex: "",
+      decimal: "",
+    });
+  });
+
   it("отклоняет чужой корень и битый XML", () => {
     expect(() => parseEgrulXml("<Other/>")).toThrow(/EGRUL или EGRIP/);
     expect(() => parseEgrulXml("<EGRUL><СвЮЛ></EGRUL>")).toThrow(/XML/);
