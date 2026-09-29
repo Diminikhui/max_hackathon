@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
 import type {
   ApplicabilityResult,
   ApplicabilityStatus,
@@ -112,6 +112,22 @@ const realPacks = [
   readJson<PackFile>("data/rulepacks/a/foodservice-federal-v1.json"),
   readJson<PackFile>("data/rulepacks/b/autoservice-federal-v1.json"),
 ];
+
+const EXCLUDED_PACK_DIRS = new Set(["_golden", "_demo-scale"]);
+
+/** Все опубликованные пакеты `data/rulepacks/**`, кроме эталонов и демонстрации масштаба. */
+const listPublishedPacks = (dir = join(root, "data/rulepacks")): PackFile[] =>
+  readdirSync(dir, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((item) => {
+      const path = join(dir, item.name);
+      if (item.isDirectory()) return EXCLUDED_PACK_DIRS.has(item.name) ? [] : listPublishedPacks(path);
+      if (!item.name.endsWith(".json")) return [];
+      const content = readJson<Partial<PackFile>>(relative(root, path));
+      return Array.isArray(content.requirements) ? [content as PackFile] : [];
+    });
+
+const publishedPacks = listPublishedPacks();
 
 const packRepository = (
   packs: readonly PackFile[],
@@ -264,8 +280,16 @@ describe("календарь сроков", () => {
     });
   });
 
-  it("покрывает каждое требование со сроком в текущих пакетах и только их", () => {
-    const withDeadline = realPacks.flatMap((pack) =>
+  it("находит пакеты во всех каталогах data/rulepacks, кроме исключённых", () => {
+    const packIds = publishedPacks.map((pack) => pack.packId);
+
+    expect(packIds).toEqual(expect.arrayContaining(["a-foodservice-ru-16", "a-foodservice-opportunities-fed"]));
+    expect(packIds).toEqual(expect.arrayContaining(realPacks.map((pack) => pack.packId)));
+    expect(packIds).not.toContain("d-beauty-spb-demo");
+  });
+
+  it("покрывает каждое требование со сроком в опубликованных пакетах и только их", () => {
+    const withDeadline = publishedPacks.flatMap((pack) =>
       pack.requirements.filter((item) => item.deadline).map((item) => `${pack.packId}:${pack.packVersion}:${item.id}`),
     );
     const calendar = DEFAULT_DUE_CALENDAR.map((item) => `${item.packId}:${item.packVersion}:${item.requirementId}`);

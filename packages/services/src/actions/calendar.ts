@@ -49,10 +49,14 @@ const entry = (packId: Id, requirementId: Id, rule: DueRule): DueCalendarEntry =
 
 const food = (id: string, rule: DueRule) => entry("a-foodservice-fed", `a.fed.${id}`, rule);
 const auto = (id: string, rule: DueRule) => entry("b-autoservice-fed", `b.fed.${id}`, rule);
+const tatarstan = (id: string, rule: DueRule) => entry("a-foodservice-ru-16", `a.tatarstan.${id}`, rule);
+const opportunity = (id: string, rule: DueRule) =>
+  entry("a-foodservice-opportunities-fed", `a.opportunity.${id}`, rule);
 
 /**
- * Модельный календарь сроков для федеральных пакетов общепита и автосервиса v1.
- * Сверен с полем `deadline` записей; при выпуске новой версии пакета его нужно пересмотреть.
+ * Модельный календарь сроков для опубликованных пакетов v1: федеральные общепит и автосервис,
+ * общепит Татарстана и возможности общепита. Сверен с полем `deadline` записей; при выпуске
+ * новой версии пакета его нужно пересмотреть.
  */
 export const DEFAULT_DUE_CALENDAR: readonly DueCalendarEntry[] = [
   food("start-notification", {
@@ -87,6 +91,20 @@ export const DEFAULT_DUE_CALENDAR: readonly DueCalendarEntry[] = [
   auto("automotive-occupational-safety", { type: "event", trigger: "до допуска работника к самостоятельной работе" }),
   auto("hazardous-waste-passports", { type: "event", trigger: "до передачи отхода I–IV класса" }),
   auto("fire-safety-regime", { type: "event", trigger: "до начала эксплуатации объекта" }),
+  tatarstan("alcohol-regional-restrictions", {
+    type: "event",
+    trigger: "до первой продажи алкоголя и при изменении адреса, формата объекта или региональных правил",
+  }),
+  // «С 01.09.2026» — дата начала действия запрета, а не срок исполнения.
+  tatarstan("energy-drinks-places", { type: "event", trigger: "при каждой продаже (с 01.09.2026)" }),
+  opportunity("foodservice-vat-exemption", {
+    type: "event",
+    trigger: "перед применением освобождения — по итогам предшествующего календарного года",
+  }),
+  // Окно 01.04–31.12.2026 — период действия льготы; срока исполнения для компании в тексте нет.
+  opportunity("foodservice-vat-transition-2026", { type: "continuous" }),
+  opportunity("foodservice-reduced-insurance-rate", { type: "event", trigger: "при расчёте взносов за каждый месяц" }),
+  opportunity("foodservice-patent-tax-system", { type: "event", trigger: "заявление — до начала применения патента" }),
 ];
 
 /**
