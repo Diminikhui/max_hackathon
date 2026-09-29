@@ -1,5 +1,6 @@
 import { CellList, CellSimple, Container, Flex, Typography } from "@maxhub/max-ui";
 import type { ComponentType } from "react";
+import { ChecklistScreen } from "../../checklist";
 import { useApp } from "./AppContext";
 import type { ScreenId } from "./navigation";
 
@@ -54,6 +55,6 @@ function placeholder(stream: string): ComponentType {
 export const SCREENS: ScreenRegistry = {
   home: { title: "Проверка требований", component: HomeScreen },
   profile: { title: "Профиль компании", component: placeholder("2-02") },
-  checklist: { title: "Перечень требований", component: placeholder("2-03") },
+  checklist: { title: "Перечень требований", component: ChecklistScreen },
   settings: { title: "Уведомления", component: placeholder("2-05") },
 };
