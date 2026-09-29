@@ -29,9 +29,16 @@ export interface DemoChangeFlowDeps {
   readonly companyOf: (dialogId: string) => Promise<string | undefined>;
   /** Тот же экземпляр передаётся в `NotificationPipeline` как `recipients`. */
   readonly recipients: Pick<DemoRecipientDirectory, "remember">;
-  /** Прогон контура K-30a: `() => runRulepackNotifications({ requirements, events, pipeline })`. */
+  /**
+   * Прогон контура K-30a: `() => runRulepackNotifications({ requirements, events, pipeline })`.
+   * Для демо `events` не должен помечать переход обработанным: иначе первое нажатие от компании, которой изменение
+   * не касается, «съедает» переход для всех остальных. Дубли всё равно исключены ключом кандидата и уведомления.
+   */
   readonly runNotifications: () => Promise<unknown>;
-  readonly notifications: Pick<NotificationRepository, "findByIdempotencyKey">;
+  /** `enqueue` ставит копию уведомления для чата, где кнопку нажали после первого чата с той же компанией. */
+  readonly notifications: Pick<NotificationRepository, "findByIdempotencyKey" | "enqueue">;
+  /** Текущее время ISO 8601; в тестах — фиксированное. */
+  readonly now?: () => string;
   /** Подсказка, если изменение не касается компании нажавшего. `null` — не показывать. */
   readonly example?: DemoChangeView["example"] | null;
 }
@@ -80,6 +87,7 @@ export const createDemoChangeFlow = (deps: DemoChangeFlowDeps): DemoChangeFlow =
   const { pack } = deps;
   const example = deps.example === null ? undefined : (deps.example ?? DEMO_EXAMPLE_COMPANY);
   const baseVersion = pack.packVersion - 1;
+  const now = deps.now ?? (() => new Date().toISOString());
 
   /** Публикует версию один раз. `false` — предыдущей версии нет, и переход не получится. */
   const publish = async (): Promise<boolean> => {
@@ -156,7 +164,25 @@ export const createDemoChangeFlow = (deps: DemoChangeFlowDeps): DemoChangeFlow =
     const key = concernsCompany(item) ? demoNotificationKey(companyId, item, pack) : undefined;
     if (key === undefined) return "not_needed";
     const notification = await deps.notifications.findByIdempotencyKey(key);
-    if (notification) return notification.recipient.chatId === chatId ? "sent_here" : "sent_elsewhere";
+    if (notification) {
+      if (notification.recipient.chatId === chatId) return "sent_here";
+      // Та же компания в другом чате (второй проверяющий): контур второе уведомление не создаёт, поэтому ставим
+      // копию для этого чата. Ключ копии свой, повторное нажатие здесь дубля не даёт.
+      const copyKey = `${key}:chat:${chatId}`;
+      if (!(await deps.notifications.findByIdempotencyKey(copyKey))) {
+        const { sentAt: _sentAt, error: _error, ...rest } = notification;
+        await deps.notifications.enqueue({
+          ...rest,
+          id: `${notification.id}:chat:${chatId}`,
+          idempotencyKey: copyKey,
+          recipient: { channel: "max_bot", chatId },
+          status: "queued",
+          attempts: 0,
+          createdAt: now(),
+        });
+      }
+      return "sent_here";
+    }
     // Изменённая запись без смены статуса уведомления не даёт — это не сбой.
     return item.kind === "changed" ? "not_needed" : "not_created";
   };

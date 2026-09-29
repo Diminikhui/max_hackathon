@@ -63,15 +63,24 @@ importers:
 
   apps/worker:
     dependencies:
+      '@max-hackathon/adapters':
+        specifier: workspace:*
+        version: link:../../packages/adapters
       '@max-hackathon/bot':
         specifier: workspace:*
         version: link:../bot
       '@max-hackathon/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@max-hackathon/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@max-hackathon/rules':
         specifier: workspace:*
         version: link:../../packages/rules
+      '@max-hackathon/services':
+        specifier: workspace:*
+        version: link:../../packages/services
       '@max-hackathon/storage':
         specifier: workspace:*
         version: link:../../packages/storage

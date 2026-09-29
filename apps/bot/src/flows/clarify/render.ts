@@ -36,6 +36,8 @@ export interface StatusChange {
   readonly title: string;
   readonly from: ChecklistItemView["applicability"]["status"];
   readonly to: ChecklistItemView["applicability"]["status"];
+  /** Первоисточник записи: строка о смене статуса — автоматическое юридически значимое резюме (TEAM_GUIDE, п. 7). */
+  readonly sourceUrl?: string;
 }
 
 /** Записи, у которых после ответа изменился статус. Новые и удалённые записи сюда не попадают. */
@@ -45,7 +47,14 @@ export const statusChanges = (before: ChecklistView, after: ChecklistView): Stat
     const from = previous.get(item.requirement.id);
     return from === undefined || from === item.applicability.status
       ? []
-      : [{ title: item.requirement.title, from, to: item.applicability.status }];
+      : [
+          {
+            title: item.requirement.title,
+            from,
+            to: item.applicability.status,
+            ...(item.requirement.basis[0] ? { sourceUrl: item.requirement.basis[0].url } : {}),
+          },
+        ];
   });
 };
 
@@ -54,7 +63,18 @@ export const renderAnswerPreface = (answer: ClarifyOption, changes: readonly Sta
   `✍️ Записали по вашим словам: ${answer.answerText}.`,
   ...(changes.length === 0
     ? ["Перечень пересчитан, статусы записей пока не изменились."]
-    : ["Перечень пересчитан:", ...changes.map((c) => `• ${c.title}: ${STATUS_TEXT[c.from]} → ${STATUS_TEXT[c.to]}`)]),
+    : [
+        "Перечень пересчитан:",
+        ...changes.flatMap((c) => [
+          `• ${c.title}: ${STATUS_TEXT[c.from]} → ${STATUS_TEXT[c.to]}`,
+          ...(c.sourceUrl ? [`  Первоисточник: ${c.sourceUrl}`] : []),
+        ]),
+      ]),
+];
+
+/** Ссылки на первоисточники записей, у которых сменился статус: попадают в `sourceUrls` ответа. */
+export const changeSourceUrls = (changes: readonly StatusChange[]): string[] => [
+  ...new Set(changes.flatMap((change) => (change.sourceUrl ? [change.sourceUrl] : []))),
 ];
 
 export interface QuestionView {
