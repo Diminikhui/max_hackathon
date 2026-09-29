@@ -1,9 +1,18 @@
 // K-30a: прогон контура по новым версиям пакетов правил и цикл процесса.
-// Событие rulepack_version записывается ПОСЛЕ постановки уведомлений в очередь: запись события —
-// отметка «переход обработан». Упавший прогон повторяется целиком и благодаря защите пайплайна
-// от дублей не создаёт второго уведомления.
+// Контур — единственный источник событий rulepack_version (#295). Порядок для одного перехода:
+//   1) уведомления в очередь; 2) обновление снимков применимости с причиной-событием;
+//   3) запись события — отметка «переход обработан».
+// Упавший прогон повторяется целиком: пайплайн не создаёт второго уведомления, а уже обновлённый
+// снимок при повторе не меняется.
 
-import type { ChangeEventRepository, DateTime, Id, RequirementRepository } from "@max-hackathon/domain";
+import type {
+  ChangeEvent,
+  ChangeEventRepository,
+  DateTime,
+  Id,
+  ProfileRepository,
+  RequirementRepository,
+} from "@max-hackathon/domain";
 import type { NotificationPipeline, PipelineReport } from "./pipeline.js";
 import { requirementDeltaRenderer, transitionRequirements } from "./render.js";
 import {
@@ -18,8 +27,37 @@ export interface RulepackNotificationDeps {
   requirements: Pick<RequirementRepository, "listPackIds" | "latestVersion" | "listByPack">;
   events: ChangeEventRepository;
   pipeline: Pick<NotificationPipeline, "process">;
+  /**
+   * Снимки применимости (2-09). Без них следующий пересчёт профиля сравнит старый снимок с новым пакетом
+   * и выпустит `profile_change` о том же переходе. Не задан — снимки не трогаются (демо-кнопка K-29).
+   */
+  snapshots?: ApplicabilitySnapshots;
   now?: () => DateTime;
 }
+
+/** Обновление снимков применимости компаний после перехода пакета. */
+export interface ApplicabilitySnapshots {
+  listCompanyIds(): Promise<Id[]>;
+  /** Пересчитывает снимок компании, относя дельту к `event`; своего события не создаёт. */
+  refresh(companyId: Id, event: ChangeEvent): Promise<void>;
+}
+
+/** Порт пересчёта 2-09 (`ProfileRecalculationService.recalculate`) в форме, нужной контуру. */
+export type RecalculateWithCause = (
+  companyId: Id,
+  options: { changedFactKeys: readonly string[]; evaluatedAt: DateTime; cause: ChangeEvent },
+) => Promise<unknown>;
+
+/** Снимки через сервис пересчёта: факты профиля не менялись, изменился пакет. */
+export const recalculationSnapshots = (
+  recalculate: RecalculateWithCause,
+  profiles: Pick<ProfileRepository, "listCompanyIds">,
+): ApplicabilitySnapshots => ({
+  listCompanyIds: () => profiles.listCompanyIds(),
+  refresh: async (companyId, event) => {
+    await recalculate(companyId, { changedFactKeys: [], evaluatedAt: event.occurredAt, cause: event });
+  },
+});
 
 export interface RulepackRunReport {
   processed: PipelineReport[];
@@ -48,6 +86,11 @@ export const runRulepackNotifications = async (deps: RulepackNotificationDeps): 
     report.processed.push(
       await deps.pipeline.process(event, matcher, requirementDeltaRenderer(transitionRequirements(transition))),
     );
+    if (deps.snapshots) {
+      for (const companyId of [...new Set(await deps.snapshots.listCompanyIds())].sort()) {
+        await deps.snapshots.refresh(companyId, event);
+      }
+    }
     await deps.events.append(event);
   }
 
