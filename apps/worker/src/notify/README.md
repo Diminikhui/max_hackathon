@@ -19,11 +19,29 @@ const pipeline = new NotificationPipeline({
   history: new PostgresNotificationHistory(sql),
   settings,          // необязательно: настройки уведомлений компании (K-24c)
 });
-await runNotificationLoop({ requirements, events, pipeline }, { signal });
+const snapshots = recalculationSnapshots(recalc.recalculate.bind(recalc), profiles); // ProfileRecalculationService 2-09
+await runNotificationLoop({ requirements, events, pipeline, snapshots }, { signal });
 // параллельно: runSendLoop(worker, { signal }) из ../sender/queue
 ```
 
 Для разового прогона — `runRulepackNotifications(deps)`: обрабатывает последний переход каждого пакета и возвращает отчёт.
+
+### Вместе с монитором 5-05 (#295)
+
+Контур — **единственный источник** событий `rulepack_version`. Если в процессе работает монитор (`../monitor`), контур передаётся ему, а отдельный `runNotificationLoop` не запускается:
+
+```ts
+const monitor = new SourceMonitor({
+  sources,                                   // ленты; rulepack_version от них отклоняется
+  events,
+  listCompanyIds: () => profiles.listCompanyIds(),
+  recalculate: (companyId) => recalc.recalculate(companyId, { changedFactKeys: [] }).then(() => undefined),
+  rulepacks: () => runRulepackNotifications({ requirements, events, pipeline, snapshots }),
+});
+await runMonitorLoop(monitor, { signal });
+```
+
+Монитор вызывает контур в начале каждого опроса и перед плановой перепроверкой. Если контур упал, перепроверка пропускается и повторяется на следующем тике: иначе она отнесла бы необработанный переход пакета к `profile_change`.
 
 ## Правила
 
@@ -37,14 +55,16 @@ await runNotificationLoop({ requirements, events, pipeline }, { signal });
 
 1. Уже сохранённый кандидат с тем же `dedupKey` политика подавляет как `duplicate`.
 2. Уведомление ставится в очередь до сохранения кандидата, с `idempotencyKey = notify:<dedupKey>`. Упавший между шагами прогон при повторе находит уведомление по ключу и только дописывает кандидата.
-3. Событие `rulepack_version` записывается последним — это отметка «переход обработан». Упавший прогон повторяется целиком.
-4. Отправку не больше одного раза обеспечивает воркер K-21a.
+3. После очереди обновляются снимки применимости (`snapshots`): пересчёт 2-09 с `cause` = событием пакета относит дельту к нему и не создаёт своего `profile_change`. Поэтому следующий пересчёт профиля сравнивает уже новый снимок и второго уведомления о переходе не даёт.
+4. Событие `rulepack_version` записывается последним — это отметка «переход обработан». Упавший прогон (в том числе на обновлении снимка) повторяется целиком; уже обновлённый снимок при повторе не меняется.
+5. Отправку не больше одного раза обеспечивает воркер K-21a.
 
-Проверка: `pnpm --filter @max-hackathon/worker test` — `test/notify/loop.test.ts` прогоняет фикстуры K-28 (v1 → v2) на PGlite и модельном отправителе: одно уведомление, повторные прогоны и сбой посередине не дают второго.
+Проверка: `pnpm --filter @max-hackathon/worker test` — `test/notify/loop.test.ts` прогоняет фикстуры K-28 (v1 → v2) на PGlite и модельном отправителе: одно уведомление, повторные прогоны и сбой посередине не дают второго. `test/notify/snapshots.test.ts` (#295): одно уведомление и одно обновление снимка, последующий пересчёт профиля и перепроверка монитора второго не дают.
 
 ## Ограничения
 
 - **Нет хранилища связи компании с чатом.** Порт `RecipientDirectory` реализуют онбординг (K-24a) и демо-триггер (K-29, чат, где нажата кнопка). До этого точка входа `main.ts` контур не запускает; `StaticRecipientDirectory` — модельный справочник для тестов и демо.
-- **Снимок применимости не обновляется.** Контур сравнивает версии пакета напрямую и не трогает `ApplicabilityRepository`. Если после этого пересчёт профиля (2-09) сравнит старый снимок с новым пакетом, он может выпустить `profile_change` о том же переходе с другим `dedupKey`. Согласование снимка с версиями пакетов — задача сборки K-30b или отдельного Issue.
+- **Снимок обновляется только при заданном `snapshots`.** Демо-кнопка K-29 (`app/runtime.ts`) его не передаёт и событие не записывает — она показывает переход, а не применяет его. PostgreSQL-реализации `ApplicabilityRepository` пока нет, поэтому фоновый путь со снимками ещё не подключён в `main.ts`.
+- **Пересчёт с `cause` относит к переходу пакета всю дельту снимка**, включая изменения из-за даты (`asOf`), накопившиеся с прошлого пересчёта: отдельного уведомления о них не будет. Окно ограничено суточной плановой перепроверкой монитора.
 - `PostgresNotificationHistory` читает таблицу `notifications` K-10c напрямую: в `NotificationRepository` нет метода подсчёта за месяц.
 - Ежемесячная сводка для решения `digest` не отправляется (как и в K-20b): кандидат сохраняется для будущей сводки.

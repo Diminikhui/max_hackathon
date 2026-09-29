@@ -1,4 +1,4 @@
-import { FACT_KEYS } from "@max-hackathon/domain";
+import { type ChangeEvent, CONTRACT_VERSION, FACT_KEYS } from "@max-hackathon/domain";
 import { describe, expect, it } from "vitest";
 import { ProfileRecalculationService, RecalculationBusyError } from "../../src/recalc/index.js";
 import {
@@ -248,5 +248,38 @@ describe("ProfileRecalculationService", () => {
     };
     await expect(state.service.recalculate("company:model-1", { changedFactKeys: [] })).rejects.toThrow("потеряна");
     expect((await state.recalculationState.get("company:model-1"))?.committedRevision).toBe(0);
+  });
+
+  it("с причиной-событием (#295) относит дельту к нему: profile_change не создаётся, причина не пишется", async () => {
+    const state = setup();
+    await state.service.recalculate("company:model-1", { changedFactKeys: [] });
+    const eventsBefore = state.events.values.length;
+    state.requirements.records.push(requirement("req:retail", { type: "okved_prefix", prefix: "47" }));
+    const cause: ChangeEvent = {
+      contractVersion: CONTRACT_VERSION,
+      id: "rulepack_version:pack:model:1->2",
+      kind: "rulepack_version",
+      occurredAt: NOW,
+      isModel: true,
+      rulepack: {
+        packId: "pack:model",
+        fromVersion: 1,
+        toVersion: 2,
+        addedRequirementIds: ["req:retail"],
+        changedRequirementIds: [],
+        removedRequirementIds: [],
+      },
+    };
+
+    const result = await state.service.recalculate("company:model-1", { changedFactKeys: [], cause });
+
+    expect(result).toMatchObject({ status: "changed", event: { id: cause.id } });
+    expect(state.applicability.value.find((item) => item.requirementId === "req:retail")?.status).toBe("applies");
+    expect(state.events.values).toHaveLength(eventsBefore);
+    // Снимок уже новый: следующий пересчёт без причины перехода не видит.
+    expect(await state.service.recalculate("company:model-1", { changedFactKeys: [] })).toMatchObject({
+      status: "unchanged",
+    });
+    expect(state.events.values).toHaveLength(eventsBefore);
   });
 });

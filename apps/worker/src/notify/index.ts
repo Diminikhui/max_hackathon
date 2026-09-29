@@ -1,8 +1,11 @@
 export { PostgresNotificationHistory } from "./history.js";
 export {
+  type ApplicabilitySnapshots,
   type NotificationLoopOptions,
+  type RecalculateWithCause,
   type RulepackNotificationDeps,
   type RulepackRunReport,
+  recalculationSnapshots,
   runNotificationLoop,
   runRulepackNotifications,
 } from "./loop.js";
