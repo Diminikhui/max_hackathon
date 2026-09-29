@@ -69,6 +69,7 @@ export function extractProjectText(payload: unknown, options: TextExtractionOpti
   let nodes = 0;
   let characters = 0;
   let truncated = false;
+  let limitReached = false;
 
   const append = (raw: string, path: string) => {
     const plain = toPlainProjectText(raw);
@@ -77,10 +78,14 @@ export function extractProjectText(payload: unknown, options: TextExtractionOpti
     const available = maxCharacters - characters - separatorLength;
     if (available <= 0) {
       truncated = true;
+      limitReached = true;
       return;
     }
     const value = plain.length > available ? plain.slice(0, available).trimEnd() : plain;
-    if (plain.length > available) truncated = true;
+    if (plain.length > available) {
+      truncated = true;
+      limitReached = true;
+    }
     if (!value) return;
     seenParagraphs.add(plain);
     paragraphs.push(value);
@@ -89,13 +94,15 @@ export function extractProjectText(payload: unknown, options: TextExtractionOpti
   };
 
   const visit = (value: unknown, path: string, depth: number, collectStrings: boolean): void => {
-    if (truncated || depth > maxDepth) {
-      if (depth > maxDepth) truncated = true;
+    if (limitReached) return;
+    if (depth > maxDepth) {
+      truncated = true;
       return;
     }
     nodes++;
     if (nodes > maxNodes) {
       truncated = true;
+      limitReached = true;
       return;
     }
     if (typeof value === "string") {

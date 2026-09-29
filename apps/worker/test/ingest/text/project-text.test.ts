@@ -28,6 +28,18 @@ describe("project text extraction", () => {
     expect(extractProjectText({ a: { b: { text: "hidden" } } }, { maxDepth: 1 }).truncated).toBe(true);
   });
 
+  it("continues with sibling fields after a branch exceeds maxDepth", () => {
+    const result = extractProjectText(
+      { a: { b: { c: { d: { e: { f: { g: { h: { i: "x" } } } } } } } }, text: "Проект" },
+      { maxDepth: 8 },
+    );
+    expect(result).toEqual({
+      text: "Проект",
+      fieldPaths: ["$.text"],
+      truncated: true,
+    });
+  });
+
   it("loads stage JSON and fails closed on unsupported responses", async () => {
     const calls: string[] = [];
     const fetch = async (input: string | URL | Request) => {
