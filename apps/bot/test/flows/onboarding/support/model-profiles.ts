@@ -4,6 +4,8 @@ import { CONTRACT_VERSION, type CompanyProfile, type Fact, type SourceInfo } fro
 import type { ProfileConfirmView, ProfileGateway, ProfileLookupView } from "../../../../src/flows/onboarding/index.js";
 
 export const CAFE_INN = "7700000016";
+/** Вторая модельная компания — для смены компании из меню. */
+export const KAZAN_CAFE_INN = "1600000011";
 export const MISSING_INN = "7700000024";
 export const OUTAGE_INN = "7700000032";
 export const MODEL_SOURCE: SourceInfo = { name: "Модельный источник профилей (K-11)", isModel: true };
@@ -68,6 +70,19 @@ export const modelProfileGateway = (options: { failConfirm?: number; alreadySave
           profile: modelCafe(),
           source: MODEL_SOURCE,
           alreadySaved: options.alreadySaved ?? false,
+        };
+      }
+      if (input === KAZAN_CAFE_INN) {
+        return {
+          status: "found",
+          profile: {
+            ...modelCafe(),
+            companyId: "model-cafe-kzn",
+            inn: KAZAN_CAFE_INN,
+            displayName: "Кафе «Модель», Казань (модельные данные)",
+          },
+          source: MODEL_SOURCE,
+          alreadySaved: false,
         };
       }
       if (input === OUTAGE_INN) {

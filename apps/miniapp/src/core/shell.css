@@ -1,0 +1,32 @@
+/* Адаптация под mobile и web: безопасные зоны устройства и ограничение ширины на широком экране. */
+body {
+  margin: 0;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.app-shell__content {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 12px 0 24px;
+}
+
+.app-shell__header {
+  padding: 8px 16px 12px;
+}
+
+.app-shell__model-banner {
+  margin: 0 16px 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px dashed currentColor;
+  opacity: 0.8;
+}
+
+.app-shell__section {
+  padding: 0 16px;
+}
