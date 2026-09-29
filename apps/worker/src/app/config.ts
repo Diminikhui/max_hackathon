@@ -2,6 +2,8 @@
 
 export interface AppConfig {
   readonly databaseUrl: string;
+  /** Опциональные функции бота, включаемые владельцем сервера списком через запятую. */
+  readonly botFeatures?: readonly string[];
   /** Принимать события MAX и отправлять ответы. Локально — `false` (ADR-0003: токен только на VPS). */
   readonly maxEventsEnabled: boolean;
   readonly max?: {
@@ -30,6 +32,14 @@ export const readConfig = (env: NodeJS.ProcessEnv): AppConfig => {
 
   return {
     databaseUrl: required(env, "DATABASE_URL"),
+    botFeatures: [
+      ...new Set(
+        (env.BOT_FEATURES ?? "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ),
+    ],
     maxEventsEnabled,
     ...(maxEventsEnabled
       ? {

@@ -17,7 +17,7 @@ import {
   type InboundDispatcher,
   type TransportLogger,
 } from "@max-hackathon/bot/dist/transport/index.js";
-import { ChecklistService, ProfileService } from "@max-hackathon/services";
+import { ChecklistService, ProfileService, ScenarioDeltaService } from "@max-hackathon/services";
 import {
   createPgClient,
   PostgresBotDialogRepository,
@@ -61,6 +61,7 @@ export interface AssembleOptions {
   readonly realSource?: ConstructorParameters<typeof ProfileService>[0]["source"];
   readonly now?: () => Date;
   readonly root?: string;
+  readonly botFeatures?: readonly string[];
 }
 
 /** Сборка без сети и HTTP-сервера: её же проходят тесты на PGlite с модельной отправкой. */
@@ -127,6 +128,9 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     directory: recipients,
     logger,
     reply: options.reply,
+    ...(options.botFeatures?.includes("whatif")
+      ? { whatif: { delta: new ScenarioDeltaService({ profiles: profileRepository, requirements, clock }) } }
+      : {}),
     demo: {
       pack: demoPack,
       requirements,
@@ -198,6 +202,7 @@ export const startApp = async (
     logger,
     reply: createMaxReplyPort(transport, logger),
     sender: new MaxMessageSender({ transport }),
+    ...(config.botFeatures ? { botFeatures: config.botFeatures } : {}),
     ...(options.realSource ? { realSource: options.realSource } : {}),
     ...(options.now ? { now: options.now } : {}),
   });
