@@ -6,9 +6,26 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../../packages/domain" },
-    { "path": "../../packages/rules" },
-    { "path": "../../packages/storage" },
-    { "path": "../bot" }
+    {
+      "path": "../../packages/domain"
+    },
+    {
+      "path": "../../packages/rules"
+    },
+    {
+      "path": "../../packages/storage"
+    },
+    {
+      "path": "../../packages/adapters"
+    },
+    {
+      "path": "../../packages/observability"
+    },
+    {
+      "path": "../../packages/services"
+    },
+    {
+      "path": "../bot"
+    }
   ]
 }

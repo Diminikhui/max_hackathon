@@ -57,11 +57,22 @@ services:
         console.log('Local MAX event ingestion is disabled.');
         setInterval(() => {}, 2147483647);
 
+  # K-30b: the worker process runs the bot (MAX webhook), the demo notification
+  # contour and the send queue together. MAX events stay off unless the server
+  # environment sets MAX_EVENTS_ENABLED=true with the bot token and webhook secret.
   worker:
     <<: *app-service
     build:
       <<: *app-build
       target: worker
+    environment:
+      <<: *app-environment
+      MAX_EVENTS_ENABLED: ${MAX_EVENTS_ENABLED:-false}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
+      MAX_WEBHOOK_SECRET: ${MAX_WEBHOOK_SECRET:-}
+      BOT_HTTP_PORT: "3001"
+    ports:
+      - "127.0.0.1:${BOT_WEBHOOK_HOST_PORT:-3002}:3001"
     command:
       - node
       - --input-type=module
