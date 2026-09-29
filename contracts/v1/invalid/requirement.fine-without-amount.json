@@ -1,0 +1,21 @@
+{
+  "contractVersion": 1,
+  "id": "model.fine-without-amount",
+  "packId": "model-pack",
+  "packVersion": 1,
+  "kind": "obligation",
+  "title": "Модельная запись со штрафом без суммы",
+  "basis": [{ "act": "Модельный акт", "url": "https://example.invalid/model-law" }],
+  "consequences": [
+    {
+      "kind": "administrative_fine",
+      "subject": "legal_entity",
+      "summary": "Модельный штраф.",
+      "quote": "Модельная выдержка.",
+      "basis": { "act": "Модельный КоАП", "url": "https://example.invalid/model-code" }
+    }
+  ],
+  "condition": { "type": "okved_prefix", "prefix": "56" },
+  "coverage": "full",
+  "source": { "system": "fixture", "retrievedAt": "2026-09-30T09:00:00Z", "isModel": true }
+}

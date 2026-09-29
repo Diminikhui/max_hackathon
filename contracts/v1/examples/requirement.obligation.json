@@ -13,6 +13,31 @@
       "url": "http://pravo.gov.ru/"
     }
   ],
+  "consequences": [
+    {
+      "kind": "administrative_fine",
+      "subject": "legal_entity",
+      "summary": "Модельный штраф для организации от 10 000 до 20 000 рублей.",
+      "quote": "Модельная выдержка о штрафе; не является юридическим утверждением.",
+      "basis": {
+        "act": "Модельный нормативный акт",
+        "article": "ст. 1, ч. 1",
+        "url": "https://example.invalid/model-law"
+      },
+      "amountRub": { "minimum": 10000, "maximum": 20000 }
+    },
+    {
+      "kind": "counterparty_right",
+      "subject": "worker",
+      "summary": "Модельное право работника отказаться от опасной работы.",
+      "quote": "Модельная выдержка о праве работника; не является юридическим утверждением.",
+      "basis": {
+        "act": "Модельный трудовой кодекс",
+        "article": "ст. 2",
+        "url": "https://example.invalid/model-labor-law"
+      }
+    }
+  ],
   "deadline": "не реже одного раза в 5 лет",
   "condition": {
     "type": "all",
