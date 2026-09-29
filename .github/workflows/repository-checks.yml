@@ -59,6 +59,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Remove stale gitleaks download
+        shell: bash
+        run: |
+          : "${TMPDIR:?runner temp directory must be set}"
+          rm -f -- "${TMPDIR%/}/gitleaks.tmp"
+
       - name: Scan for secrets
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
