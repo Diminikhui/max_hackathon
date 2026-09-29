@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   repository-tests:
-    runs-on: [self-hosted, max-hackathon]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -20,7 +20,7 @@ jobs:
         run: ./scripts/verify-repository.sh
 
   code:
-    runs-on: [self-hosted, max-hackathon]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -50,7 +50,7 @@ jobs:
         run: pnpm build
 
   secrets:
-    runs-on: [self-hosted, max-hackathon]
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: read
@@ -59,19 +59,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Remove stale gitleaks download
-        shell: bash
-        run: |
-          : "${TMPDIR:?runner temp directory must be set}"
-          rm -f -- "${TMPDIR%/}/gitleaks.tmp"
-
       - name: Scan for secrets
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   dependency-policy:
-    runs-on: [self-hosted, max-hackathon]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -101,7 +95,7 @@ jobs:
           fi
 
   tls-policy:
-    runs-on: [self-hosted, max-hackathon]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
