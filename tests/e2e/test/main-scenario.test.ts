@@ -93,8 +93,10 @@ describe("основной сценарий: ИНН → уточнения → �
     expect(done.text).toContain("Без итогового статуса осталось записей");
     expect(done.text).toContain("Ваш перечень");
 
-    // 4. Кнопка из старого сообщения не переписывает уже данный ответ.
-    const stale = await chat.pressIn(first, "Нет");
+    // 4. Кнопка старого сообщения, которую бот не смог заменить (её сообщение неизвестно боту), не переписывает
+    //    уже данный ответ. Быстрый повтор кнопки из только что заменённого сообщения игнорируется (см. ниже).
+    const staleButton = first.buttons.find((button) => button.text === "Нет");
+    const stale = await chat.pressPayload(staleButton?.payload as string);
     expect(stale?.text).toContain("Эта кнопка устарела");
 
     // 5. Смена компании на московскую кофейню, которой демо-изменение касается.
@@ -195,6 +197,65 @@ describe("демо-триггер для нескольких проверяющ
     expect(demo.text).toContain("МОДЕЛЬНОЕ ИЗМЕНЕНИЕ");
     await stand.quiet();
     expect(stand.max.pushes("500001")).toHaveLength(0);
+  });
+});
+
+describe("правки по ручному прогону в MAX", () => {
+  beforeEach(async () => {
+    stand = await startStand();
+  });
+
+  it("три быстрых нажатия одной кнопки дают один ответ, все подтверждены", async () => {
+    const chat = stand.chat("700001");
+    const menu = await chat.onboard(CAFE_INN);
+    const before = stand.max.dialog("700001").length;
+    const acknowledgedBefore = stand.max.acknowledged.length;
+
+    const statuses = await chat.tapRepeatedly(menu, "🔔 Уведомления", 3);
+
+    expect(statuses).toEqual([200, 200, 200]);
+    await stand.waitFor("первый ответ", () => stand.max.dialog("700001").length > before);
+    await stand.quiet(1_500);
+    expect(stand.max.dialog("700001").length - before).toBe(1);
+    expect(stand.max.last("700001").text).toContain("Настройки уведомлений");
+    await stand.waitFor(
+      "подтверждения всех трёх нажатий",
+      () => stand.max.acknowledged.length - acknowledgedBefore === 3,
+    );
+  });
+
+  it("если вопросов больше нет, кнопки «❔ Уточнить данные» под перечнем нет", async () => {
+    const chat = stand.chat("700002");
+    await chat.onboard(KAZAN_CAFE_INN);
+    await chat.press("📋 Мой перечень");
+    let reply = await chat.press("❔ Уточнить данные");
+    for (let step = 0; step < 6 && reply.text.includes("❔ Уточнение"); step += 1) {
+      const answer = reply.buttons.find((button) => !["Пропустить", "← К перечню", "🏠 Меню"].includes(button.text));
+      reply = await chat.press(answer?.text as string);
+    }
+    expect(reply.text).toContain("Бот не спрашивает в диалоге");
+
+    await chat.press("🏠 Меню");
+    const list = await chat.press("📋 Мой перечень");
+
+    // Одна запись ждёт численность работников из реестра: бот её не спрашивает, поэтому и кнопки нет.
+    expect(list.text).toContain("Недостаточно данных: 1");
+    expect(list.buttons.map((button) => button.text)).not.toContain("❔ Уточнить данные");
+  });
+
+  it("повторная демо-кнопка после доставки push честно говорит, что уведомление уже отправлено", async () => {
+    const chat = stand.chat("700003");
+    await chat.onboard(CAFE_INN);
+    await chat.press(DEMO_BUTTON);
+    await stand.waitFor("push из очереди", () => stand.max.pushes("700003").length === 1);
+    await stand.quiet(600);
+
+    const again = await chat.pressPayload(DEMO_CHANGE_CALLBACK_PAYLOAD);
+
+    expect(again?.text).toContain("уже отправлено в этот чат раньше");
+    expect(again?.text).not.toContain("приходит в этот чат");
+    await stand.quiet();
+    expect(stand.max.pushes("700003")).toHaveLength(1);
   });
 });
 

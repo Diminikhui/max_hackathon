@@ -148,7 +148,13 @@ describe("демо-триггер K-29 через контур K-30a", () => {
 
     const second = await flow.handle({ dialogId: "dialog-cafe", chatId: "model-chat-cafe" });
     await deliver();
-    expect(second).toEqual(first);
+    // Ответ тот же, кроме строки об уведомлении: оно уже доставлено, поэтому бот не обещает нового.
+    const withoutNotificationLine = (text: string) => text.replace(/🔔 Уведомление об этом изменении.*\n?/, "");
+    expect(second.text).toContain("уже отправлено в этот чат раньше");
+    expect(second.text).not.toContain("приходит в этот чат");
+    expect(withoutNotificationLine(second.text)).toBe(withoutNotificationLine(first.text));
+    expect(second.buttons).toEqual(first.buttons);
+    expect(second.sourceUrls).toEqual(first.sourceUrls);
     expect(sender.calls).toHaveLength(1);
     expect(await readNotifications()).toHaveLength(1);
   });

@@ -45,7 +45,9 @@ export interface Chat {
   press(text: string): Promise<SentMessage>;
   /** Нажать кнопку из сообщения с указанным номером ответа (для проверки «старых» кнопок). */
   pressIn(message: SentMessage, text: string): Promise<SentMessage | undefined>;
-  pressPayload(payload: string): Promise<SentMessage | undefined>;
+  pressPayload(payload: string, messageId?: string): Promise<SentMessage | undefined>;
+  /** Несколько нажатий подряд из одного сообщения без ожидания ответа; возвращает статусы webhook. */
+  tapRepeatedly(message: SentMessage, text: string, times: number): Promise<number[]>;
   onboard(inn: string): Promise<SentMessage>;
 }
 
@@ -128,14 +130,15 @@ export const startStand = async (
       if (status !== 200) throw new Error(`webhook ответил ${status}`);
       return nextReply(chatId, before);
     };
-    const pressPayload = async (payload: string): Promise<SentMessage | undefined> => {
+    const pressPayload = async (payload: string, messageId?: string): Promise<SentMessage | undefined> => {
       const before = max.dialog(chatId).length;
       const callbackId = `cb-${chatId}-${stamp()}`;
       const status = await post({
         update_type: "message_callback",
         timestamp: stamp(),
         callback: { callback_id: callbackId, payload, user: { user_id: user(chatId) } },
-        message: { recipient: recipient(chatId), body: { mid: `mid.user.${stamp()}` } },
+        // MAX передаёт в `message.body.mid` сообщение, в котором нажата кнопка.
+        message: { recipient: recipient(chatId), body: { mid: messageId ?? `mid.user.${stamp()}` } },
       });
       if (status !== 200) throw new Error(`webhook ответил ${status}`);
       return nextReply(chatId, before);
@@ -145,7 +148,26 @@ export const startStand = async (
       if (button?.payload === undefined) {
         throw new Error(`Нет кнопки «${text}»: ${message.buttons.map((item) => item.text).join(", ")}`);
       }
-      return pressPayload(button.payload);
+      return pressPayload(button.payload, message.messageId);
+    };
+    /** Нажатия без ожидания ответа: как быстрые повторные тапы по одной кнопке. Возвращает HTTP-статусы webhook. */
+    const tapRepeatedly = (message: SentMessage, text: string, times: number): Promise<number[]> => {
+      const button = message.buttons.find((candidate) => candidate.text === text);
+      if (button?.payload === undefined) throw new Error(`Нет кнопки «${text}»`);
+      return Promise.all(
+        Array.from({ length: times }, () =>
+          post({
+            update_type: "message_callback",
+            timestamp: stamp(),
+            callback: {
+              callback_id: `cb-${chatId}-${stamp()}`,
+              payload: button.payload,
+              user: { user_id: user(chatId) },
+            },
+            message: { recipient: recipient(chatId), body: { mid: message.messageId } },
+          }),
+        ),
+      );
     };
     const press = async (text: string) => (await pressIn(max.last(chatId), text)) as SentMessage;
     const self: Chat = {
@@ -170,6 +192,7 @@ export const startStand = async (
       press,
       pressIn,
       pressPayload,
+      tapRepeatedly,
       onboard: async (inn) => {
         await self.start();
         await self.say(inn);

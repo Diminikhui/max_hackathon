@@ -230,6 +230,18 @@ describe("демо-триггер K-29", () => {
     expect(copy).toMatchObject({ status: "queued", attempts: 0, createdAt: "2026-09-29T10:00:00.000Z" });
   });
 
+  it("уже отправленное раньше уведомление не обещает нового: «уже отправлено раньше»", async () => {
+    const { flow, queued } = setup();
+
+    const first = await flow.handle({ dialogId: "d1", chatId: "model-chat-1" });
+    expect(first.text).toContain("приходит в этот чат");
+    for (const [key, notification] of queued) queued.set(key, { ...notification, status: "sent" });
+    const repeat = await flow.handle({ dialogId: "d1", chatId: "model-chat-1" });
+
+    expect(repeat.text).toContain("уже отправлено в этот чат раньше");
+    expect(repeat.text).not.toContain("приходит в этот чат");
+  });
+
   it("без компании просит ИНН и ничего не публикует", async () => {
     const { flow, requirements, runNotifications } = setup({ company: undefined });
 

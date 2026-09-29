@@ -29,7 +29,7 @@ export interface DemoChangeItem {
   /** Результат для компании по новой версии; у удалённой записи его нет. */
   readonly applicability?: ApplicabilityResult;
   /** Что сделал общий контур уведомлений для этой записи и компании. */
-  readonly notification: "sent_here" | "sent_elsewhere" | "not_created" | "not_needed";
+  readonly notification: "sent_here" | "sent_earlier" | "sent_elsewhere" | "not_created" | "not_needed";
 }
 
 export interface DemoChangeView {
@@ -70,6 +70,8 @@ const reasonLines = (applicability: ApplicabilityResult): string[] => {
 
 const NOTIFICATION_TEXT: Record<DemoChangeItem["notification"], string | undefined> = {
   sent_here: "🔔 Уведомление об этом изменении создано общим контуром рассылки и приходит в этот чат.",
+  sent_earlier:
+    "🔔 Уведомление об этом изменении уже отправлено в этот чат раньше — найдите его выше. Повторно оно не создаётся.",
   sent_elsewhere: "🔔 Уведомление об этом изменении уже создано раньше — для чата, где кнопку нажали первым.",
   not_created:
     "Уведомление в этот чат не создано: например, уведомления для компании отключены в настройках или исчерпан месячный лимит.",

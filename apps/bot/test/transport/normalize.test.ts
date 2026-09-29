@@ -31,6 +31,7 @@ describe("normalizeMaxUpdate", () => {
         userId: String(MODEL_USER_ID),
         callbackId: "cb.model-1",
         payload: "d:home",
+        messageId: "mid.model-bot",
         occurredAt,
       },
     });
