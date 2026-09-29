@@ -2,7 +2,13 @@
 // Здесь только связывание портов; сервисы профиля и перечня, хранилище и отправка передаются снаружи (точка
 // сборки процесса — apps/worker/src/main.ts, потому что контур уведомлений живёт в worker, а worker видит бота).
 import { createDialogRouter, DIALOG_STATES, type DialogEvent, type DialogState } from "../dialog/index.js";
-import { type BotButton, type ChecklistSource, createChecklistFlow, type FlowReply } from "../flows/checklist/index.js";
+import {
+  type BotButton,
+  type ChecklistFlowDeps,
+  type ChecklistSource,
+  createChecklistFlow,
+  type FlowReply,
+} from "../flows/checklist/index.js";
 import {
   type ClarifySkipStore,
   clarifyButton,
@@ -101,6 +107,8 @@ export interface BotAppDeps {
   readonly explain?: { readonly provider?: LlmProvider };
   /** Модельные профили K-28, доступные кнопками на шаге ввода ИНН. Без зависимости функция выключена. */
   readonly examples?: readonly ExampleCompany[];
+  /** K-34: пояснение о покрытии над перечнем. Без зависимости перечень показывается без пояснения. */
+  readonly coverageNotice?: ChecklistFlowDeps["coverageNotice"];
 }
 
 export interface BotApp {
@@ -142,6 +150,7 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     checklist: deps.checklist,
     companyOf,
     ...(deps.explain ? { cardButtons: (item) => [explainButton(item.requirement.id)] } : {}),
+    ...(deps.coverageNotice ? { coverageNotice: deps.coverageNotice } : {}),
   });
   const settingsFlow = createSettingsFlow({ settings: deps.settings, companyOf });
   const clarify = createClarifyFlow({

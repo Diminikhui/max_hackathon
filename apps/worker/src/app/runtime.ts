@@ -7,6 +7,7 @@ import type { Server } from "node:http";
 import { join } from "node:path";
 import { FixtureProfileSource, loadFixtureProfiles, MspProfileSource } from "@max-hackathon/adapters";
 import { type BotApp, type BotReplyPort, createBotApp } from "@max-hackathon/bot/dist/app/index.js";
+import { renderCoverageNotice } from "@max-hackathon/bot/dist/flows/coverage/index.js";
 import { DEMO_PACK_FILE, loadDemoPack } from "@max-hackathon/bot/dist/flows/demo/index.js";
 import { selectExampleCompanies } from "@max-hackathon/bot/dist/flows/examples/index.js";
 import type { ExplainProviderChoice } from "@max-hackathon/bot/dist/flows/explain/index.js";
@@ -19,7 +20,14 @@ import {
   type InboundDispatcher,
   type TransportLogger,
 } from "@max-hackathon/bot/dist/transport/index.js";
-import { ActionQueueService, ChecklistService, ProfileService, ScenarioDeltaService } from "@max-hackathon/services";
+import {
+  ActionQueueService,
+  type ChecklistOutcome,
+  ChecklistService,
+  describeCoverage,
+  ProfileService,
+  ScenarioDeltaService,
+} from "@max-hackathon/services";
 import {
   createPgClient,
   PostgresBotDialogRepository,
@@ -132,6 +140,11 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     directory: recipients,
     logger,
     reply: options.reply,
+    // K-34: бот получает тот же объект, что вернул `checklist.build` (`ChecklistService`), поэтому профиль в нём полный.
+    coverageNotice: (outcome) => {
+      const { profile, checklist: built } = outcome as unknown as Extract<ChecklistOutcome, { status: "ok" }>;
+      return renderCoverageNotice(describeCoverage(profile, built));
+    },
     ...(options.botFeatures?.includes("deadlines")
       ? { deadlines: { queue: new ActionQueueService({ checklists: checklist }) } }
       : {}),

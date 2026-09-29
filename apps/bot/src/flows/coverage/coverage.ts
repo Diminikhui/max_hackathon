@@ -63,6 +63,16 @@ export const renderCoverageLine = (view: CoverageView): string => {
     .join("\n");
 };
 
+/**
+ * Пояснение над перечнем, когда он неполон: ОКВЭД вне направлений (перечень пуст — объяснить почему и дать тестовые
+ * ИНН) или региональная часть не проверялась. Для покрытых направления и региона — `undefined`: перечень не меняется.
+ */
+export const renderCoverageNotice = (view: CoverageView): string | undefined => {
+  if (view.direction.status !== "covered") return outsideLines(view).join("\n");
+  if (view.regional === undefined || view.regional.status === "covered") return undefined;
+  return renderCoverageLine(view);
+};
+
 /** Ответ на кнопку «Что проверяется»: что покрыто, что нет, дата актуальности пакета. */
 export const renderCoverageMessage = (view: CoverageView): RenderedMessage => {
   const body =

@@ -6,6 +6,7 @@ import {
   coverageButton,
   renderCoverageLine,
   renderCoverageMessage,
+  renderCoverageNotice,
 } from "../../../src/flows/coverage/index.js";
 
 const base = {
@@ -67,5 +68,29 @@ describe("coverage flow", () => {
 
   it("кнопка из перечня ведёт к сообщению о покрытии", () => {
     expect(coverageButton()).toEqual({ type: "callback", text: "ℹ️ Что проверяется", payload: COVERAGE_CALLBACK_PAYLOAD });
+  });
+});
+
+describe("renderCoverageNotice: пояснение над перечнем", () => {
+  it("ОКВЭД вне направлений: причина, что проверяется и тестовые ИНН", () => {
+    const notice = renderCoverageNotice({
+      ...base,
+      isModel: false,
+      direction: { status: "outside_directions", okvedMain: "47.11" },
+      testCompanies: [{ inn: "7700000016", title: "кафе, Москва" }],
+    });
+    expect(notice).toContain("Основной ОКВЭД 47.11 пока не входит в проверяемые направления.");
+    expect(notice).toContain("Пустой перечень не значит, что требований нет.");
+    expect(notice).toContain("• 7700000016 — кафе, Москва");
+  });
+
+  it("регион без проверенной части: строка о покрытии", () => {
+    expect(renderCoverageNotice(otherRegion)).toContain("вне покрытия — показаны только федеральные");
+  });
+
+  it("направление и регион покрыты: пояснения нет, перечень не меняется", () => {
+    expect(
+      renderCoverageNotice({ ...otherRegion, regional: { status: "covered", name: "Москва", note: "отличий нет" } }),
+    ).toBeUndefined();
   });
 });

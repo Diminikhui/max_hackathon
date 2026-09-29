@@ -1,6 +1,6 @@
 import type { DialogRouteContext, DialogRouteHandler } from "../../dialog/index.js";
 import { renderNoCompany, renderRequirementCard, renderRequirementList } from "./render.js";
-import type { BotButton, ChecklistItemView, ChecklistSource, FlowReply } from "./types.js";
+import type { BotButton, ChecklistItemView, ChecklistOutcomeView, ChecklistSource, FlowReply } from "./types.js";
 
 export interface ChecklistFlowDeps {
   readonly checklist: ChecklistSource;
@@ -8,7 +8,14 @@ export interface ChecklistFlowDeps {
   readonly companyOf: (dialogId: string) => Promise<string | undefined>;
   /** Кнопки необязательных сценариев на карточке (2-22 «Простым языком»): ставятся перед навигацией. */
   readonly cardButtons?: (item: ChecklistItemView) => readonly BotButton[];
+  /**
+   * K-34: пояснение над перечнем, если он неполон (ОКВЭД вне направлений, регион без проверенной части). Получает
+   * тот же результат `checklist.build`. `undefined` — перечень без пояснения.
+   */
+  readonly coverageNotice?: (outcome: ChecklistOkView) => string | undefined;
 }
+
+type ChecklistOkView = Extract<ChecklistOutcomeView, { status: "ok" }>;
 
 export interface ChecklistFlowHandlers {
   readonly show_requirement_list: DialogRouteHandler<FlowReply>;
@@ -23,6 +30,7 @@ export const createChecklistFlow = ({
   checklist,
   companyOf,
   cardButtons,
+  coverageNotice,
 }: ChecklistFlowDeps): ChecklistFlowHandlers => {
   const load = async (dialogId: string) => {
     const companyId = await companyOf(dialogId);
@@ -34,7 +42,11 @@ export const createChecklistFlow = ({
   const showList = async ({ dialogId }: DialogRouteContext): Promise<FlowReply> => {
     const outcome = await load(dialogId);
     if (outcome === undefined) return renderNoCompany();
-    return renderRequirementList(outcome.checklist, { profileIsModel: outcome.profile.isModel });
+    const notice = coverageNotice?.(outcome);
+    return renderRequirementList(outcome.checklist, {
+      profileIsModel: outcome.profile.isModel,
+      ...(notice ? { notice } : {}),
+    });
   };
 
   const showDetails = async ({ dialogId, event }: DialogRouteContext): Promise<FlowReply> => {
