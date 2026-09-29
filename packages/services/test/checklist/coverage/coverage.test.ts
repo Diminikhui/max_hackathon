@@ -15,7 +15,11 @@ import {
 const root = join(import.meta.dirname, "../../../../..");
 const readJson = <T>(path: string): T => JSON.parse(readFileSync(join(root, path), "utf8")) as T;
 const k28 = readJson<CompanyProfile[]>("data/fixtures/k28-companies.json");
-const packs = ["data/rulepacks/a/foodservice-federal-v1.json", "data/rulepacks/b/autoservice-federal-v1.json"].map((path) =>
+const packs = [
+  "data/rulepacks/a/foodservice-federal-v1.json",
+  "data/rulepacks/a/tatarstan/foodservice-tatarstan-v1.json",
+  "data/rulepacks/b/autoservice-federal-v1.json",
+].map((path) =>
   readJson<{ packId: Id; packVersion: number; requirements: Requirement[] }>(path),
 );
 
@@ -77,8 +81,41 @@ describe("describeCoverage", () => {
     expect(report.testCompanies).toBeUndefined();
   });
 
-  it("Татарстан до K-17d и автосервис в Москве — региональная часть вне покрытия", async () => {
-    expect((await coverageOf("k28-cafe-kzn")).report.regional).toMatchObject({ status: "out_of_coverage", name: "Республика Татарстан" });
+  it("Татарстан для общепита — региональная часть проверена, дата учитывает региональный пакет", async () => {
+    const { report, checklist } = await coverageOf("k28-cafe-kzn");
+    expect(report.regional).toMatchObject({ status: "covered", code: "16", name: "Республика Татарстан" });
+    expect(report.packs.map((pack) => pack.packId)).toEqual(["a-foodservice-fed", "a-foodservice-ru-16"]);
+    const regionalPack = report.packs.find((pack) => pack.packId === "a-foodservice-ru-16");
+    expect(regionalPack?.checkedAt).toBe("2026-09-27");
+    expect(report.actualAt).toBe("2026-09-27");
+    expect(checklist.items.filter((item) => item.requirement.packId === "a-foodservice-ru-16").length).toBeGreaterThan(0);
+  });
+
+  it("без применимых записей федеральный пакет и дата актуальности остаются; пакет своего региона — тоже", async () => {
+    const noneApply = async (companyId: Id) => {
+      const outcome = await service.build(companyId);
+      if (outcome.status !== "ok") throw new Error(outcome.status);
+      const checklist = {
+        ...outcome.checklist,
+        items: outcome.checklist.items.map((item) => ({
+          ...item,
+          applicability: { ...item.applicability, status: "not_applies" as const },
+        })),
+      };
+      return describeCoverage(outcome.profile, checklist);
+    };
+
+    const vrn = await noneApply("model-cafe-vrn");
+    expect(vrn.relevantItemCount).toBe(0);
+    expect(vrn.packs.map((pack) => pack.packId)).toEqual(["a-foodservice-fed"]);
+    expect(vrn.actualAt).toBe(vrn.packs[0]?.checkedAt);
+
+    const kzn = await noneApply("k28-cafe-kzn");
+    expect(kzn.packs.map((pack) => pack.packId)).toEqual(["a-foodservice-fed", "a-foodservice-ru-16"]);
+    expect(kzn.actualAt).toBe("2026-09-27");
+  });
+
+  it("автосервис в Москве — региональная часть вне покрытия", async () => {
     const auto = (await coverageOf("k28-autoservice-msk")).report;
     expect(auto.direction).toMatchObject({ status: "covered", id: "b" });
     expect(auto.regional).toMatchObject({ status: "out_of_coverage", code: "77" });
@@ -101,10 +138,10 @@ describe("describeCoverage", () => {
     const catalog: CoverageCatalog = {
       ...DEFAULT_COVERAGE_CATALOG,
       directions: DEFAULT_COVERAGE_CATALOG.directions.map((direction) =>
-        direction.id === "a" ? { ...direction, regions: [...direction.regions, { code: "16", note: "модельная проверка" }] } : direction,
+        direction.id === "a" ? { ...direction, regions: [...direction.regions, { code: "36", note: "модельная проверка" }] } : direction,
       ),
     };
-    expect((await coverageOf("k28-cafe-kzn", catalog)).report.regional).toMatchObject({ status: "covered", code: "16" });
+    expect((await coverageOf("model-cafe-vrn", catalog)).report.regional).toMatchObject({ status: "covered", code: "36" });
   });
 
   it("сопоставление ОКВЭД по префиксу и названия регионов", () => {

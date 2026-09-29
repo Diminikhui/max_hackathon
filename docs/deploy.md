@@ -26,17 +26,25 @@ systemctl list-timers k08-cert-renew.timer max-hackathon-deploy.timer
 
 ## Бот и webhook
 
-Пока `apps/bot/src/main.ts` пустой, на VPS работает **временный тестовый**
-обработчик `deploy/webhook-echo.mjs` для K-05a. Его установленная
-копия — `/usr/local/lib/max-hackathon/webhook-echo.mjs`; при изменении
-исходника скопируйте её заново и перезапустите службу. Служба
-`max-hackathon-webhook.service` принимает события MAX через Nginx на
-`https://135.106.227.207/webhook`, проверяет заголовок
-`X-Max-Bot-Api-Secret` и отвечает на сообщения и callback. Секрет хранится
-только в `/etc/max-hackathon/webhook.env` с правами `0640`, токен и
-сертификат НУЦ — в `bot.env` на VPS. Обработчик доступен локально на
-`127.0.0.1:3001`, проверка работоспособности:
-`curl -fsS http://127.0.0.1:3001/health`.
+С 29.09.2026 (K-30d) события MAX принимает продуктовый процесс — Compose-сервис
+`worker` (K-30b): бот, контур уведомлений и очередь отправки. Nginx передаёт
+`https://135.106.227.207/webhook` на `127.0.0.1:3002`
+(`BOT_WEBHOOK_HOST_PORT`), `worker` проверяет заголовок
+`X-Max-Bot-Api-Secret`. В `/etc/max-hackathon/compose.env` заданы
+`MAX_EVENTS_ENABLED=true`, `MAX_BOT_TOKEN` и `MAX_WEBHOOK_SECRET` (тот же
+секрет, что у подписки); значения в репозиторий не попадают. Сертификат НУЦ
+входит в образ из `certs/` и подключается через `NODE_EXTRA_CA_CERTS`.
+Проверка работоспособности: `curl -fsS http://127.0.0.1:3002/health`.
+
+Временный обработчик K-05a `deploy/webhook-echo.mjs`
+(`max-hackathon-webhook.service`, `127.0.0.1:3001`) остановлен и отключён;
+он остаётся в репозитории только как запасной вариант для отладки. Запускать
+его вместе с `worker` нельзя: события с одним токеном должен получать один
+процесс.
+
+`deploy/vps-deploy.sh` останавливает развёртывание при ошибке сборки или
+запуска Compose и не записывает SHA в `deployed-sha`; ошибка видна в
+`journalctl -u max-hackathon-deploy.service`.
 
 MAX **успешно принял** 27.09.2026 тестовую подписку с буквальным IP URL и
 доверенным сертификатом Let's Encrypt; тестовая подписка затем удалена.
@@ -49,10 +57,6 @@ webhook-подписку через `DELETE /subscriptions?url=...`, затем 
 `systemctl enable --now k08-spike-bot.service` и переключите
 `MAX_INGEST_MODE=polling` в `monitor.env`.
 
-Это **тестовый ответ K-05a**, а не продуктовый диалог. K-22a должен заменить
-обработчик на основной бот, сохранив URL, секрет и проверку TLS. На VPS
-только один процесс должен получать события MAX с данным токеном.
-
 ## Мониторинг и сбой
 
 `deploy/vps-monitor.sh` проверяет HTTPS, срок сертификата, таймеры, Nginx, Docker, здоровье пяти контейнеров и работу текущего транспорта MAX. В режиме webhook дополнительно сверяет адрес в `GET /subscriptions`. `max-hackathon-monitor.timer` запускает проверку раз в две минуты. При изменении состояния монитор пишет журнал и, если указан подтверждённый `MAX_ALERT_CHAT_ID`, отправляет владельцу сообщение MAX о сбое или восстановлении. Хранение последнего состояния предотвращает повторные оповещения на каждом цикле. Проверка отправки: `sudo /usr/local/sbin/max-hackathon-monitor --test-alert`.
@@ -60,11 +64,11 @@ webhook-подписку через `DELETE /subscriptions?url=...`, затем 
 При инциденте:
 
 1. Проверьте `systemctl status nginx docker k08-spike-bot max-hackathon-deploy.timer k08-cert-renew.timer max-hackathon-monitor.timer` и `curl -fsS https://135.106.227.207/`.
-2. Посмотрите `journalctl -u max-hackathon-monitor.service -u max-hackathon-deploy.service -u max-hackathon-webhook.service -n 100 --no-pager` и `docker compose --env-file /etc/max-hackathon/compose.env ps` в `/srv/max-hackathon/repo`. Не публикуйте вывод с токенами или сообщениями пользователей.
+2. Посмотрите `journalctl -u max-hackathon-monitor.service -u max-hackathon-deploy.service -n 100 --no-pager`, `docker compose --env-file /etc/max-hackathon/compose.env ps` и `docker compose --env-file /etc/max-hackathon/compose.env logs --tail 100 worker` в `/srv/max-hackathon/repo`. Не публикуйте вывод с токенами или сообщениями пользователей.
 3. При недоступности мини-приложения: `systemctl start max-hackathon-deploy.service`; при проблеме нового SHA проверьте `/var/lib/max-hackathon/deployed-sha` и журнал отката.
 4. При истечении сертификата: проверьте порт 80 и `systemctl start k08-cert-renew.service`, затем `nginx -t && systemctl reload nginx`.
-5. При недоступности бота: проверьте, какой режим включён. Для webhook проверьте локальный обработчик, секрет и `GET /subscriptions` через API MAX. Не запускайте polling одновременно с активной подпиской.
+5. При недоступности бота: проверьте, какой режим включён. Для webhook проверьте `curl -fsS http://127.0.0.1:3002/health`, `MAX_EVENTS_ENABLED` и секрет в `compose.env` и `GET /subscriptions` через API MAX. Не запускайте polling одновременно с активной подпиской.
 
 ## Ограничения на 27.09.2026
 
-HTTPS и Compose работают; мини-приложение открывается, но его текущий `main.tsx` выводит пустой `<main />`, а API и бот имеют пустые точки входа. Пользовательский сценарий появится после соответствующих потоков. До K-22a работает явно тестовый webhook K-05a. Не представляйте его как готовый пользовательский сценарий.
+HTTPS и Compose работают; мини-приложение открывается, но его текущий `main.tsx` выводит пустой `<main />`, а API и бот имеют пустые точки входа. Пользовательский сценарий появится после соответствующих потоков. С 29.09.2026 тестовый webhook K-05a заменён продуктовым `worker`; боевой прогон — [docs/qa/k-30d-live-max-run.md](qa/k-30d-live-max-run.md) (после слияния K-30d).

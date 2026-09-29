@@ -65,14 +65,15 @@ export const describeCoverage = (
       ? catalog.directions.find((direction) => direction.okvedPrefixes.some((prefix) => matchesOkved(okved, prefix)))
       : undefined;
 
+  const relevantItems = checklist.items.filter(
+    (item) => item.applicability.status !== "not_applies" && item.applicability.status !== "out_of_coverage",
+  );
   const base = {
     companyId: checklist.companyId,
     asOf: checklist.asOf,
     isModel: profile.isModel,
     notChecked: catalog.notChecked,
-    relevantItemCount: checklist.items.filter(
-      (item) => item.applicability.status !== "not_applies" && item.applicability.status !== "out_of_coverage",
-    ).length,
+    relevantItemCount: relevantItems.length,
   };
 
   if (!matched) {
@@ -84,8 +85,12 @@ export const describeCoverage = (
     };
   }
 
+  const coveredRegion = regionCode ? matched.regions.find((region) => region.code === regionCode) : undefined;
+  // Федеральные пакеты направления показываются всегда; региональное дополнение — только компаниям своего
+  // региона: пакет другого региона даёт лишь «не применяется» и не должен сдвигать дату актуальности.
+  const packIds = new Set([...matched.packIds, ...(coveredRegion?.packIds ?? [])]);
   const packs: CoveragePack[] = checklist.packs
-    .filter((pack) => matched.packIds.includes(pack.packId))
+    .filter((pack) => packIds.has(pack.packId))
     .map((pack) => {
       const checkedAt = latestDate(
         checklist.items
@@ -98,9 +103,8 @@ export const describeCoverage = (
 
   let regional: RegionalCoverage = { status: "unknown_region" };
   if (regionCode) {
-    const covered = matched.regions.find((region) => region.code === regionCode);
-    regional = covered
-      ? { status: "covered", code: regionCode, name: regionName(regionCode), note: covered.note }
+    regional = coveredRegion
+      ? { status: "covered", code: regionCode, name: regionName(regionCode), note: coveredRegion.note }
       : { status: "out_of_coverage", code: regionCode, name: regionName(regionCode) };
   }
 

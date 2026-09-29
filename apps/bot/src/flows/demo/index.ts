@@ -1,3 +1,4 @@
+export { MAX_WEB_APP, REQUIREMENT_START_PREFIX, requirementCardButton, requirementStartParam } from "./deep-link.js";
 export {
   createDemoChangeFlow,
   DEMO_EXAMPLE_COMPANY,
