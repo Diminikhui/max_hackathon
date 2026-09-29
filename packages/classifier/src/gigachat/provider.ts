@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { LlmProvider, LlmRequest } from "../core/index.js";
+import { DEFAULT_TIMEOUT_MS as CLASSIFIER_TIMEOUT_MS, type LlmProvider, type LlmRequest } from "../core/index.js";
 import { buildClassificationPrompt } from "../prompts/index.js";
 
 const DEFAULT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth";
@@ -12,6 +12,10 @@ const DEFAULT_MAX_RETRY_DELAY_MS = 60_000;
 const TOKEN_REFRESH_SKEW_MS = 60_000;
 
 const FORBIDDEN_SCHEMA_KEYWORDS = new Set(["anyOf", "oneOf", "allOf"]);
+/** Ключевые слова, у которых ключи вложенного объекта — имена, а значения — схемы. */
+const SCHEMA_MAP_KEYWORDS = new Set(["properties", "patternProperties", "$defs", "definitions", "dependentSchemas"]);
+/** Ключевые слова со значениями-данными, а не схемами: внутри них ограничения не проверяются. */
+const DATA_KEYWORDS = new Set(["enum", "const", "default", "examples"]);
 
 export type GigaChatFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
@@ -29,6 +33,11 @@ export interface GigaChatProviderOptions {
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
   uuid?: () => string;
+  /**
+   * Сколько запрос может ждать своей очереди. Дольше — вызывающий уже откатился на template по таймауту
+   * classifyDocument, поэтому запрос не отправляется и не расходует лимит. По умолчанию — таймаут ядра.
+   */
+  queueDeadlineMs?: number;
 }
 
 interface AccessToken {
@@ -57,6 +66,7 @@ export class GigaChatProvider implements LlmProvider {
   private readonly now: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly uuid: () => string;
+  private readonly queueDeadlineMs: number;
 
   private accessToken: AccessToken | undefined;
   private tokenRequest: Promise<AccessToken> | undefined;
@@ -76,10 +86,17 @@ export class GigaChatProvider implements LlmProvider {
     this.now = options.now ?? Date.now;
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.uuid = options.uuid ?? randomUUID;
+    this.queueDeadlineMs = positiveInteger(options.queueDeadlineMs ?? CLASSIFIER_TIMEOUT_MS, "queueDeadlineMs");
   }
 
   generate(request: LlmRequest): Promise<unknown> {
-    const run = this.generationTail.then(() => this.generateOnce(request));
+    const enqueuedAt = this.now();
+    const run = this.generationTail.then(() => {
+      if (this.now() - enqueuedAt >= this.queueDeadlineMs) {
+        throw new GigaChatError("Запрос GigaChat устарел в очереди и не отправлен");
+      }
+      return this.generateOnce(request);
+    });
     this.generationTail = run.then(
       () => undefined,
       () => undefined,
@@ -246,9 +263,26 @@ function visitSchema(value: unknown, path: string, seen: Set<object>): void {
       if (FORBIDDEN_SCHEMA_KEYWORDS.has(key)) {
         throw new GigaChatError(`GigaChat не поддерживает ${key} в JSON Schema (${path}.${key})`);
       }
-      visitSchema(item, `${path}.${key}`, seen);
+      if (DATA_KEYWORDS.has(key)) continue;
+      if (SCHEMA_MAP_KEYWORDS.has(key)) {
+        visitSchemaMap(item, `${path}.${key}`, seen);
+      } else {
+        visitSchema(item, `${path}.${key}`, seen);
+      }
     }
   }
+  seen.delete(value);
+}
+
+/** Значения `properties` и подобных — схемы, а ключи — имена полей: поле может называться `anyOf`. */
+function visitSchemaMap(value: unknown, path: string, seen: Set<object>): void {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    visitSchema(value, path, seen);
+    return;
+  }
+  if (seen.has(value)) throw new GigaChatError(`JSON Schema содержит цикл: ${path}`);
+  seen.add(value);
+  for (const [name, schema] of Object.entries(value)) visitSchema(schema, `${path}.${name}`, seen);
   seen.delete(value);
 }
 

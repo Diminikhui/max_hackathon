@@ -175,6 +175,27 @@ describe("GigaChatProvider", () => {
     expect(maxActive).toBe(1);
   });
 
+  it("не отправляет запрос, который устарел в очереди за долгим предыдущим", async () => {
+    let clock = NOW;
+    const transport = scriptedFetch([token("model-access-token"), completion()]);
+    const client = provider(
+      async (input, init) => {
+        const response = await transport.fetch(input, init);
+        // Первый ответ идёт дольше таймаута ядра: второй вызывающий к этому моменту уже на template.
+        if (new URL(input).pathname === "/v1/chat/completions") clock += 31_000;
+        return response;
+      },
+      { now: () => clock },
+    );
+
+    const first = client.generate({ document, responseSchema: REGULATORY_IMPACT_SCHEMA });
+    const second = client.generate({ document, responseSchema: REGULATORY_IMPACT_SCHEMA });
+
+    await expect(first).resolves.toEqual(validDraft);
+    await expect(second).rejects.toThrow("устарел в очереди");
+    expect(transport.calls.filter((call) => call.url.pathname === "/v1/chat/completions")).toHaveLength(1);
+  });
+
   it("ошибка или невалидный ответ приводят classifyDocument к template", async () => {
     const unavailable = gigachatProviderFromEnv({ GIGACHAT_AUTH_KEY: "" });
     const fallback = await classifyDocument(document, unavailable, REGULATORY_IMPACT_PROFILE);
@@ -222,6 +243,28 @@ describe("GigaChat schema restrictions", () => {
         properties: { value: { [keyword]: [{ type: "string" }, { type: "null" }] } },
       }),
     ).toThrow(keyword);
+  });
+
+  it("принимает поля с именами anyOf/oneOf/allOf и такие значения в enum", () => {
+    expect(() =>
+      assertSupportedSchema({
+        type: "object",
+        properties: {
+          anyOf: { type: "string" },
+          oneOf: { type: "object", properties: { allOf: { type: "string", enum: ["anyOf"] } } },
+        },
+        $defs: { allOf: { type: "string" } },
+      }),
+    ).not.toThrow();
+  });
+
+  it("отклоняет anyOf внутри схемы поля с таким же именем", () => {
+    expect(() =>
+      assertSupportedSchema({
+        type: "object",
+        properties: { anyOf: { anyOf: [{ type: "string" }, { type: "null" }] } },
+      }),
+    ).toThrow("$.properties.anyOf.anyOf");
   });
 
   it("не меняет исходную схему при удалении $schema", () => {
