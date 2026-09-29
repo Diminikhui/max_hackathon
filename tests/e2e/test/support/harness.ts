@@ -75,7 +75,9 @@ const postJson = (port: number, body: string, secret: string | null): Promise<nu
 
 let tokenCounter = 0;
 
-export const startStand = async (options: { readonly max?: FakeMaxOptions } = {}): Promise<Stand> => {
+export const startStand = async (
+  options: { readonly max?: FakeMaxOptions; readonly botFeatures?: readonly string[] } = {},
+): Promise<Stand> => {
   const max = new FakeMax(options.max);
   const db = new PGlite();
   const client = createPgliteClient(db);
@@ -88,6 +90,7 @@ export const startStand = async (options: { readonly max?: FakeMaxOptions } = {}
       baseUrl: "https://max.invalid",
       webhookSecret: WEBHOOK_SECRET,
     },
+    ...(options.botFeatures ? { botFeatures: options.botFeatures } : {}),
     botHttpPort: 0,
     botHttpHost: "127.0.0.1",
   };

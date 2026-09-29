@@ -39,6 +39,11 @@ export interface DemoChangeView {
   readonly items: readonly DemoChangeItem[];
   /** Модельная компания, на которой видно уведомление, если изменение не касается компании нажавшего. */
   readonly example?: { readonly inn: string; readonly title: string };
+  /**
+   * Показывать кнопку «Открыть карточку» (`open_app`). По умолчанию скрыта: пока корень сайта отдаёт не мини-приложение,
+   * а страницу проверки K-05b, кнопка открывает технический JSON (Issue #347).
+   */
+  readonly cardLink?: boolean;
 }
 
 const CHANGE_TEXT: Record<ChangeKind, string> = {
@@ -128,7 +133,10 @@ export const renderDemoChange = (view: DemoChangeView): FlowReply => {
     text: composeText(lines, renderAutomaticProcessingNote(true)),
     sourceUrls: sources.urls,
     automated: true,
-    buttons: firstConcern ? [requirementCardButton(firstConcern.requirement.id), homeButton()] : [homeButton()],
+    buttons:
+      firstConcern && view.cardLink === true
+        ? [requirementCardButton(firstConcern.requirement.id), homeButton()]
+        : [homeButton()],
   };
 };
 
