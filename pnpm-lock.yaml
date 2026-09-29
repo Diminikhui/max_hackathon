@@ -24,6 +24,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/domain
     devDependencies:
+      '@max-hackathon/services':
+        specifier: workspace:*
+        version: link:../../packages/services
       vitest:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6))
