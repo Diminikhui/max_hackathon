@@ -180,4 +180,12 @@ describe("раскладка клавиатуры", () => {
       [{ type: "link", text: "Первоисточник", url: "https://pravo.gov.ru/" }],
     ]);
   });
+
+  it("карточка превращается в open_app-кнопку MAX", () => {
+    expect(
+      layoutButtons([{ text: "Открыть карточку", webApp: "t214_hakaton_max_bot", payload: "requirement_6d" }]),
+    ).toEqual([
+      [{ type: "open_app", text: "Открыть карточку", web_app: "t214_hakaton_max_bot", payload: "requirement_6d" }],
+    ]);
+  });
 });
