@@ -85,10 +85,12 @@ export const describeCoverage = (
     };
   }
 
-  // Региональный пакет другого региона даёт только «не применяется» и не влияет на дату актуальности.
+  const coveredRegion = regionCode ? matched.regions.find((region) => region.code === regionCode) : undefined;
+  // Федеральные пакеты направления показываются всегда; региональное дополнение — только компаниям своего
+  // региона: пакет другого региона даёт лишь «не применяется» и не должен сдвигать дату актуальности.
+  const packIds = new Set([...matched.packIds, ...(coveredRegion?.packIds ?? [])]);
   const packs: CoveragePack[] = checklist.packs
-    .filter((pack) => matched.packIds.includes(pack.packId))
-    .filter((pack) => relevantItems.some((item) => item.requirement.packId === pack.packId))
+    .filter((pack) => packIds.has(pack.packId))
     .map((pack) => {
       const checkedAt = latestDate(
         checklist.items
@@ -101,9 +103,8 @@ export const describeCoverage = (
 
   let regional: RegionalCoverage = { status: "unknown_region" };
   if (regionCode) {
-    const covered = matched.regions.find((region) => region.code === regionCode);
-    regional = covered
-      ? { status: "covered", code: regionCode, name: regionName(regionCode), note: covered.note }
+    regional = coveredRegion
+      ? { status: "covered", code: regionCode, name: regionName(regionCode), note: coveredRegion.note }
       : { status: "out_of_coverage", code: regionCode, name: regionName(regionCode) };
   }
 

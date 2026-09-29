@@ -91,6 +91,30 @@ describe("describeCoverage", () => {
     expect(checklist.items.filter((item) => item.requirement.packId === "a-foodservice-ru-16").length).toBeGreaterThan(0);
   });
 
+  it("без применимых записей федеральный пакет и дата актуальности остаются; пакет своего региона — тоже", async () => {
+    const noneApply = async (companyId: Id) => {
+      const outcome = await service.build(companyId);
+      if (outcome.status !== "ok") throw new Error(outcome.status);
+      const checklist = {
+        ...outcome.checklist,
+        items: outcome.checklist.items.map((item) => ({
+          ...item,
+          applicability: { ...item.applicability, status: "not_applies" as const },
+        })),
+      };
+      return describeCoverage(outcome.profile, checklist);
+    };
+
+    const vrn = await noneApply("model-cafe-vrn");
+    expect(vrn.relevantItemCount).toBe(0);
+    expect(vrn.packs.map((pack) => pack.packId)).toEqual(["a-foodservice-fed"]);
+    expect(vrn.actualAt).toBe(vrn.packs[0]?.checkedAt);
+
+    const kzn = await noneApply("k28-cafe-kzn");
+    expect(kzn.packs.map((pack) => pack.packId)).toEqual(["a-foodservice-fed", "a-foodservice-ru-16"]);
+    expect(kzn.actualAt).toBe("2026-09-27");
+  });
+
   it("автосервис в Москве — региональная часть вне покрытия", async () => {
     const auto = (await coverageOf("k28-autoservice-msk")).report;
     expect(auto.direction).toMatchObject({ status: "covered", id: "b" });
