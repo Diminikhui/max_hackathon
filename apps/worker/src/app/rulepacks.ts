@@ -7,11 +7,13 @@ import type { Id, ProfileRepository, Requirement, RequirementRepository } from "
 export const REPO_ROOT = join(import.meta.dirname, "../../../..");
 
 /**
- * Пакеты сценария проверки. Реальные — направления A (общепит: федеральный, Татарстан, возможности) и B
- * (автосервис). Модельный — `k28-model` v1: поверх него демо-кнопка K-29 публикует v2.
+ * Пакеты сценария проверки. Реальные — направления A (общепит: федеральный, налоги и маркировка,
+ * Татарстан, возможности) и B (автосервис). Модельный — `k28-model` v1: поверх него демо-кнопка K-29
+ * публикует v2.
  */
 export const STARTUP_RULEPACKS: readonly string[] = [
   "data/rulepacks/a/foodservice-federal-v1.json",
+  "data/rulepacks/a/foodservice-tax-marking-federal-v1.json",
   "data/rulepacks/a/tatarstan/foodservice-tatarstan-v1.json",
   "data/rulepacks/a/opportunities/foodservice-opportunities-federal-v1.json",
   "data/rulepacks/b/autoservice-federal-v1.json",
