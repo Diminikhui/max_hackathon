@@ -139,6 +139,8 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     ...(options.botFeatures?.includes("examples") ? { examples: selectExampleCompanies(modelCompanies) } : {}),
     demo: {
       pack: demoPack,
+      // Кнопка «Открыть карточку» включается флагом `cards`, когда корень сайта отдаёт мини-приложение (Issue #347).
+      ...(options.botFeatures?.includes("cards") ? { cardLink: true } : {}),
       requirements,
       notifications,
       now: clock,

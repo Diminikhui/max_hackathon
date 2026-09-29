@@ -108,6 +108,8 @@ describe("основной сценарий: ИНН → уточнения → �
     const demo = await chat.press(DEMO_BUTTON);
     expect(demo.text).toContain("МОДЕЛЬНОЕ ИЗМЕНЕНИЕ");
     expect(demo.text).toContain("приходит в этот чат");
+    // Кнопка «Открыть карточку» скрыта, пока корень сайта отдаёт страницу K-05b (Issue #347).
+    expect(demo.buttons.map((button) => button.text)).not.toContain("Открыть карточку");
     await stand.waitFor("push из очереди", () => stand.max.pushes("100500").length === 1);
     const push = stand.max.pushes("100500")[0];
     expect(push?.text).toContain("🔔 Изменение");
@@ -193,6 +195,18 @@ describe("демо-триггер для нескольких проверяющ
     expect(demo.text).toContain("МОДЕЛЬНОЕ ИЗМЕНЕНИЕ");
     await stand.quiet();
     expect(stand.max.pushes("500001")).toHaveLength(0);
+  });
+});
+
+describe("кнопка «Открыть карточку»", () => {
+  it("с флагом BOT_FEATURES=cards демо-ответ содержит кнопку открытия карточки", async () => {
+    stand = await startStand({ botFeatures: ["cards"] });
+    const chat = stand.chat("710001");
+    await chat.onboard(CAFE_INN);
+
+    const demo = await chat.press(DEMO_BUTTON);
+
+    expect(demo.buttons.map((button) => button.text)).toContain("Открыть карточку");
   });
 });
 

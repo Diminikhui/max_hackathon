@@ -99,7 +99,7 @@ const checklistFor = (requirements: MemoryRequirements, newStatus: Applicability
 });
 
 /** Модель контура K-30a: при первом прогоне после публикации ставит уведомление чату из справочника. */
-const setup = (options: { newStatus?: ApplicabilityStatus; company?: string | undefined } = {}) => {
+const setup = (options: { newStatus?: ApplicabilityStatus; company?: string | undefined; cardLink?: boolean } = {}) => {
   const requirements = new MemoryRequirements();
   const recipients = new DemoRecipientDirectory();
   const queued = new Map<string, Notification>();
@@ -128,6 +128,7 @@ const setup = (options: { newStatus?: ApplicabilityStatus; company?: string | un
       },
     },
     now: () => "2026-09-29T10:00:00.000Z",
+    ...(options.cardLink === true ? { cardLink: true } : {}),
   });
   return { flow, requirements, recipients, queued, runNotifications };
 };
@@ -164,6 +165,15 @@ describe("демо-триггер K-29", () => {
     expect(reply.text).toContain("Текст сформирован автоматически");
     expect(reply.text).toContain("Модельные данные");
     expect(reply.automated).toBe(true);
+    // Кнопка «Открыть карточку» по умолчанию скрыта (Issue #347): в ответе только выход в меню.
+    expect(reply.buttons.map((button) => button.text)).toEqual(["🏠 Меню"]);
+  });
+
+  it("с флагом cardLink ответ содержит кнопку «Открыть карточку» с payload требования", async () => {
+    const { flow } = setup({ cardLink: true });
+
+    const reply = await flow.handle({ dialogId: "d1", chatId: "model-chat-1" });
+
     expect(reply.buttons).toContainEqual({
       text: "Открыть карточку",
       webApp: "t214_hakaton_max_bot",

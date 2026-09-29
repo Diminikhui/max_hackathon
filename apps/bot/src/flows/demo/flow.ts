@@ -39,6 +39,8 @@ export interface DemoChangeFlowDeps {
   readonly notifications: Pick<NotificationRepository, "findByIdempotencyKey" | "enqueue">;
   /** Текущее время ISO 8601; в тестах — фиксированное. */
   readonly now?: () => string;
+  /** Показывать кнопку «Открыть карточку». По умолчанию выключено: см. `DemoChangeView.cardLink`. */
+  readonly cardLink?: boolean;
   /** Подсказка, если изменение не касается компании нажавшего. `null` — не показывать. */
   readonly example?: DemoChangeView["example"] | null;
 }
@@ -153,6 +155,7 @@ export const createDemoChangeFlow = (deps: DemoChangeFlowDeps): DemoChangeFlow =
       toVersion: pack.packVersion,
       items,
       ...(example ? { example } : {}),
+      ...(deps.cardLink === true ? { cardLink: true } : {}),
     });
   };
 
