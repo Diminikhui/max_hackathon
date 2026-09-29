@@ -51,4 +51,16 @@ describe("пакет налогов и маркировки общепита", (
     expect(status(id, profile("legal_entity", [fact("sales.alcohol", "none")]))).toBe("not_applies");
     expect(status(id, profile("legal_entity", [fact("sales.alcohol", "beer")]))).toBe("needs_review");
   });
+
+  it.each(["a.fed.employer-6-ndfl", "a.fed.employer-rsv", "a.fed.employer-personal-data", "a.fed.employer-efs1"])(
+    "%s не применяется к ИП без работников",
+    (id) => {
+      const noEmployees = [fact("employment.has_employees", false), fact("tax.regime", "usn_income")];
+      const withEmployees = [fact("employment.has_employees", true), fact("tax.regime", "usn_income")];
+
+      expect(status(id, profile("individual_entrepreneur", noEmployees))).toBe("not_applies");
+      expect(status(id, profile("individual_entrepreneur", withEmployees))).toBe("needs_review");
+      expect(status(id, profile("legal_entity", noEmployees))).toBe("needs_review");
+    },
+  );
 });
