@@ -4,6 +4,52 @@
   "title": "Requirement",
   "description": "Запись пакета правил: обязанность или возможность, основание и условие применимости.",
   "type": "object",
+  "$defs": {
+    "MoneyRangeRub": {
+      "description": "Диапазон суммы в рублях. Для фиксированной суммы minimum и maximum совпадают.",
+      "type": "object",
+      "properties": {
+        "minimum": { "type": "integer", "minimum": 0 },
+        "maximum": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["minimum", "maximum"],
+      "additionalProperties": false
+    },
+    "Consequence": {
+      "description": "Проверенное последствие нарушения или право другой стороны. Для каждого субъекта и диапазона штрафа создаётся отдельная запись.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["administrative_fine", "license_action", "worker_suspension", "counterparty_right", "other"]
+        },
+        "subject": {
+          "description": "Кому назначается последствие или кому закон предоставляет право.",
+          "enum": ["individual_entrepreneur", "legal_entity", "official", "business", "worker", "consumer", "other"]
+        },
+        "summary": {
+          "description": "Что грозит субъекту или какое право он получает — простым языком, без рекомендаций.",
+          "type": "string",
+          "minLength": 1
+        },
+        "quote": {
+          "description": "Дословная выдержка из нормы о последствии.",
+          "type": "string",
+          "minLength": 1
+        },
+        "basis": { "$ref": "common.schema.json#/$defs/LegalBasis" },
+        "amountRub": { "$ref": "#/$defs/MoneyRangeRub" }
+      },
+      "required": ["kind", "subject", "summary", "quote", "basis"],
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "administrative_fine" } } },
+          "then": { "required": ["amountRub"] },
+          "else": { "not": { "required": ["amountRub"] } }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
   "properties": {
     "contractVersion": { "$ref": "common.schema.json#/$defs/ContractVersion" },
     "id": {
@@ -27,6 +73,12 @@
     "basis": {
       "type": "array",
       "items": { "$ref": "common.schema.json#/$defs/LegalBasis" },
+      "minItems": 1
+    },
+    "consequences": {
+      "description": "Проверенные последствия нарушения и права другой стороны. Отсутствие поля означает, что последствия ещё не исследованы, а не что их нет.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/Consequence" },
       "minItems": 1
     },
     "deadline": {

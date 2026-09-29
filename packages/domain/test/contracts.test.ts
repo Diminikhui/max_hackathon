@@ -9,6 +9,8 @@ import {
   APPLICABILITY_STATUSES,
   CHANGE_EVENT_KINDS,
   CONDITION_OUTCOMES,
+  CONSEQUENCE_KINDS,
+  CONSEQUENCE_SUBJECTS,
   CONTRACT_VERSION,
   ENTITY_TYPES,
   FACT_KINDS,
@@ -78,6 +80,11 @@ describe("некорректные примеры", () => {
 describe("перечисления TS совпадают со схемами", () => {
   const defs = (schemas["common.schema.json"]?.$defs ?? {}) as Record<string, { enum?: unknown[]; const?: unknown }>;
   const props = (file: string) => (schemas[file]?.properties ?? {}) as Record<string, { enum?: unknown[] }>;
+  const requirementDefs = (schemas["requirement.schema.json"]?.$defs ?? {}) as Record<
+    string,
+    { properties?: Record<string, { enum?: unknown[] }> }
+  >;
+  const consequenceProps = requirementDefs.Consequence?.properties ?? {};
 
   it.each([
     ["ContractVersion", [defs.ContractVersion?.const], [CONTRACT_VERSION]],
@@ -86,6 +93,8 @@ describe("перечисления TS совпадают со схемами", (
     ["ConditionOutcome", props("condition-result.schema.json").outcome?.enum, CONDITION_OUTCOMES],
     ["RequirementKind", props("requirement.schema.json").kind?.enum, REQUIREMENT_KINDS],
     ["RequirementCoverage", props("requirement.schema.json").coverage?.enum, REQUIREMENT_COVERAGES],
+    ["ConsequenceKind", consequenceProps.kind?.enum, CONSEQUENCE_KINDS],
+    ["ConsequenceSubject", consequenceProps.subject?.enum, CONSEQUENCE_SUBJECTS],
     ["EntityType", props("company-profile.schema.json").entityType?.enum, ENTITY_TYPES],
     ["ChangeEventKind", props("change-event.schema.json").kind?.enum, CHANGE_EVENT_KINDS],
     ["NotificationReason", props("notification-candidate.schema.json").reason?.enum, NOTIFICATION_REASONS],

@@ -25,6 +25,26 @@ export type RequirementKind = (typeof REQUIREMENT_KINDS)[number];
 export const REQUIREMENT_COVERAGES = ["full", "partial", "none"] as const;
 export type RequirementCoverage = (typeof REQUIREMENT_COVERAGES)[number];
 
+export const CONSEQUENCE_KINDS = [
+  "administrative_fine",
+  "license_action",
+  "worker_suspension",
+  "counterparty_right",
+  "other",
+] as const;
+export type ConsequenceKind = (typeof CONSEQUENCE_KINDS)[number];
+
+export const CONSEQUENCE_SUBJECTS = [
+  "individual_entrepreneur",
+  "legal_entity",
+  "official",
+  "business",
+  "worker",
+  "consumer",
+  "other",
+] as const;
+export type ConsequenceSubject = (typeof CONSEQUENCE_SUBJECTS)[number];
+
 export const ENTITY_TYPES = ["legal_entity", "individual_entrepreneur"] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
@@ -117,6 +137,30 @@ export interface Condition {
   [key: string]: unknown;
 }
 
+export interface MoneyRangeRub {
+  minimum: number;
+  maximum: number;
+}
+
+interface RequirementConsequenceBase {
+  subject: ConsequenceSubject;
+  summary: string;
+  quote: string;
+  basis: LegalBasis;
+}
+
+export interface AdministrativeFineConsequence extends RequirementConsequenceBase {
+  kind: "administrative_fine";
+  amountRub: MoneyRangeRub;
+}
+
+export interface NonFineConsequence extends RequirementConsequenceBase {
+  kind: Exclude<ConsequenceKind, "administrative_fine">;
+  amountRub?: never;
+}
+
+export type RequirementConsequence = AdministrativeFineConsequence | NonFineConsequence;
+
 export interface Requirement {
   contractVersion: ContractVersion;
   id: Id;
@@ -126,6 +170,7 @@ export interface Requirement {
   title: string;
   summary?: string;
   basis: LegalBasis[];
+  consequences?: RequirementConsequence[];
   deadline?: string;
   validity?: Period;
   condition: Condition;
