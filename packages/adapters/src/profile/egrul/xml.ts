@@ -18,8 +18,12 @@ const NAMED: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', a
 function decode(value: string): string {
   return value.replace(ENTITY, (_, entity: string) => {
     const lower = entity.toLowerCase();
-    if (lower.startsWith("#x")) return String.fromCodePoint(Number.parseInt(lower.slice(2), 16));
-    if (lower.startsWith("#")) return String.fromCodePoint(Number.parseInt(lower.slice(1), 10));
+    if (lower.startsWith("#")) {
+      const radix = lower.startsWith("#x") ? 16 : 10;
+      const digits = lower.slice(radix === 16 ? 2 : 1);
+      const code = Number.parseInt(digits, radix);
+      return Number.isSafeInteger(code) && code <= 0x10ffff ? String.fromCodePoint(code) : "";
+    }
     return NAMED[lower] ?? "";
   });
 }
