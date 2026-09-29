@@ -149,9 +149,27 @@ export const renderProfileCard = (
   return reply(lines, [confirmProfileButton(), editProfileButton(), restartButton()], isModel);
 };
 
+export const switchCompanyButton = (): NotificationButton => ({
+  text: "🔄 Другая компания",
+  payload: encodeButtonPayload({ type: "edit_profile" }),
+});
+
 /** Главное меню после подтверждения профиля. */
 export const renderMenu = (notice?: string): FlowReply =>
   reply(withNotice(notice, ["Главное меню. Что показать?"]), [
     { text: "📋 Мой перечень", payload: encodeButtonPayload({ type: "open_requirements" }) },
     { text: "🔔 Уведомления", payload: encodeButtonPayload({ type: "open_notification_settings" }) },
+    switchCompanyButton(),
   ]);
+
+/** Ввод ИНН другой компании из меню: текущая остаётся, пока новая не подтверждена. */
+export const renderSwitchCompany = (): FlowReply =>
+  reply(
+    [
+      "🔄 Смена компании",
+      "",
+      INN_HINT,
+      "Текущая компания останется, пока вы не подтвердите новую. «↩️ В начало» вернёт в меню без изменений.",
+    ],
+    [restartButton()],
+  );

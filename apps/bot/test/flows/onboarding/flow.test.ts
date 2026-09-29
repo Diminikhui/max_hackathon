@@ -5,6 +5,7 @@ import { renderProfileCard } from "../../../src/flows/onboarding/index.js";
 import { encodeButtonPayload } from "../../../src/transport/index.js";
 import {
   CAFE_INN,
+  KAZAN_CAFE_INN,
   MISSING_INN,
   MODEL_SOURCE,
   modelCafe,
@@ -225,6 +226,54 @@ describe("ошибки онбординга не тупиковые", () => {
 
     await dialog.press("Ввести ИНН");
     assert.equal(dialog.state, "awaiting_inn");
+  });
+
+  it("«Другая компания» из меню: ввод ИНН, подтверждение заменяет компанию", async () => {
+    const profiles = modelProfileGateway();
+    const dialog = createTestDialog(profiles);
+    await dialog.start();
+    await dialog.type(CAFE_INN);
+    const menu = await dialog.press("✅ Всё верно");
+    assert.deepEqual(
+      menu.buttons.map((button) => button.text),
+      ["📋 Мой перечень", "🔔 Уведомления", "🔄 Другая компания"],
+    );
+
+    const request = await dialog.press("🔄 Другая компания");
+    assert.equal(dialog.state, "awaiting_inn");
+    assert.ok(request.text.includes("🔄 Смена компании"));
+    assert.ok(request.text.includes("Текущая компания останется"));
+    assert.equal(await dialog.sessions.companyOf("chat-1"), "model-cafe");
+
+    const card = await dialog.type(KAZAN_CAFE_INN);
+    assert.equal(dialog.state, "confirming_profile");
+    assert.ok(card.text.includes("Казань"));
+    assert.equal(await dialog.sessions.companyOf("chat-1"), "model-cafe");
+
+    const saved = await dialog.press("✅ Всё верно");
+    assert.equal(dialog.state, "menu");
+    assert.ok(saved.text.includes("Профиль сохранён"));
+    assert.equal(await dialog.sessions.companyOf("chat-1"), "model-cafe-kzn");
+  });
+
+  it("отмена смены компании «В начало» возвращает в меню к прежней компании", async () => {
+    const dialog = createTestDialog(modelProfileGateway());
+    await dialog.start();
+    await dialog.type(CAFE_INN);
+    await dialog.press("✅ Всё верно");
+    await dialog.press("🔄 Другая компания");
+    await dialog.type(KAZAN_CAFE_INN);
+
+    const reply = await dialog.press("↩️ В начало");
+    assert.equal(dialog.state, "menu");
+    assert.ok(reply.text.includes("Компания не изменилась"));
+    assert.equal(await dialog.sessions.companyOf("chat-1"), "model-cafe");
+    assert.equal(await dialog.sessions.pendingProfile("chat-1"), undefined);
+
+    await dialog.press("🔄 Другая компания");
+    const again = await dialog.press("↩️ В начало");
+    assert.equal(dialog.state, "menu");
+    assert.ok(again.text.includes("Главное меню"));
   });
 
   it("меню без привязанной компании отправляет к вводу ИНН", async () => {
