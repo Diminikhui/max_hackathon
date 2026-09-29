@@ -105,6 +105,21 @@ describe("GigaChatProvider", () => {
     });
   });
 
+  it("отправляет промпт, переданный опцией prompt, вместо промпта классификации", async () => {
+    const transport = scriptedFetch([token("model-access-token"), completion()]);
+    const messages = [
+      { role: "system", content: "Модельные правила пересказа" },
+      { role: "user", content: "Модельные данные" },
+    ] as const;
+    const client = provider(transport.fetch, { prompt: () => messages });
+
+    await client.generate({ document, responseSchema: REGULATORY_IMPACT_SCHEMA });
+
+    const body = JSON.parse(String(transport.calls[1]?.init?.body));
+    expect(body.messages).toEqual(messages);
+    expect(JSON.stringify(body.messages)).not.toContain(CLASSIFICATION_SYSTEM_PROMPT);
+  });
+
   it("кэширует access token для следующих генераций", async () => {
     const transport = scriptedFetch([token("model-access-token"), completion(), completion()]);
     const client = provider(transport.fetch);

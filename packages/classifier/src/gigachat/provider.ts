@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { DEFAULT_TIMEOUT_MS as CLASSIFIER_TIMEOUT_MS, type LlmProvider, type LlmRequest } from "../core/index.js";
-import { buildClassificationPrompt } from "../prompts/index.js";
+import {
+  DEFAULT_TIMEOUT_MS as CLASSIFIER_TIMEOUT_MS,
+  type DocumentInput,
+  type LlmProvider,
+  type LlmRequest,
+} from "../core/index.js";
+import { buildClassificationPrompt, type ClassifierPromptMessage } from "../prompts/index.js";
 
 const DEFAULT_AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth";
 const DEFAULT_API_BASE_URL = "https://api.giga.chat/v1/";
@@ -38,6 +43,11 @@ export interface GigaChatProviderOptions {
    * classifyDocument, поэтому запрос не отправляется и не расходует лимит. По умолчанию — таймаут ядра.
    */
   queueDeadlineMs?: number;
+  /**
+   * Сообщения для модели по документу. По умолчанию — промпт классификации K-19d. Другой сценарий (пересказ 2-22)
+   * передаёт свой промпт с теми же правилами: системные инструкции и недоверенные данные — разными сообщениями.
+   */
+  prompt?: (document: Readonly<DocumentInput>) => readonly ClassifierPromptMessage[];
 }
 
 interface AccessToken {
@@ -67,6 +77,7 @@ export class GigaChatProvider implements LlmProvider {
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly uuid: () => string;
   private readonly queueDeadlineMs: number;
+  private readonly prompt: (document: Readonly<DocumentInput>) => readonly ClassifierPromptMessage[];
 
   private accessToken: AccessToken | undefined;
   private tokenRequest: Promise<AccessToken> | undefined;
@@ -87,6 +98,7 @@ export class GigaChatProvider implements LlmProvider {
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.uuid = options.uuid ?? randomUUID;
     this.queueDeadlineMs = positiveInteger(options.queueDeadlineMs ?? CLASSIFIER_TIMEOUT_MS, "queueDeadlineMs");
+    this.prompt = options.prompt ?? buildClassificationPrompt;
   }
 
   generate(request: LlmRequest): Promise<unknown> {
@@ -108,7 +120,7 @@ export class GigaChatProvider implements LlmProvider {
     assertSupportedSchema(request.responseSchema);
     const body = JSON.stringify({
       model: this.model,
-      messages: buildClassificationPrompt(request.document),
+      messages: this.prompt(request.document),
       response_format: {
         type: "json_schema",
         schema: schemaForGigaChat(request.responseSchema),
