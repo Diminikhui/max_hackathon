@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { FixtureProfileSource, loadFixtureProfiles, MspProfileSource } from "@max-hackathon/adapters";
 import { type BotApp, type BotReplyPort, createBotApp } from "@max-hackathon/bot/dist/app/index.js";
 import { DEMO_PACK_FILE, loadDemoPack } from "@max-hackathon/bot/dist/flows/demo/index.js";
+import { selectExampleCompanies } from "@max-hackathon/bot/dist/flows/examples/index.js";
 import type { PendingProfile } from "@max-hackathon/bot/dist/flows/onboarding/index.js";
 import {
   createBotHttpServer,
@@ -131,6 +132,7 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     ...(options.botFeatures?.includes("deadlines")
       ? { deadlines: { queue: new ActionQueueService({ checklists: checklist }) } }
       : {}),
+    ...(options.botFeatures?.includes("examples") ? { examples: selectExampleCompanies(modelCompanies) } : {}),
     demo: {
       pack: demoPack,
       requirements,

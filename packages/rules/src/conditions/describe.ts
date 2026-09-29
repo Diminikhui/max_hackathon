@@ -1,7 +1,7 @@
 // Читаемые подписи узлов и значений для трассы (ConditionResult.expected / actual).
 // Цепочку объяснения для пользователя строит K-16c; здесь — короткие детерминированные формулировки.
 
-import type { ConditionNode, FactValue, MspCategory, TaxRegime } from "@max-hackathon/domain";
+import type { ConditionNode, EntityType, FactValue, MspCategory, TaxRegime } from "@max-hackathon/domain";
 
 const MSP_NAMES: Record<MspCategory, string> = { micro: "микро", small: "малое", medium: "среднее" };
 
@@ -14,6 +14,10 @@ const TAX_NAMES: Record<TaxRegime, string> = {
   ausn: "АУСН",
   npd: "НПД",
 };
+
+const ENTITY_NAMES: Record<EntityType, string> = { legal_entity: "организация", individual_entrepreneur: "ИП" };
+
+export const describeEntityType = (entityType: EntityType): string => ENTITY_NAMES[entityType];
 
 export const formatValue = (value: FactValue): string => {
   if (Array.isArray(value)) return value.join(", ");
@@ -54,5 +58,7 @@ export const describeExpected = (node: ConditionNode): string => {
       return `${node.key}: одно из ${node.values.join(", ")}`;
     case "fact_range":
       return `${node.key} ${range(node.min, node.max)}`;
+    case "entity_type":
+      return `тип лица: ${node.in.map(describeEntityType).join(", ")}`;
   }
 };
