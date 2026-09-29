@@ -43,7 +43,7 @@ import {
   SendQueueWorker,
 } from "../sender/queue/index.js";
 import type { AppConfig } from "./config.js";
-import { modelProfilesOnly, onlyPack, UNCONSUMED_EVENTS } from "./demo.js";
+import { demoNotificationSink, modelProfilesOnly, onlyPack, UNCONSUMED_EVENTS } from "./demo.js";
 import { createMaxReplyPort } from "./max-reply.js";
 import { createProfileGateway } from "./profiles.js";
 import { REPO_ROOT, seedRulepacks, withModelPackBoundary } from "./rulepacks.js";
@@ -115,7 +115,7 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
   const recipients = new PostgresChatDirectoryRepository(db);
   const demoPipeline = new NotificationPipeline({
     profiles: modelProfilesOnly(profileRepository),
-    notifications,
+    notifications: demoNotificationSink(notifications),
     recipients,
     history: new PostgresNotificationHistory(db),
     settings,

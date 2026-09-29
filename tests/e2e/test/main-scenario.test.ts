@@ -259,6 +259,36 @@ describe("правки по ручному прогону в MAX", () => {
   });
 });
 
+describe("демо после отключённых уведомлений", () => {
+  beforeEach(async () => {
+    stand = await startStand();
+  });
+
+  it("выключил → демо (push нет) → включил → демо: push приходит один раз", async () => {
+    const chat = stand.chat("720001");
+    await chat.onboard(CAFE_INN);
+    await chat.press("🔔 Уведомления");
+    await chat.press("🔕 Отключить уведомления");
+
+    const disabled = await chat.press(DEMO_BUTTON);
+    expect(disabled.text).toContain("Уведомление в этот чат не создано");
+    expect(disabled.text).toContain("включите их в «🔔 Уведомления»");
+    await stand.quiet();
+    expect(stand.max.pushes("720001")).toHaveLength(0);
+
+    await chat.press("🏠 Меню");
+    await chat.press("🔔 Уведомления");
+    await chat.press("🔔 Включить уведомления");
+    const enabled = await chat.press(DEMO_BUTTON);
+
+    expect(enabled.text).toContain("приходит в этот чат");
+    await stand.waitFor("push после включения", () => stand.max.pushes("720001").length === 1);
+    await chat.pressPayload(DEMO_CHANGE_CALLBACK_PAYLOAD);
+    await stand.quiet();
+    expect(stand.max.pushes("720001")).toHaveLength(1);
+  });
+});
+
 describe("кнопка «Открыть карточку»", () => {
   it("с флагом BOT_FEATURES=cards демо-ответ содержит кнопку открытия карточки", async () => {
     stand = await startStand({ botFeatures: ["cards"] });

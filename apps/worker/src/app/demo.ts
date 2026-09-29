@@ -1,5 +1,6 @@
 // K-30b. Контур уведомлений для демо-кнопки K-29: тот же NotificationPipeline K-30a, но с двумя отличиями.
 import type { ChangeEventRepository, Id, ProfileRepository, RequirementRepository } from "@max-hackathon/domain";
+import type { NotificationSink } from "../notify/index.js";
 
 /**
  * Журнал событий, который не помечает переход обработанным. С общим журналом первое нажатие от компании, которой
@@ -35,4 +36,18 @@ export const onlyPack = (
   listPackIds: async () => ((await requirements.listPackIds()).includes(packId) ? [packId] : []),
   latestVersion: (id) => requirements.latestVersion(id),
   listByPack: (id, version) => requirements.listByPack(id, version),
+});
+
+/**
+ * Хранилище уведомлений для демо-контура: дубль — это уже созданное уведомление, а не уже сохранённый кандидат.
+ * Обычный контур сохраняет и подавленного кандидата (уведомления отключены, месячный лимит); при повторном прогоне
+ * он считался дублем, и демо после «выключил → нажал демо → включил» больше не давало push. Для демо повтор после
+ * включения уведомлений должен создать уведомление; дубль исключён ключом идемпотентности уведомления.
+ */
+export const demoNotificationSink = (notifications: NotificationSink): NotificationSink => ({
+  saveCandidate: (candidate) => notifications.saveCandidate(candidate),
+  enqueue: (notification) => notifications.enqueue(notification),
+  findByIdempotencyKey: (key) => notifications.findByIdempotencyKey(key),
+  hasCandidate: async (_companyId, dedupKey) =>
+    (await notifications.findByIdempotencyKey(`notify:${dedupKey}`)) !== undefined,
 });
