@@ -42,20 +42,26 @@ export interface ProfileLike {
 }
 
 export interface LogSafeProfile {
-  companyId: string;
+  /** Псевдоним `companyId`: реальные id строятся из ИНН (`msp-<ИНН>`, `egrul-<ИНН>`). */
+  companyRef: string;
   entityType: string;
   isModel: boolean;
   factCount: number;
 }
 
+/** Назначение псевдонима компании в логах и метриках. */
+export const LOG_COMPANY_PURPOSE = "log.company";
+
 /**
  * Представление профиля для логов и метрик: без ИНН и без названия, потому что у ИП
- * название — это ФИО. Логгер из `@max-hackathon/observability` не маскирует `displayName`,
- * поэтому профиль целиком в контекст лога не передаётся.
+ * название — это ФИО. `companyId` заменяется псевдонимом: у реальных профилей он содержит
+ * ИНН, у ИП — ИНН физического лица, а метрики не проходят через маскирование логгера.
+ * Логгер из `@max-hackathon/observability` не маскирует `displayName`, поэтому профиль
+ * целиком в контекст лога не передаётся.
  */
-export function toLogSafeProfile(profile: ProfileLike): LogSafeProfile {
+export function toLogSafeProfile(profile: ProfileLike, pseudonymKey: string): LogSafeProfile {
   return {
-    companyId: profile.companyId,
+    companyRef: pseudonymize(profile.companyId, pseudonymKey, LOG_COMPANY_PURPOSE),
     entityType: profile.entityType,
     isModel: profile.isModel,
     factCount: profile.facts?.length ?? 0,

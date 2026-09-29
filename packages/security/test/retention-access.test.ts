@@ -5,6 +5,7 @@ import {
   canAccessCompany,
   DATA_CATEGORIES,
   DEFAULT_INIT_DATA_MAX_AGE_SEC,
+  ERASE_ON_USER_REQUEST,
   isRetentionExpired,
   RETENTION_POLICY,
   retentionCutoff,
@@ -29,6 +30,14 @@ describe("сроки хранения", () => {
 
   it("связь пользователя с профилем живёт не дольше профиля", () => {
     expect(RETENTION_POLICY.user_binding.ttlSec).toBeLessThanOrEqual(RETENTION_POLICY.profile.ttlSec);
+  });
+
+  it("события profile_change с ИНН в companyId живут не дольше профиля и удаляются по запросу", () => {
+    expect(RETENTION_POLICY.profile_change_event.ttlSec).toBeLessThanOrEqual(RETENTION_POLICY.profile.ttlSec);
+    expect(ERASE_ON_USER_REQUEST).toContain("profile_change_event");
+    expect(ERASE_ON_USER_REQUEST).toContain("profile");
+    expect(ERASE_ON_USER_REQUEST).toContain("user_binding");
+    expect(ERASE_ON_USER_REQUEST).not.toContain("change_event");
   });
 
   it("считает границу и истечение срока", () => {

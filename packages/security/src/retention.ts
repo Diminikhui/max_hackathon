@@ -8,6 +8,7 @@ export const DATA_CATEGORIES = [
   "user_binding",
   "notification",
   "change_event",
+  "profile_change_event",
   "application_log",
 ] as const;
 export type DataCategory = (typeof DATA_CATEGORIES)[number];
@@ -53,7 +54,14 @@ export const RETENTION_POLICY: Readonly<Record<DataCategory, RetentionRule>> = {
   change_event: {
     ttlSec: 365 * DAY,
     from: "created",
-    basis: "События изменений правил без ПДн; нужны для истории и воспроизведения расчётов.",
+    basis:
+      "События изменений правил и актов (`rulepack_version`, `regulation_document`) без ПДн; нужны для истории и воспроизведения расчётов.",
+  },
+  profile_change_event: {
+    ttlSec: 180 * DAY,
+    from: "created",
+    basis:
+      "События `profile_change` содержат `companyId`, построенный из ИНН (у ИП — ПДн): хранятся не дольше профиля и удаляются вместе с ним.",
   },
   application_log: {
     ttlSec: 14 * DAY,
@@ -61,6 +69,18 @@ export const RETENTION_POLICY: Readonly<Record<DataCategory, RetentionRule>> = {
     basis: "Логи без ПДн (маскирует observability), срок достаточен для разбора инцидентов.",
   },
 };
+
+/**
+ * Категории, которые удаляются сразу по запросу пользователя, не дожидаясь срока: всё,
+ * что связано с его профилем или содержит построенный из ИНН `companyId`.
+ */
+export const ERASE_ON_USER_REQUEST: readonly DataCategory[] = [
+  "session",
+  "profile",
+  "user_binding",
+  "notification",
+  "profile_change_event",
+];
 
 /** Момент, записи раньше которого в категории подлежат удалению. */
 export function retentionCutoff(category: DataCategory, now: Date = new Date()): Date {

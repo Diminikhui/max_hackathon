@@ -3,6 +3,7 @@ import { createLogger, type LogRecord } from "@max-hackathon/observability";
 import { describe, expect, it } from "vitest";
 import {
   isPersonalInn,
+  LOG_COMPANY_PURPOSE,
   maskInn,
   pseudonymize,
   signInitDataForTest,
@@ -16,8 +17,9 @@ const NOW = 1_790_000_000_000;
 const MODEL_FULL_NAME = "Модельный Индивидуальный Предприниматель";
 const MODEL_IP_INN = "770000000082";
 
+// companyId в формате реальных адаптеров (`msp-<ИНН>`, K-12b): содержит ИНН ИП.
 const ipProfile = {
-  companyId: "model-ip-1",
+  companyId: `msp-${MODEL_IP_INN}`,
   inn: MODEL_IP_INN,
   entityType: "individual_entrepreneur",
   displayName: `ИП ${MODEL_FULL_NAME}`,
@@ -54,13 +56,27 @@ describe("маскирование и профиль", () => {
     expect(isPersonalInn("7700000016")).toBe(false);
   });
 
-  it("toLogSafeProfile убирает ИНН и ФИО", () => {
-    expect(toLogSafeProfile(ipProfile)).toEqual({
-      companyId: "model-ip-1",
+  it("toLogSafeProfile убирает ИНН, ФИО и построенный из ИНН companyId", () => {
+    const safe = toLogSafeProfile(ipProfile, MODEL_KEY);
+    expect(safe).toEqual({
+      companyRef: pseudonymize(ipProfile.companyId, MODEL_KEY, LOG_COMPANY_PURPOSE),
       entityType: "individual_entrepreneur",
       isModel: true,
       factCount: 2,
     });
+    // Без логгера (метрики): в представлении нет ни ИНН, ни исходного companyId.
+    const serialized = JSON.stringify(safe);
+    expect(serialized).not.toContain(MODEL_IP_INN);
+    expect(serialized).not.toContain(ipProfile.companyId);
+    expect(serialized).not.toContain(MODEL_FULL_NAME);
+  });
+
+  it("псевдоним компании стабилен и не совпадает с псевдонимом пользователя", () => {
+    expect(toLogSafeProfile(ipProfile, MODEL_KEY).companyRef).toBe(toLogSafeProfile(ipProfile, MODEL_KEY).companyRef);
+    expect(toLogSafeProfile(ipProfile, MODEL_KEY).companyRef).not.toBe(
+      pseudonymize(ipProfile.companyId, MODEL_KEY, "log"),
+    );
+    expect(() => toLogSafeProfile(ipProfile, "short")).toThrow();
   });
 });
 
@@ -86,7 +102,7 @@ describe("ПДн не попадают в логи", () => {
       initData,
       session: verified,
       user: pseudonymize(verified.maxUserId, MODEL_KEY, "log"),
-      profile: toLogSafeProfile(ipProfile),
+      profile: toLogSafeProfile(ipProfile, MODEL_KEY),
     });
 
     const logged = text();
