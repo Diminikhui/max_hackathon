@@ -1,7 +1,7 @@
 // 2-21: очередь действий и отправка в MAX модельные; реальные внешние сервисы не вызываются.
 import { describe, expect, it, vi } from "vitest";
 import { createBotApp, createMemoryDialogStateStore } from "../../../src/app/index.js";
-import type { FlowReply } from "../../../src/flows/checklist/index.js";
+import type { ChecklistSource, FlowReply } from "../../../src/flows/checklist/index.js";
 import {
   type ActionQueueSource,
   type ActionQueueView,
@@ -97,6 +97,56 @@ describe("flow «Что и когда делать»", () => {
     expect(reply?.buttons.map((button) => button.text)).toEqual(["🏠 Меню"]);
   });
 
+  it("модельная компания помечена, даже если все записи очереди реальные", async () => {
+    const real = queue();
+    const realQueue: ActionQueueView = {
+      ...real,
+      actions: real.actions.map((item) => ({ ...item, isModel: false })),
+      undated: real.undated.map((item) => ({ ...item, isModel: false })),
+    };
+    const isModelCompany = vi.fn(async () => true);
+    const flow = createDeadlinesFlow({ queue: sourceFor(realQueue), companyOf: async () => COMPANY, isModelCompany });
+
+    const overview = await flow.handle(CHAT, DEADLINES_START_PAYLOAD);
+    expect(isModelCompany).toHaveBeenCalledWith(COMPANY);
+    expect(overview?.text).toContain("📅 Что и когда делать · МОДЕЛЬНЫЕ ДАННЫЕ");
+    expect(overview?.text).toContain("🧪 Модельные данные");
+
+    const more = overview?.buttons.find((button) => button.text.startsWith("Ещё 2:"));
+    if (!more || !("payload" in more)) throw new Error("Нет кнопки длинной группы");
+    const group = await flow.handle(CHAT, more.payload);
+    expect(group?.text).toContain("МОДЕЛЬНЫЕ ДАННЫЕ");
+    expect(group?.text).toContain("🧪 Модельные данные");
+  });
+
+  it("реальная компания с реальными записями без пометки; сбой проверки модельности не ломает экран", async () => {
+    const real = queue();
+    const realQueue: ActionQueueView = {
+      ...real,
+      actions: real.actions.map((item) => ({ ...item, isModel: false })),
+      undated: real.undated.map((item) => ({ ...item, isModel: false })),
+    };
+    const realCompany = createDeadlinesFlow({
+      queue: sourceFor(realQueue),
+      companyOf: async () => COMPANY,
+      isModelCompany: async () => false,
+    });
+    const reply = await realCompany.handle(CHAT, DEADLINES_START_PAYLOAD);
+    expect(reply?.text).not.toContain("МОДЕЛЬНЫЕ ДАННЫЕ");
+    expect(reply?.text).not.toContain("🧪 Модельные данные");
+
+    const failing = createDeadlinesFlow({
+      queue: sourceFor(realQueue),
+      companyOf: async () => COMPANY,
+      isModelCompany: async () => {
+        throw new Error("модельный сбой");
+      },
+    });
+    const fallback = await failing.handle(CHAT, DEADLINES_START_PAYLOAD);
+    expect(fallback?.text).toContain("Сегодня — 29.09.2026");
+    expect(fallback?.text).not.toContain("МОДЕЛЬНЫЕ ДАННЫЕ");
+  });
+
   it("без компании просит ИНН, а чужой payload не перехватывает", async () => {
     const source = sourceFor(queue());
     const flow = createDeadlinesFlow({ queue: source, companyOf: async () => undefined });
@@ -109,7 +159,7 @@ describe("flow «Что и когда делать»", () => {
 
 const silent: TransportLogger = { info: () => {}, warn: () => {}, error: () => {} };
 
-const appWith = async (deadlineSource?: ActionQueueSource) => {
+const appWith = async (deadlineSource?: ActionQueueSource, checklist?: ChecklistSource) => {
   const sessions = new InMemoryOnboardingSessions();
   const states = createMemoryDialogStateStore();
   await sessions.bindCompany(CHAT, COMPANY);
@@ -125,7 +175,7 @@ const appWith = async (deadlineSource?: ActionQueueSource) => {
       },
       declare: async () => ({ status: "ok" }),
     },
-    checklist: { build: async () => ({ status: "profile_not_found" }) },
+    checklist: checklist ?? { build: async () => ({ status: "profile_not_found" }) },
     settings: createMemorySettingsStore(),
     sessions,
     states,
@@ -161,6 +211,27 @@ describe("подключение через BOT_FEATURES", () => {
     const reply = await receive(DEADLINES_START_PAYLOAD);
     expect(reply.text).toContain("Что и когда делать");
     expect(source.build).toHaveBeenCalledWith(COMPANY);
+  });
+
+  it("модельность компании берётся из перечня: реальные записи у модельной кофейни помечены", async () => {
+    const real = queue();
+    const realQueue: ActionQueueView = {
+      ...real,
+      actions: real.actions.map((item) => ({ ...item, isModel: false })),
+      undated: real.undated.map((item) => ({ ...item, isModel: false })),
+    };
+    const checklist: ChecklistSource = {
+      build: vi.fn(async () => ({
+        status: "ok" as const,
+        profile: { isModel: true },
+        checklist: { items: [], statusCounts: {} } as never,
+      })),
+    };
+    const { receive } = await appWith(sourceFor(realQueue), checklist);
+
+    const reply = await receive(DEADLINES_START_PAYLOAD);
+    expect(checklist.build).toHaveBeenCalledWith(COMPANY);
+    expect(reply.text).toContain("📅 Что и когда делать · МОДЕЛЬНЫЕ ДАННЫЕ");
   });
 
   it("без зависимости не показывает кнопку и не обрабатывает даже подставленный payload", async () => {

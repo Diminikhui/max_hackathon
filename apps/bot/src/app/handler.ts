@@ -154,7 +154,16 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   const demo = deps.demo
     ? createDemoChangeFlow({ ...deps.demo, checklist: deps.checklist, companyOf, recipients: { remember: () => {} } })
     : undefined;
-  const deadlines = deps.deadlines ? createDeadlinesFlow({ queue: deps.deadlines.queue, companyOf }) : undefined;
+  const deadlines = deps.deadlines
+    ? createDeadlinesFlow({
+        queue: deps.deadlines.queue,
+        companyOf,
+        isModelCompany: async (companyId) => {
+          const outcome = await deps.checklist.build(companyId);
+          return outcome.status === "ok" && outcome.profile.isModel;
+        },
+      })
+    : undefined;
   const whatif = deps.whatif ? createWhatIfFlow({ delta: deps.whatif.delta, companyOf }) : undefined;
   const explain = deps.explain
     ? createExplainFlow({ ...deps.explain, checklist: deps.checklist, companyOf, logger: deps.logger })
