@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { FixtureProfileSource, loadFixtureProfiles, MspProfileSource } from "@max-hackathon/adapters";
 import { type BotApp, type BotReplyPort, createBotApp } from "@max-hackathon/bot/dist/app/index.js";
 import { DEMO_PACK_FILE, loadDemoPack } from "@max-hackathon/bot/dist/flows/demo/index.js";
+import { selectExampleCompanies } from "@max-hackathon/bot/dist/flows/examples/index.js";
 import type { PendingProfile } from "@max-hackathon/bot/dist/flows/onboarding/index.js";
 import {
   createBotHttpServer,
@@ -61,6 +62,7 @@ export interface AssembleOptions {
   readonly realSource?: ConstructorParameters<typeof ProfileService>[0]["source"];
   readonly now?: () => Date;
   readonly root?: string;
+  readonly botFeatures?: readonly string[];
 }
 
 /** Сборка без сети и HTTP-сервера: её же проходят тесты на PGlite с модельной отправкой. */
@@ -127,6 +129,7 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     directory: recipients,
     logger,
     reply: options.reply,
+    ...(options.botFeatures?.includes("examples") ? { examples: selectExampleCompanies(modelCompanies) } : {}),
     demo: {
       pack: demoPack,
       requirements,
@@ -198,6 +201,7 @@ export const startApp = async (
     logger,
     reply: createMaxReplyPort(transport, logger),
     sender: new MaxMessageSender({ transport }),
+    ...(config.botFeatures ? { botFeatures: config.botFeatures } : {}),
     ...(options.realSource ? { realSource: options.realSource } : {}),
     ...(options.now ? { now: options.now } : {}),
   });

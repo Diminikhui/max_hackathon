@@ -31,6 +31,32 @@ const fact = (key: string, value: FactValue, kind: FactKind = "official", extra:
 const outcome = (condition: ConditionNode, facts: Fact[]): ConditionOutcome =>
   evaluateCondition(condition, facts).result.outcome;
 
+describe("entity_type — тип лица из профиля, а не из фактов", () => {
+  const onlyIp: ConditionNode = { type: "entity_type", in: ["individual_entrepreneur"] };
+
+  it("yes для ИП, no для организации; подпись в трассе", () => {
+    const ip = evaluateCondition(onlyIp, [], { entityType: "individual_entrepreneur" });
+    expect(ip.result).toMatchObject({ outcome: "yes", expected: "тип лица: ИП", actual: "ИП", factKeys: [] });
+    const llc = evaluateCondition(onlyIp, [], { entityType: "legal_entity" });
+    expect(llc.result).toMatchObject({ outcome: "no", actual: "организация" });
+    expect(llc.issues).toEqual([]);
+  });
+
+  it("тип лица не передан — unknown с ошибкой данных, без вопросов пользователю", () => {
+    const evaluation = evaluateCondition(onlyIp, []);
+    expect(evaluation.result.outcome).toBe("unknown");
+    expect(evaluation.missingFactKeys).toEqual([]);
+    expect(evaluation.issues).toHaveLength(1);
+  });
+
+  it("в составе all: ООО с ОКВЭД 56 не проходит условие «только ИП»", () => {
+    const condition: ConditionNode = { type: "all", items: [{ type: "okved_prefix", prefix: "56" }, onlyIp] };
+    const facts = [fact("activity.okved_main", "56.10")];
+    expect(evaluateCondition(condition, facts, { entityType: "legal_entity" }).result.outcome).toBe("no");
+    expect(evaluateCondition(condition, facts, { entityType: "individual_entrepreneur" }).result.outcome).toBe("yes");
+  });
+});
+
 describe("листья: yes / no / unknown на каждый тип", () => {
   const cases: [string, ConditionNode, Fact[], Fact[]][] = [
     [
@@ -319,7 +345,8 @@ describe("примеры условий из contracts/rulepack/conditions/examp
   it.each(readdirSync(examplesDir))("%s: трасса проходит схему condition-result, без ошибок данных", (file) => {
     const condition = JSON.parse(readFileSync(join(examplesDir, file), "utf8")) as ConditionNode;
     for (const facts of [cafe, []]) {
-      const evaluation = evaluateCondition(condition, facts);
+      // Тип лица в профиле обязателен, поэтому он передаётся всегда (узел entity_type).
+      const evaluation = evaluateCondition(condition, facts, { entityType: "legal_entity" });
       expect(validateTrace(evaluation.result), JSON.stringify(validateTrace.errors)).toBe(true);
       expect(evaluation.issues).toEqual([]);
     }

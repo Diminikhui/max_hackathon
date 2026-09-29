@@ -1,6 +1,8 @@
 // Типы формата условий применимости (K-15a). Источник правды —
 // contracts/rulepack/conditions/condition.schema.json; семантика — README рядом со схемой.
 
+import type { EntityType } from "./contracts.js";
+
 export const CONDITION_TYPES = [
   "always",
   "all",
@@ -15,6 +17,7 @@ export const CONDITION_TYPES = [
   "fact_equals",
   "fact_in",
   "fact_range",
+  "entity_type",
 ] as const;
 export type ConditionType = (typeof CONDITION_TYPES)[number];
 
@@ -43,4 +46,6 @@ export type ConditionNode =
   | { type: "fact_equals"; key: string; value: string | number | boolean }
   | { type: "fact_in"; key: string; values: (string | number)[] }
   /** Границы включительно; хотя бы одна задана. */
-  | { type: "fact_range"; key: string; min?: number; max?: number };
+  | { type: "fact_range"; key: string; min?: number; max?: number }
+  /** Тип лица из `CompanyProfile.entityType`, а не из фактов. */
+  | { type: "entity_type"; in: EntityType[] };
