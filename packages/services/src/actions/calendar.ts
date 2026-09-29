@@ -101,8 +101,10 @@ export const DEFAULT_DUE_CALENDAR: readonly DueCalendarEntry[] = [
     type: "event",
     trigger: "перед применением освобождения — по итогам предшествующего календарного года",
   }),
-  // Окно 01.04–31.12.2026 — период действия льготы; срока исполнения для компании в тексте нет.
-  opportunity("foodservice-vat-transition-2026", { type: "continuous" }),
+  opportunity("foodservice-vat-transition-2026", {
+    type: "event",
+    trigger: "при применении освобождения в период 01.04–31.12.2026",
+  }),
   opportunity("foodservice-reduced-insurance-rate", { type: "event", trigger: "при расчёте взносов за каждый месяц" }),
   opportunity("foodservice-patent-tax-system", { type: "event", trigger: "заявление — до начала применения патента" }),
 ];

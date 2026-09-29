@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type {
   ApplicabilityResult,
   ApplicabilityStatus,
@@ -11,6 +11,7 @@ import type {
   RequirementRepository,
 } from "@max-hackathon/domain";
 import { describe, expect, it } from "vitest";
+import { STARTUP_RULEPACKS } from "../../../../apps/worker/src/app/rulepacks.js";
 import {
   type ActionPriority,
   ActionQueueService,
@@ -113,21 +114,8 @@ const realPacks = [
   readJson<PackFile>("data/rulepacks/b/autoservice-federal-v1.json"),
 ];
 
-const EXCLUDED_PACK_DIRS = new Set(["_golden", "_demo-scale"]);
-
-/** Все опубликованные пакеты `data/rulepacks/**`, кроме эталонов и демонстрации масштаба. */
-const listPublishedPacks = (dir = join(root, "data/rulepacks")): PackFile[] =>
-  readdirSync(dir, { withFileTypes: true })
-    .sort((left, right) => left.name.localeCompare(right.name))
-    .flatMap((item) => {
-      const path = join(dir, item.name);
-      if (item.isDirectory()) return EXCLUDED_PACK_DIRS.has(item.name) ? [] : listPublishedPacks(path);
-      if (!item.name.endsWith(".json")) return [];
-      const content = readJson<Partial<PackFile>>(relative(root, path));
-      return Array.isArray(content.requirements) ? [content as PackFile] : [];
-    });
-
-const publishedPacks = listPublishedPacks();
+/** Пакеты, которые runtime действительно публикует при старте, включая модельный K-28. */
+const publishedPacks = STARTUP_RULEPACKS.map((path) => readJson<PackFile>(path));
 
 const packRepository = (
   packs: readonly PackFile[],
@@ -280,11 +268,12 @@ describe("календарь сроков", () => {
     });
   });
 
-  it("находит пакеты во всех каталогах data/rulepacks, кроме исключённых", () => {
+  it("использует только пакеты из списка публикации runtime", () => {
     const packIds = publishedPacks.map((pack) => pack.packId);
 
     expect(packIds).toEqual(expect.arrayContaining(["a-foodservice-ru-16", "a-foodservice-opportunities-fed"]));
     expect(packIds).toEqual(expect.arrayContaining(realPacks.map((pack) => pack.packId)));
+    expect(packIds).toContain("k28-model");
     expect(packIds).not.toContain("d-beauty-spb-demo");
   });
 
