@@ -28,18 +28,19 @@ function isoFromRussianDate(value: string): string | undefined {
   const hour = Number(hourText);
   const minute = Number(minuteText);
   const second = Number(secondText);
-  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  const moscowOffsetMs = 3 * 60 * 60 * 1000;
+  const wallClock = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
   if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day ||
-    date.getUTCHours() !== hour ||
-    date.getUTCMinutes() !== minute ||
-    date.getUTCSeconds() !== second
+    wallClock.getUTCFullYear() !== year ||
+    wallClock.getUTCMonth() !== month - 1 ||
+    wallClock.getUTCDate() !== day ||
+    wallClock.getUTCHours() !== hour ||
+    wallClock.getUTCMinutes() !== minute ||
+    wallClock.getUTCSeconds() !== second
   ) {
     return undefined;
   }
-  return date.toISOString();
+  return new Date(wallClock.getTime() - moscowOffsetMs).toISOString();
 }
 
 /** ISO 8601 или дата портала дд.мм.гггг[ чч:мм:сс] → канонический UTC. */

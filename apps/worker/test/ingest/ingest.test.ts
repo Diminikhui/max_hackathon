@@ -52,7 +52,7 @@ describe("нормализация проектов НПА", () => {
         documentId: "900001",
         title: "Модельный проект для общепита",
         url: "https://regulation.gov.ru/projects/900001",
-        publishedAt: "2026-09-27T12:30:00.000Z",
+        publishedAt: "2026-09-27T09:30:00.000Z",
         stage: "Обсуждение",
         sphereIds: ["23", "45"],
         source: {
@@ -73,6 +73,7 @@ describe("нормализация проектов НПА", () => {
       error: "missing_title",
     });
     expect(normalizeDateTime("31.02.2026")).toBeUndefined();
+    expect(normalizeDateTime("01.10.2026 10:00")).toBe("2026-10-01T07:00:00.000Z");
     expect(normalizeDateTime("2026-09-27T10:00:00+03:00")).toBe("2026-09-27T07:00:00.000Z");
   });
 });
@@ -111,7 +112,7 @@ describe("RegulationIngestJob", () => {
       document: { title: "Модельный проект для общепита" },
     });
     await expect(store.get("900001")).resolves.toMatchObject({
-      publishedAt: "2026-09-27T12:30:00.000Z",
+      publishedAt: "2026-09-27T09:30:00.000Z",
       url: "https://regulation.gov.ru/projects/900001",
     });
   });
@@ -138,7 +139,7 @@ describe("RegulationIngestJob", () => {
       expect(rows[0]?.count).toBe(1);
       await expect(store.get("900001")).resolves.toMatchObject({
         source: { system: "regulation.gov.ru", isModel: true },
-        publishedAt: "2026-09-27T12:30:00.000Z",
+        publishedAt: "2026-09-27T09:30:00.000Z",
         url: "https://regulation.gov.ru/projects/900001",
       });
     } finally {
