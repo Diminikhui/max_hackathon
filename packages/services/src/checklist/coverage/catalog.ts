@@ -34,7 +34,7 @@ export interface CoverageCatalog {
 
 /**
  * Покрытие MVP. Новый регион или направление добавляется строкой здесь вместе с пакетом:
- * K-17d — `{ code: "16", ... }` в направление A, новые направления — отдельным элементом.
+ * регион — элементом `regions` и региональным пакетом в `packIds`, направление — отдельным элементом.
  */
 export const DEFAULT_COVERAGE_CATALOG: CoverageCatalog = {
   directions: [
@@ -42,9 +42,13 @@ export const DEFAULT_COVERAGE_CATALOG: CoverageCatalog = {
       id: "a",
       title: "Общепит",
       okvedPrefixes: ["56"],
-      packIds: ["a-foodservice-fed"],
-      // K-17a: для Москвы отличий от федеральных правил не найдено (data/rulepacks/a/README.md).
-      regions: [{ code: "77", note: "региональных отличий от федеральных правил не найдено" }],
+      packIds: ["a-foodservice-fed", "a-foodservice-ru-16"],
+      regions: [
+        // K-17a: для Москвы отличий от федеральных правил не найдено (data/rulepacks/a/README.md).
+        { code: "77", note: "региональных отличий от федеральных правил не найдено" },
+        // K-17d: региональное дополнение data/rulepacks/a/tatarstan/ (алкоголь и энергетики).
+        { code: "16", note: "региональные ограничения продажи алкоголя и энергетиков включены в перечень" },
+      ],
     },
     {
       id: "b",

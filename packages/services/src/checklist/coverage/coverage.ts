@@ -65,14 +65,15 @@ export const describeCoverage = (
       ? catalog.directions.find((direction) => direction.okvedPrefixes.some((prefix) => matchesOkved(okved, prefix)))
       : undefined;
 
+  const relevantItems = checklist.items.filter(
+    (item) => item.applicability.status !== "not_applies" && item.applicability.status !== "out_of_coverage",
+  );
   const base = {
     companyId: checklist.companyId,
     asOf: checklist.asOf,
     isModel: profile.isModel,
     notChecked: catalog.notChecked,
-    relevantItemCount: checklist.items.filter(
-      (item) => item.applicability.status !== "not_applies" && item.applicability.status !== "out_of_coverage",
-    ).length,
+    relevantItemCount: relevantItems.length,
   };
 
   if (!matched) {
@@ -84,8 +85,10 @@ export const describeCoverage = (
     };
   }
 
+  // Региональный пакет другого региона даёт только «не применяется» и не влияет на дату актуальности.
   const packs: CoveragePack[] = checklist.packs
     .filter((pack) => matched.packIds.includes(pack.packId))
+    .filter((pack) => relevantItems.some((item) => item.requirement.packId === pack.packId))
     .map((pack) => {
       const checkedAt = latestDate(
         checklist.items
