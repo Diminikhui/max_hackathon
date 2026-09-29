@@ -44,6 +44,7 @@ paths:
               schema: { $ref: "#/components/schemas/Session" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/CompanyNotFound" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
     delete:
       operationId: deleteSession
       summary: Завершить текущую сессию.
@@ -56,10 +57,10 @@ paths:
       summary: Получить профиль компании текущей сессии.
       responses:
         "200":
-          description: Профиль компании в контракте v1.
+          description: Профиль компании в контракте v1; ИНН замаскирован.
           content:
             application/json:
-              schema: { $ref: "./v1/company-profile.schema.json" }
+              schema: { $ref: "#/components/schemas/ProfileResponse" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/CompanyNotFound" }
   /v1/checklist:
@@ -71,7 +72,7 @@ paths:
           description: Перечень компании.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ChecklistOutcome" }
+              schema: { $ref: "#/components/schemas/CompanyChecklist" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/CompanyNotFound" }
   /v1/settings:
@@ -129,6 +130,13 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
           examples:
             default: { value: { error: INVALID_REQUEST } }
+    ServiceUnavailable:
+      description: Серверная проверка MAX не настроена.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          examples:
+            default: { value: { error: SERVICE_UNAVAILABLE } }
   schemas:
     Error:
       type: object
@@ -151,6 +159,25 @@ components:
       properties:
         enabled: { type: boolean }
         earlySignals: { type: boolean }
+    ProfileResponse:
+      type: object
+      additionalProperties: false
+      required: [contractVersion, companyId, inn, entityType, facts, isModel, updatedAt]
+      properties:
+        contractVersion: { $ref: "./v1/common.schema.json#/$defs/ContractVersion" }
+        companyId: { $ref: "./v1/common.schema.json#/$defs/Id" }
+        inn:
+          type: string
+          pattern: "^[0-9]{2}\\*{6}([0-9]{2}|\\*{2}[0-9]{2})$"
+        entityType: { enum: [legal_entity, individual_entrepreneur] }
+        displayName:
+          type: string
+          description: Для ИП не возвращается, потому что содержит ФИО.
+        facts:
+          type: array
+          items: { $ref: "./v1/fact.schema.json" }
+        isModel: { type: boolean }
+        updatedAt: { $ref: "./v1/common.schema.json#/$defs/DateTime" }
     StatusCounts:
       type: object
       additionalProperties: false
@@ -168,34 +195,27 @@ components:
       properties:
         requirement: { $ref: "./v1/requirement.schema.json" }
         applicability: { $ref: "./v1/applicability-result.schema.json" }
-    ChecklistOutcome:
+    CompanyChecklist:
       type: object
       additionalProperties: false
-      required: [status, profile, checklist]
+      required: [companyId, evaluatedAt, asOf, packs, items, statusCounts]
       properties:
-        status: { const: ok }
-        profile: { $ref: "./v1/company-profile.schema.json" }
-        checklist:
-          type: object
-          additionalProperties: false
-          required: [companyId, evaluatedAt, asOf, packs, items, statusCounts]
-          properties:
-            companyId: { type: string, minLength: 1 }
-            evaluatedAt: { type: string, format: date-time }
-            asOf: { type: string, format: date }
-            packs:
-              type: array
-              items:
-                type: object
-                additionalProperties: false
-                required: [packId, packVersion, itemCount]
-                properties:
-                  packId: { type: string, minLength: 1 }
-                  packVersion: { type: integer, minimum: 1 }
-                  itemCount: { type: integer, minimum: 0 }
-            items:
-              type: array
-              items: { $ref: "#/components/schemas/ChecklistItem" }
-            statusCounts: { $ref: "#/components/schemas/StatusCounts" }
+        companyId: { type: string, minLength: 1 }
+        evaluatedAt: { type: string, format: date-time }
+        asOf: { type: string, format: date }
+        packs:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [packId, packVersion, itemCount]
+            properties:
+              packId: { type: string, minLength: 1 }
+              packVersion: { type: integer, minimum: 1 }
+              itemCount: { type: integer, minimum: 0 }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ChecklistItem" }
+        statusCounts: { $ref: "#/components/schemas/StatusCounts" }
 security:
   - sessionToken: []

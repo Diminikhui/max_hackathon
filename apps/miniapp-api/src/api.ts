@@ -1,5 +1,5 @@
 import type { CompanyProfile } from "@max-hackathon/domain";
-import { InitDataError, type VerifiedInitData } from "@max-hackathon/security";
+import { InitDataError, maskInn, type VerifiedInitData } from "@max-hackathon/security";
 import type { ChecklistOutcome } from "@max-hackathon/services";
 import type { StoredNotificationSettings } from "@max-hackathon/storage";
 import type { Session, SessionStore } from "./session.js";
@@ -41,6 +41,15 @@ const notificationSettings = (body: unknown): StoredNotificationSettings | undef
   return { enabled: value.enabled, earlySignals: value.earlySignals };
 };
 
+const publicProfile = (profile: CompanyProfile): CompanyProfile => {
+  const { displayName, ...rest } = profile;
+  return {
+    ...rest,
+    inn: maskInn(profile.inn),
+    ...(profile.entityType === "individual_entrepreneur" || displayName === undefined ? {} : { displayName }),
+  };
+};
+
 export const createMiniappApi = (deps: MiniappApiDeps) => {
   const authenticate = (request: ApiRequest): Session | undefined => {
     const token = bearerToken(request.authorization);
@@ -51,13 +60,15 @@ export const createMiniappApi = (deps: MiniappApiDeps) => {
     if (request.method === "GET" && request.path === "/health") return { status: 200, body: { status: "ok" } };
 
     if (request.method === "POST" && request.path === "/v1/session") {
+      if (!deps.botToken) return jsonError(503, "SERVICE_UNAVAILABLE");
       const initData =
         request.body && typeof request.body === "object" && !Array.isArray(request.body)
           ? (request.body as Record<string, unknown>).initData
           : undefined;
       try {
         const verified = deps.verifyInitData(initData, deps.botToken);
-        const dialogId = String(verified.chat?.id ?? verified.maxUserId);
+        if (verified.chat?.type !== "DIALOG") return jsonError(401, "UNAUTHENTICATED");
+        const dialogId = String(verified.chat.id);
         const companyId = await deps.companyOf(dialogId);
         if (!companyId) return jsonError(404, "COMPANY_NOT_FOUND");
         const session = deps.sessions.create({ maxUserId: verified.maxUserId, dialogId, companyId });
@@ -81,12 +92,12 @@ export const createMiniappApi = (deps: MiniappApiDeps) => {
 
     if (request.method === "GET" && request.path === "/v1/profile") {
       const profile = await deps.profile(session.companyId);
-      return profile ? { status: 200, body: profile } : jsonError(404, "COMPANY_NOT_FOUND");
+      return profile ? { status: 200, body: publicProfile(profile) } : jsonError(404, "COMPANY_NOT_FOUND");
     }
 
     if (request.method === "GET" && request.path === "/v1/checklist") {
       const outcome = await deps.checklist(session.companyId);
-      return outcome.status === "ok" ? { status: 200, body: outcome } : jsonError(404, "COMPANY_NOT_FOUND");
+      return outcome.status === "ok" ? { status: 200, body: outcome.checklist } : jsonError(404, "COMPANY_NOT_FOUND");
     }
 
     if (request.method === "GET" && request.path === "/v1/settings") {

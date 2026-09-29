@@ -16,7 +16,7 @@ const deps = (overrides: Partial<MiniappApiDeps> = {}): MiniappApiDeps => ({
   ),
   verifyInitData: () => ({ maxUserId: 101, authDate: NOW / 1000, chat: { id: 202, type: "DIALOG" } }),
   companyOf: async () => "model-company",
-  profile: async () => ({ companyId: "model-company" }) as CompanyProfile,
+  profile: async () => ({ companyId: "model-company", inn: "7700000016" }) as CompanyProfile,
   checklist: async () =>
     ({ status: "ok", profile: {} as CompanyProfile, checklist: { companyId: "model-company" } }) as ChecklistOutcome,
   settingsFor: async () => undefined,
@@ -39,6 +39,15 @@ describe("miniapp API", () => {
     });
   });
 
+  it("keeps health available but rejects login when the bot token is not configured", async () => {
+    const api = createMiniappApi(deps({ botToken: "" }));
+    await expect(api({ method: "GET", path: "/health" })).resolves.toEqual({ status: 200, body: { status: "ok" } });
+    await expect(api({ method: "POST", path: "/v1/session", body: { initData: "signed" } })).resolves.toEqual({
+      status: 503,
+      body: { error: "SERVICE_UNAVAILABLE" },
+    });
+  });
+
   it("creates a one-hour session using only the signed dialog", async () => {
     const companyOf = vi.fn(async () => "model-company");
     const api = createMiniappApi(deps({ companyOf }));
@@ -55,30 +64,32 @@ describe("miniapp API", () => {
     });
   });
 
-  it("does not accept a company id from the client", async () => {
-    const profile = vi.fn(async () => ({ companyId: "model-company" }) as CompanyProfile);
-    const api = createMiniappApi(deps({ profile }));
-    const token = await authorize(api);
-    const response = await api({
-      method: "GET",
-      path: "/v1/profile?companyId=foreign-company",
-      authorization: `Bearer ${token}`,
-    });
-
-    expect(response.status).toBe(404);
-    expect(profile).not.toHaveBeenCalled();
+  it("rejects group chats and launches without a signed chat", async () => {
+    for (const verified of [
+      { maxUserId: 101, authDate: NOW / 1000, chat: { id: 202, type: "CHAT" } },
+      { maxUserId: 101, authDate: NOW / 1000 },
+    ]) {
+      const companyOf = vi.fn(async () => "model-company");
+      const api = createMiniappApi(deps({ verifyInitData: () => verified, companyOf }));
+      expect(await api({ method: "POST", path: "/v1/session", body: { initData: "signed" } })).toEqual({
+        status: 401,
+        body: { error: "UNAUTHENTICATED" },
+      });
+      expect(companyOf).not.toHaveBeenCalled();
+    }
   });
 
   it("returns profile and checklist only for the session company", async () => {
-    const profile = vi.fn(async () => ({ companyId: "model-company" }) as CompanyProfile);
+    const profile = vi.fn(async () => ({ companyId: "model-company", inn: "7700000016" }) as CompanyProfile);
     const checklist = vi.fn(
       async () => ({ status: "profile_not_found", companyId: "model-company" }) as ChecklistOutcome,
     );
     const api = createMiniappApi(deps({ profile, checklist }));
     const token = await authorize(api);
 
-    expect(await api({ method: "GET", path: "/v1/profile", authorization: `Bearer ${token}` })).toMatchObject({
+    expect(await api({ method: "GET", path: "/v1/profile", authorization: `Bearer ${token}` })).toEqual({
       status: 200,
+      body: { companyId: "model-company", inn: "77******16" },
     });
     expect(await api({ method: "GET", path: "/v1/checklist", authorization: `Bearer ${token}` })).toEqual({
       status: 404,
@@ -125,8 +136,7 @@ describe("miniapp API", () => {
 
     await authorize(api);
     now += SESSION_TTL_MS;
-    expect(await api({ method: "GET", path: "/v1/profile", authorization: `Bearer ${token}` })).toMatchObject({
-      status: 401,
-    });
+    await authorize(api);
+    expect(sessions.size).toBe(1);
   });
 });

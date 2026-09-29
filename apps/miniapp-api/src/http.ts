@@ -3,6 +3,11 @@ import type { ApiRequest, ApiResponse } from "./api.js";
 
 const BODY_LIMIT_BYTES = 16 * 1024;
 
+const apiPath = (path: string): string => {
+  if (path === "/api") return "/";
+  return path.startsWith("/api/") ? path.slice(4) : path;
+};
+
 const readJson = async (request: IncomingMessage): Promise<unknown> => {
   const chunks: Buffer[] = [];
   let size = 0;
@@ -38,7 +43,7 @@ export const createHttpServer = (handle: (request: ApiRequest) => Promise<ApiRes
         response,
         await handle({
           method: request.method ?? "GET",
-          path: url.pathname,
+          path: apiPath(url.pathname),
           ...(typeof request.headers.authorization === "string"
             ? { authorization: request.headers.authorization }
             : {}),

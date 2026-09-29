@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 export const SESSION_TTL_MS = 60 * 60 * 1000;
+const MAX_ACTIVE_SESSIONS = 10_000;
 
 export interface Session {
   readonly token: string;
@@ -25,6 +26,11 @@ export class InMemorySessionStore implements SessionStore {
   ) {}
 
   create(subject: Omit<Session, "token" | "expiresAt">): Session {
+    this.#prune();
+    if (this.#sessions.size >= MAX_ACTIVE_SESSIONS) {
+      const oldest = this.#sessions.keys().next().value;
+      if (oldest !== undefined) this.#sessions.delete(oldest);
+    }
     const session: Session = {
       ...subject,
       token: this.token(),
@@ -46,5 +52,16 @@ export class InMemorySessionStore implements SessionStore {
 
   revoke(token: string): void {
     this.#sessions.delete(token);
+  }
+
+  get size(): number {
+    return this.#sessions.size;
+  }
+
+  #prune(): void {
+    const now = this.now();
+    for (const [token, session] of this.#sessions) {
+      if (Date.parse(session.expiresAt) <= now) this.#sessions.delete(token);
+    }
   }
 }
