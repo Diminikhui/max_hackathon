@@ -33,9 +33,10 @@ fi
 
 deploy_revision() {
   local revision=$1
-  git -C "$repo" switch --detach --quiet "$revision"
+  # Called inside `if !`, where errexit is off: every step must fail explicitly.
+  git -C "$repo" switch --detach --quiet "$revision" || return 1
   docker compose --project-directory "$repo" --env-file "$env_file" \
-    -f "$repo/compose.yaml" up -d --build --remove-orphans
+    -f "$repo/compose.yaml" up -d --build --remove-orphans || return 1
   local attempt
   for attempt in {1..15}; do
     if curl --fail --silent --max-time 5 --output /dev/null "https://$host/"; then

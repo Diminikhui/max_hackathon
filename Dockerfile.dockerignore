@@ -5,7 +5,11 @@
 !.env.example
 **/node_modules
 **/dist
-**/coverage
+# Test coverage reports only: packages/services/src/coverage is source code.
+coverage
+apps/*/coverage
+packages/*/coverage
+tests/*/coverage
 **/*.tsbuildinfo
 *.log
 Dockerfile*
