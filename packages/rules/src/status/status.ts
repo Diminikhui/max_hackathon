@@ -83,7 +83,8 @@ export interface AssessOptions {
 /** Применимость одной записи к одной компании: вычисление (K-16a) → статус → объяснение (K-16c). */
 export const assessRequirement = (
   requirement: Requirement,
-  profile: Pick<CompanyProfile, "companyId" | "facts">,
+  /** `entityType` нужен узлу `entity_type`; без него такой узел даёт `needs_review`. */
+  profile: Pick<CompanyProfile, "companyId" | "facts"> & Partial<Pick<CompanyProfile, "entityType">>,
   options: AssessOptions,
 ): ApplicabilityResult => {
   const asOf = options.asOf ?? options.evaluatedAt.slice(0, 10);
@@ -93,6 +94,7 @@ export const assessRequirement = (
       : evaluateCondition(requirement.condition as ConditionNode, profile.facts, {
           asOf,
           ...(options.mode ? { mode: options.mode } : {}),
+          ...(profile.entityType ? { entityType: profile.entityType } : {}),
         });
   const decision = determineStatus({ requirement, asOf, ...(evaluation ? { evaluation } : {}) });
   const trace = evaluation?.result;

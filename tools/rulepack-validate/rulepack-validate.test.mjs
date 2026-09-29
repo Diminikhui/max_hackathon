@@ -28,6 +28,14 @@ test("сообщает о каждой обязательной межполев
   assert(errors.some((error) => error.includes("повторяет идентификатор")));
 });
 
+test("узел entity_type: допустимые типы лица принимаются, неизвестные — нет", () => {
+  const pack = example();
+  pack.requirements[0].condition = { type: "entity_type", in: ["individual_entrepreneur"] };
+  assert.deepEqual(validateRulepack(pack), []);
+  pack.requirements[0].condition = { type: "entity_type", in: ["llc"] };
+  assert(validateRulepack(pack).length > 0);
+});
+
 test("отклоняет структурно неверный пакет с понятной причиной", () => {
   const pack = example();
   delete pack.title;

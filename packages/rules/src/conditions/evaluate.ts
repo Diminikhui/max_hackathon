@@ -5,14 +5,18 @@ import {
   type ConditionNode,
   type ConditionOutcome,
   type ConditionResult,
+  type EntityType,
   FACT_KEYS,
   type Fact,
   type FactValue,
 } from "@max-hackathon/domain";
-import { describeExpected, formatValue } from "./describe.js";
+import { describeEntityType, describeExpected, formatValue } from "./describe.js";
 import { type FactSelectionOptions, selectFacts } from "./facts.js";
 
-export type EvaluationOptions = FactSelectionOptions;
+export interface EvaluationOptions extends FactSelectionOptions {
+  /** Тип лица из `CompanyProfile.entityType` для узла `entity_type`: он не хранится в фактах. */
+  entityType?: EntityType;
+}
 
 /** Ошибка данных: факт есть, но его тип не подходит условию, или узел неизвестного типа. */
 export interface EvaluationIssue {
@@ -31,6 +35,7 @@ export interface ConditionEvaluation {
 
 interface Context {
   facts: ReadonlyMap<string, Fact>;
+  entityType: EntityType | undefined;
   issues: EvaluationIssue[];
   /** path листа → ключи отсутствующих фактов. */
   missing: Map<string, string[]>;
@@ -41,7 +46,12 @@ export const evaluateCondition = (
   facts: readonly Fact[],
   options: EvaluationOptions = {},
 ): ConditionEvaluation => {
-  const context: Context = { facts: selectFacts(facts, options), issues: [], missing: new Map() };
+  const context: Context = {
+    facts: selectFacts(facts, options),
+    entityType: options.entityType,
+    issues: [],
+    missing: new Map(),
+  };
   const result = evaluateNode(condition, "$", context);
   return { result, missingFactKeys: collectMissing(result, context.missing), issues: context.issues };
 };
@@ -98,6 +108,19 @@ const evaluateNode = (node: ConditionNode, path: string, context: Context): Cond
       return leaf(node, path, context, [node.key], ([value]) =>
         typeof value === "number" ? inRange(value, node.min, node.max) : undefined,
       );
+    case "entity_type": {
+      const base = { path, conditionType: node.type, factKeys: [], factIds: [], expected: describeExpected(node) };
+      if (context.entityType === undefined) {
+        // Поле обязательно в профиле: его отсутствие — ошибка вызывающего, спрашивать у пользователя нечего.
+        context.issues.push({ path, message: "Тип лица (CompanyProfile.entityType) не передан в вычислитель" });
+        return { ...base, outcome: "unknown" };
+      }
+      return {
+        ...base,
+        actual: describeEntityType(context.entityType),
+        outcome: (node.in as readonly string[]).includes(context.entityType) ? "yes" : "no",
+      };
+    }
     default: {
       // Условие не прошло валидацию пакета (K-15c): не падаем, а честно возвращаем «неизвестно».
       const type = String((node as { type?: unknown }).type);
