@@ -10,6 +10,7 @@ import {
   type FactDeclarer,
   planClarification,
 } from "../flows/clarify/index.js";
+import { type ActionQueueSource, createDeadlinesFlow, deadlinesButton } from "../flows/deadlines/index.js";
 import {
   createDemoChangeFlow,
   DEMO_CHANGE_CALLBACK_PAYLOAD,
@@ -92,6 +93,8 @@ export interface BotAppDeps {
   readonly directory?: ChatDirectory;
   /** Без демо кнопка «🧪 Показать пример изменения (модельное)» в меню не показывается. */
   readonly demo?: BotDemoDeps;
+  /** Без очереди действий кнопка «📅 Что и когда» и payload flow не подключаются. */
+  readonly deadlines?: { readonly queue: ActionQueueSource };
   /** Без сценарного сервиса кнопка «🔮 Что будет, если…» и payload flow не подключаются. */
   readonly whatif?: { readonly delta: ScenarioDeltaSource };
   /** 2-22, флаг `BOT_FEATURES=explain`: кнопка «💬 Простым языком» на карточке. Без зависимости кнопки нет. */
@@ -151,6 +154,7 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   const demo = deps.demo
     ? createDemoChangeFlow({ ...deps.demo, checklist: deps.checklist, companyOf, recipients: { remember: () => {} } })
     : undefined;
+  const deadlines = deps.deadlines ? createDeadlinesFlow({ queue: deps.deadlines.queue, companyOf }) : undefined;
   const whatif = deps.whatif ? createWhatIfFlow({ delta: deps.whatif.delta, companyOf }) : undefined;
   const explain = deps.explain
     ? createExplainFlow({ ...deps.explain, checklist: deps.checklist, companyOf, logger: deps.logger })
@@ -181,6 +185,8 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     state: DialogState,
     payload: string,
   ): Promise<Outcome | undefined> => {
+    const deadlineReply = await deadlines?.handle(dialogId, payload);
+    if (deadlineReply) return { reply: deadlineReply, state: deadlineReply.stateOverride ?? "menu" };
     const scenario = await whatif?.handle(dialogId, payload);
     if (scenario) return { reply: scenario, state: "menu" };
     if (examples && state === "awaiting_inn") {
@@ -215,6 +221,12 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     let { reply } = outcome;
     if (whatif && outcome.state === "menu" && hasPayload(reply.buttons, OPEN_REQUIREMENTS)) {
       const button = whatIfButton();
+      if ("payload" in button && !hasPayload(reply.buttons, button.payload)) {
+        reply = { ...reply, buttons: [...reply.buttons, button] };
+      }
+    }
+    if (deadlines && outcome.state === "menu" && hasPayload(reply.buttons, OPEN_REQUIREMENTS)) {
+      const button = deadlinesButton();
       if ("payload" in button && !hasPayload(reply.buttons, button.payload)) {
         reply = { ...reply, buttons: [...reply.buttons, button] };
       }

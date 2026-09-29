@@ -8,9 +8,14 @@ export {
 } from "./payload.js";
 export { EXPLAIN_TIMEOUT_MS, type ExplainProviderChoice, explainProviderFromEnv } from "./provider.js";
 export {
+  buildRetellPrompt,
+  composeRetell,
+  looksTechnical,
   MAX_SUMMARY_LENGTH,
   mentionsStatus,
   RETELL_SCHEMA,
+  RETELL_SYSTEM_PROMPT,
+  type RetellDraft,
   type RetellInput,
   retellDocumentText,
   retellInputOf,

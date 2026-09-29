@@ -19,7 +19,7 @@ import {
   type InboundDispatcher,
   type TransportLogger,
 } from "@max-hackathon/bot/dist/transport/index.js";
-import { ChecklistService, ProfileService, ScenarioDeltaService } from "@max-hackathon/services";
+import { ActionQueueService, ChecklistService, ProfileService, ScenarioDeltaService } from "@max-hackathon/services";
 import {
   createPgClient,
   PostgresBotDialogRepository,
@@ -132,6 +132,9 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     directory: recipients,
     logger,
     reply: options.reply,
+    ...(options.botFeatures?.includes("deadlines")
+      ? { deadlines: { queue: new ActionQueueService({ checklists: checklist }) } }
+      : {}),
     ...(options.botFeatures?.includes("whatif")
       ? { whatif: { delta: new ScenarioDeltaService({ profiles: profileRepository, requirements, clock }) } }
       : {}),
@@ -139,6 +142,8 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     ...(options.botFeatures?.includes("examples") ? { examples: selectExampleCompanies(modelCompanies) } : {}),
     demo: {
       pack: demoPack,
+      // Кнопка «Открыть карточку» включается флагом `cards`, когда корень сайта отдаёт мини-приложение (Issue #347).
+      ...(options.botFeatures?.includes("cards") ? { cardLink: true } : {}),
       requirements,
       notifications,
       now: clock,
