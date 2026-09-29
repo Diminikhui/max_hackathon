@@ -229,19 +229,19 @@ describe("граница модельных пакетов", () => {
 
 describe("модельная компания начинается с фикстуры", () => {
   const KAZAN_CAFE_INN = "1600000011";
-  const EMPLOYEES_QUESTION = "Есть ли у вас работники";
+  const TAX_QUESTION = "Какой у вас налоговый режим?";
 
   it("ответы на уточнения прошлого проверяющего не переносятся: вопросы задаются заново", async () => {
     const first = chat("6001");
     await first.onboard(KAZAN_CAFE_INN);
     await first.press("📋 Мой перечень");
-    expect((await first.press("❔ Уточнить данные")).text).toContain(EMPLOYEES_QUESTION);
-    expect((await first.press("Да")).text).toContain("по вашим словам");
+    expect((await first.press("❔ Уточнить данные")).text).toContain(TAX_QUESTION);
+    expect((await first.press("ОСНО")).text).toContain("по вашим словам");
 
     const second = chat("6002");
     await second.onboard(KAZAN_CAFE_INN);
     await second.press("📋 Мой перечень");
-    expect((await second.press("❔ Уточнить данные")).text).toContain(EMPLOYEES_QUESTION);
+    expect((await second.press("❔ Уточнить данные")).text).toContain(TAX_QUESTION);
   });
 
   it("повторный выбор той же компании в том же чате снова даёт вопросы", async () => {
@@ -249,14 +249,14 @@ describe("модельная компания начинается с фикст
     await cafe.onboard(KAZAN_CAFE_INN);
     await cafe.press("📋 Мой перечень");
     await cafe.press("❔ Уточнить данные");
-    await cafe.press("Да");
+    await cafe.press("ОСНО");
 
     await cafe.press("🏠 Меню");
     await cafe.press("🔄 Другая компания");
     await cafe.send(KAZAN_CAFE_INN);
     await cafe.press("✅ Всё верно");
     await cafe.press("📋 Мой перечень");
-    expect((await cafe.press("❔ Уточнить данные")).text).toContain(EMPLOYEES_QUESTION);
+    expect((await cafe.press("❔ Уточнить данные")).text).toContain(TAX_QUESTION);
   });
 });
 

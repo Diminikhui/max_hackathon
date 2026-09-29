@@ -52,11 +52,12 @@ const auto = (id: string, rule: DueRule) => entry("b-autoservice-fed", `b.fed.${
 const tatarstan = (id: string, rule: DueRule) => entry("a-foodservice-ru-16", `a.tatarstan.${id}`, rule);
 const opportunity = (id: string, rule: DueRule) =>
   entry("a-foodservice-opportunities-fed", `a.opportunity.${id}`, rule);
+const taxMarking = (id: string, rule: DueRule) => entry("a-foodservice-tax-marking-fed", `a.fed.${id}`, rule);
 
 /**
  * Модельный календарь сроков для опубликованных пакетов v1: федеральные общепит и автосервис,
- * общепит Татарстана и возможности общепита. Сверен с полем `deadline` записей; при выпуске
- * новой версии пакета его нужно пересмотреть.
+ * налоги и маркировка общепита, общепит Татарстана и возможности общепита. Сверен с полем
+ * `deadline` записей; при выпуске новой версии пакета его нужно пересмотреть.
  */
 export const DEFAULT_DUE_CALENDAR: readonly DueCalendarEntry[] = [
   food("start-notification", {
@@ -107,6 +108,31 @@ export const DEFAULT_DUE_CALENDAR: readonly DueCalendarEntry[] = [
   }),
   opportunity("foodservice-reduced-insurance-rate", { type: "event", trigger: "при расчёте взносов за каждый месяц" }),
   opportunity("foodservice-patent-tax-system", { type: "event", trigger: "заявление — до начала применения патента" }),
+  taxMarking("usn-annual-declaration", { type: "periodic", period: "ежегодно по итогам налогового периода" }),
+  taxMarking("usn-advances-notification", { type: "periodic", period: "по итогам каждого отчётного периода" }),
+  taxMarking("ausn-monthly-tax", { type: "periodic", period: "ежемесячно" }),
+  taxMarking("psn-application-payment", {
+    type: "event",
+    trigger: "заявление — до начала применения патента; оплата — по сроку патента",
+  }),
+  taxMarking("npd-receipts-tax", {
+    type: "event",
+    trigger: "при формировании чека; налог — по итогам месяца",
+  }),
+  taxMarking("ens-advance-notification", { type: "event", trigger: "при уплате налога или авансового платежа" }),
+  taxMarking("employer-6-ndfl", { type: "periodic", period: "ежеквартально и по итогам года" }),
+  taxMarking("employer-rsv", { type: "periodic", period: "ежеквартально" }),
+  taxMarking("employer-personal-data", { type: "periodic", period: "ежемесячно" }),
+  taxMarking("employer-efs1", {
+    type: "event",
+    trigger: "при кадровом событии или договоре ГПХ; раздел 2 — ежеквартально",
+  }),
+  taxMarking("ip-fixed-contributions", { type: "event", trigger: "при уплате фиксированных и дополнительных взносов" }),
+  taxMarking("usn-vat", { type: "event", trigger: "при превышении порога дохода в течение 2026 года" }),
+  taxMarking("marking-milk", { type: "event", trigger: "при приёмке или выводе маркированной молочной продукции" }),
+  taxMarking("marking-water", { type: "event", trigger: "при приёмке или выводе маркированной воды" }),
+  taxMarking("marking-soft-drinks", { type: "event", trigger: "при приёмке или выводе маркированных напитков" }),
+  taxMarking("marking-beer-keg", { type: "event", trigger: "после подключения кега" }),
 ];
 
 /**

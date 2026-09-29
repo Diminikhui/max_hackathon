@@ -1,0 +1,748 @@
+{
+  "contractVersion": 1,
+  "packId": "a-foodservice-tax-marking-fed",
+  "packVersion": 1,
+  "title": "Общепит (ОКВЭД 56): налоги, отчётность и маркировка",
+  "owner": {
+    "name": "Команда MAX Hackathon"
+  },
+  "source": {
+    "system": "manual-curation",
+    "url": "https://github.com/Diminikhui/max_hackathon/issues/244",
+    "recordId": "issue-244",
+    "retrievedAt": "2026-09-29T00:00:00Z",
+    "isModel": false
+  },
+  "publishedAt": "2026-09-29T00:00:00Z",
+  "validity": {
+    "from": "2026-01-01"
+  },
+  "isModel": false,
+  "requirements": [
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.usn-annual-declaration",
+      "kind": "obligation",
+      "title": "Подавать годовую декларацию по УСН",
+      "summary": "Организация на УСН подаёт декларацию по итогам года не позднее 25 марта следующего года; ИП — не позднее 25 апреля. При прекращении деятельности на УСН или утрате права на режим действуют отдельные сроки. Если дата выпадает на выходной или праздник, применяется перенос по НК РФ.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс РФ, часть вторая",
+          "article": "ст. 346.23 п. 1–3",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102067058"
+        },
+        {
+          "act": "Налоговый кодекс РФ, часть первая",
+          "article": "ст. 6.1 п. 7 (перенос срока с нерабочего дня)",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102054722"
+        }
+      ],
+      "deadline": "Ежегодно: организация — до 25 марта, ИП — до 25 апреля следующего года; специальные сроки при прекращении или утрате права",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "tax_regime",
+            "in": ["usn_income", "usn_income_expenses"]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn77/taxation/taxes/usn/",
+        "recordId": "usn-annual-declaration",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.usn-advances-notification",
+      "kind": "obligation",
+      "title": "Уплачивать авансы по УСН и подавать уведомления",
+      "summary": "На УСН исчисляйте авансовые платежи за квартал, полугодие и девять месяцев. Когда сумма аванса ещё не отражена в декларации, представьте уведомление об исчисленной сумме для ЕНС. Налог по итогам года платят отдельно; календарные даты корректируются при выходных.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс РФ, часть вторая",
+          "article": "ст. 346.21 п. 5, 7",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102067058"
+        },
+        {
+          "act": "Налоговый кодекс РФ, часть первая",
+          "article": "ст. 58 п. 9",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102054722"
+        },
+        {
+          "act": "Налоговый кодекс РФ, часть первая",
+          "article": "ст. 6.1 п. 7 (перенос срока с нерабочего дня)",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102054722"
+        }
+      ],
+      "deadline": "Уведомление — обычно до 25-го числа, аванс — до 28-го числа месяца после отчётного периода; годовой налог — до 28 марта для организаций и до 28 апреля для ИП",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "tax_regime",
+            "in": ["usn_income", "usn_income_expenses"]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn77/taxation/taxes/usn/",
+        "recordId": "usn-advances-notification",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.ausn-monthly-tax",
+      "kind": "obligation",
+      "title": "Проверять операции и уплачивать налог на АУСН",
+      "summary": "На АУСН налог рассчитывает налоговый орган по сведениям банков, ККТ и личного кабинета. Налоговый период — месяц, уплата — до 25-го числа следующего месяца. Декларация по АУСН не представляется. Декларация за предыдущий период на УСН может сохраняться при переходе на АУСН. Применимость режима зависит от требований 17-ФЗ и закона субъекта РФ о его введении.",
+      "basis": [
+        {
+          "act": "Федеральный закон от 25.02.2022 № 17-ФЗ",
+          "article": "ст. 10, 12, 13",
+          "url": "https://publication.pravo.gov.ru/Document/View/0001202202250005"
+        }
+      ],
+      "deadline": "Ежемесячно до 25-го числа следующего месяца",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "tax_regime",
+            "in": ["ausn"]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn77/taxation/taxes/autotax_system/",
+        "recordId": "ausn-monthly-tax",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.psn-application-payment",
+      "kind": "obligation",
+      "title": "Получать и оплачивать патент до работы на ПСН",
+      "summary": "ПСН применяется ИП при наличии соответствующего регионального закона и действующего патента. Заявление подают не позднее чем за 10 дней до начала применения ПСН. Для патента сроком до шести месяцев налог уплачивают полностью к окончанию срока; от шести месяцев до года — частями: треть в первые 90 календарных дней, остаток к окончанию срока. Формулировки пересекаются ровно на шестимесячном сроке, поэтому график для такого патента требует проверки. Декларацию по ПСН не представляют. Возможность общепита зависит также от лимитов дохода, работников и площади зала.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс РФ, часть вторая",
+          "article": "ст. 346.43, 346.45, 346.51, 346.52",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102067058"
+        }
+      ],
+      "deadline": "Заявление — не позднее 10 дней до начала; оплата — по сроку патента",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "tax_regime",
+            "in": ["psn"]
+          },
+          {
+            "type": "entity_type",
+            "in": ["individual_entrepreneur"]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn23/taxation/taxes/patent/",
+        "recordId": "psn-application-payment",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.npd-receipts-tax",
+      "kind": "obligation",
+      "title": "Формировать чеки и уплачивать НПД",
+      "summary": "Применяющий НПД ИП без работников формирует чек по каждому облагаемому расчёту и передаёт его покупателю. При оплате наличными или электронным средством платежа чек выдают в момент расчёта; при иной безналичной оплате — не позднее 9-го числа следующего месяца. При продаже через агента/комиссионера сведения подаёт посредник, а если он их не передал — сам налогоплательщик до 9-го числа. Налог рассчитывает ФНС; декларацию по НПД не подают. Перепродажа, работники и другие случаи из ст. 4 исключают режим, поэтому вид операций заведения нужно проверить отдельно.",
+      "basis": [
+        {
+          "act": "Федеральный закон от 27.11.2018 № 422-ФЗ",
+          "article": "ст. 4, 11, 13, 14",
+          "url": "https://publication.pravo.gov.ru/Document/View/0001201811270056"
+        }
+      ],
+      "deadline": "Чек: в момент расчёта наличными/электронным средством платежа либо до 9-го числа следующего месяца при иной безналичной форме; налог — до 28-го числа следующего месяца",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "tax_regime",
+            "in": ["npd"]
+          },
+          {
+            "type": "entity_type",
+            "in": ["individual_entrepreneur"]
+          },
+          {
+            "type": "has_employees",
+            "value": false
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn77/taxation/princtax/",
+        "recordId": "npd-receipts-tax",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.ens-advance-notification",
+      "kind": "obligation",
+      "title": "Подавать уведомление при уплате через ЕНС",
+      "summary": "Если налог, сбор или взносы уплачиваются до подачи декларации либо декларация не предусмотрена, подайте уведомление об исчисленных суммах. Пополняйте единый налоговый счёт к установленному сроку уплаты. Состав уведомления зависит от конкретного платежа; для УСН авансов и выплат работникам он указан в отдельных записях.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс РФ, часть первая",
+          "article": "ст. 58 п. 9, ст. 11.3",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102054722"
+        }
+      ],
+      "deadline": "Уведомление — как правило до 25-го числа месяца, в котором установлен срок уплаты",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "56"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn77/ens/",
+        "recordId": "ens-advance-notification",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.employer-6-ndfl",
+      "kind": "obligation",
+      "title": "Сдавать расчёт 6-НДФЛ по выплатам физическим лицам",
+      "summary": "Организация или ИП, выплачивающие физическим лицам доходы, выступают налоговыми агентами по НДФЛ и представляют расчёт 6-НДФЛ за первый квартал, полугодие, девять месяцев и год. Годовой расчёт включает сведения о доходах физлиц. При АУСН пункт 2 статьи 230 НК РФ не применяется; выплаты по трудовым и гражданско-правовым договорам и иные исключения нужно проверить по фактам.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс РФ, часть вторая",
+          "article": "ст. 230 п. 2",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102067058"
+        },
+        {
+          "act": "Федеральный закон от 25.02.2022 № 17-ФЗ",
+          "article": "ст. 17 ч. 11",
+          "url": "https://publication.pravo.gov.ru/Document/View/0001202202250005"
+        }
+      ],
+      "deadline": "За квартал, полугодие и девять месяцев — до 25-го числа следующего месяца; за год — до 25 февраля следующего года",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "not",
+            "item": {
+              "type": "tax_regime",
+              "in": ["ausn"]
+            }
+          },
+          {
+            "type": "any",
+            "items": [
+              {
+                "type": "entity_type",
+                "in": ["legal_entity"]
+              },
+              {
+                "type": "has_employees",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn77/ip/ip_pay_taxes/ndfl_people/",
+        "recordId": "employer-6-ndfl",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.employer-rsv",
+      "kind": "obligation",
+      "title": "Представлять расчёт по страховым взносам",
+      "summary": "Плательщик, производящий выплаты и иные вознаграждения физическим лицам, представляет в ФНС расчёт по страховым взносам за квартал, полугодие, девять месяцев и год. Это может включать выплаты по гражданско-правовым договорам, даже если в профиле нет работников. На АУСН действует освобождение от РСВ. Отдельные правила для организации с директором без зарплаты требуют проверки.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс РФ, часть вторая",
+          "article": "ст. 431 п. 7",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102067058"
+        },
+        {
+          "act": "Федеральный закон от 25.02.2022 № 17-ФЗ",
+          "article": "ст. 18 ч. 2",
+          "url": "https://publication.pravo.gov.ru/Document/View/0001202202250005"
+        }
+      ],
+      "deadline": "Ежеквартально до 25-го числа месяца после отчётного периода",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "not",
+            "item": {
+              "type": "tax_regime",
+              "in": ["ausn"]
+            }
+          },
+          {
+            "type": "any",
+            "items": [
+              {
+                "type": "entity_type",
+                "in": ["legal_entity"]
+              },
+              {
+                "type": "has_employees",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn37/news/activities_fts/16614483/",
+        "recordId": "employer-rsv",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.employer-personal-data",
+      "kind": "obligation",
+      "title": "Представлять персонифицированные сведения в ФНС",
+      "summary": "Плательщик, производящий выплаты и иные вознаграждения физическим лицам, ежемесячно представляет в ФНС персонифицированные сведения. Это может включать выплаты по гражданско-правовым договорам, даже если в профиле нет работников. По разъяснению ФНС, отдельные сведения за последний месяц квартала можно не дублировать, если данные включены в раздел 3 РСВ. При АУСН действует законодательное освобождение на период применения режима.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс РФ, часть вторая",
+          "article": "ст. 431 п. 7",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102067058"
+        },
+        {
+          "act": "Федеральный закон от 25.02.2022 № 17-ФЗ",
+          "article": "ст. 18 ч. 2 (освобождение при АУСН)",
+          "url": "https://publication.pravo.gov.ru/Document/View/0001202202250005"
+        },
+        {
+          "act": "Разъяснение ФНС о персонифицированных сведениях за последний месяц квартала",
+          "article": "непредставление при включении данных в раздел 3 РСВ",
+          "url": "https://www.nalog.gov.ru/rn68/news/activities_fts/16610384/"
+        }
+      ],
+      "deadline": "До 25-го числа месяца после отчётного, кроме последнего месяца квартала при включении данных в РСВ",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "not",
+            "item": {
+              "type": "tax_regime",
+              "in": ["ausn"]
+            }
+          },
+          {
+            "type": "any",
+            "items": [
+              {
+                "type": "entity_type",
+                "in": ["legal_entity"]
+              },
+              {
+                "type": "has_employees",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn68/news/activities_fts/16610384/",
+        "recordId": "employer-personal-data",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.employer-efs1",
+      "kind": "obligation",
+      "title": "Передавать сведения ЕФС-1 в Социальный фонд",
+      "summary": "Страхователь подаёт ЕФС-1 о трудовой деятельности, договорах ГПХ и взносах на травматизм. Приём, увольнение, приостановление и возобновление трудового договора отражаются не позднее следующего рабочего дня; сведения о заключении и прекращении договора ГПХ — не позднее следующего рабочего дня по соответствующему событию. Для перевода и раздела 2 установлены отдельные сроки; сведения о стаже представляются только при предусмотренных законом основаниях.",
+      "basis": [
+        {
+          "act": "Федеральный закон от 01.04.1996 № 27-ФЗ",
+          "article": "ст. 11",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102040438"
+        },
+        {
+          "act": "Федеральный закон от 24.07.1998 № 125-ФЗ",
+          "article": "ст. 24",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102054606"
+        },
+        {
+          "act": "Приказ СФР от 17.11.2025 № 1462",
+          "article": "форма ЕФС-1 и порядок заполнения",
+          "url": "https://sfr.gov.ru/order/individual_records/~12288"
+        }
+      ],
+      "deadline": "Приём/увольнение/приостановление/возобновление — следующий рабочий день после подтверждающего документа; начало/окончание договора ГПХ — следующий рабочий день после заключения/прекращения; раздел 2 — ежеквартально до 25-го числа следующего месяца",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "any",
+            "items": [
+              {
+                "type": "entity_type",
+                "in": ["legal_entity"]
+              },
+              {
+                "type": "has_employees",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "sfr.gov.ru",
+        "url": "https://sfr.gov.ru/employers/lk_insurer/baza_znanij/efs_1",
+        "recordId": "employer-efs1",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.ip-fixed-contributions",
+      "kind": "obligation",
+      "title": "Уплачивать фиксированные взносы ИП за себя",
+      "summary": "ИП уплачивает совокупные фиксированные страховые взносы за себя независимо от наличия работников, если не действует предусмотренное законом освобождение. В 2026 году размер составляет 57 390 рублей; при доходе выше 300 000 рублей добавляется взнос с превышения с учётом правил режима. НПД и АУСН имеют особенности, поэтому запись их исключает.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс РФ, часть вторая",
+          "article": "ст. 430 п. 1, 1.2, ст. 432",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102067058"
+        }
+      ],
+      "deadline": "Фиксированная сумма за 2026 год — до 28 декабря 2026 года; дополнительный взнос — по отдельному сроку НК РФ",
+      "validity": {
+        "from": "2026-01-01",
+        "to": "2026-12-31"
+      },
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "not",
+            "item": {
+              "type": "tax_regime",
+              "in": ["npd", "ausn"]
+            }
+          },
+          {
+            "type": "entity_type",
+            "in": ["individual_entrepreneur"]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn16/news/tax_doc_news/16617063/",
+        "recordId": "ip-fixed-contributions",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.usn-vat",
+      "kind": "obligation",
+      "title": "Проверять обязанность исчислять НДС на УСН",
+      "summary": "В 2026 году плательщик УСН автоматически освобождён от НДС, если доходы за 2025 год не превысили 20 млн рублей. При превышении порога в течение 2026 года обязанность исчислять НДС возникает с первого числа следующего месяца. При наличии освобождения для услуг общепита по подп. 38 п. 3 ст. 149 НК РФ условия проверяются отдельно; это право описано в пакете возможностей общепита.",
+      "basis": [
+        {
+          "act": "Налоговый кодекс РФ, часть вторая",
+          "article": "ст. 145 п. 1, 5; ст. 149 п. 3 подп. 38",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=102067058"
+        },
+        {
+          "act": "Федеральный закон от 28.11.2025 № 425-ФЗ",
+          "article": "изменения НДС с 2026 года",
+          "url": "https://publication.pravo.gov.ru/document/0001202511280017"
+        },
+        {
+          "act": "Федеральный закон от 04.07.2026 № 228-ФЗ",
+          "article": "изменения ст. 145 НК РФ: порог дохода для освобождения от НДС на УСН",
+          "url": "https://publication.pravo.gov.ru/document/0001202607040017"
+        }
+      ],
+      "deadline": "Порог дохода контролируется в течение 2026 года; при превышении НДС исчисляют с первого числа следующего месяца",
+      "validity": {
+        "from": "2026-01-01",
+        "to": "2026-12-31"
+      },
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "tax_regime",
+            "in": ["usn_income", "usn_income_expenses"]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "nalog.gov.ru",
+        "url": "https://www.nalog.gov.ru/rn77/taxation/taxes/nds_usn/",
+        "recordId": "usn-vat",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.marking-milk",
+      "kind": "obligation",
+      "title": "Передавать сведения о маркированной молочной продукции",
+      "summary": "Если заведение принимает маркированную молочную продукцию, оно участвует в её обороте даже при использовании на кухне. С 1 сентября 2026 года электронный УПД должны подписать обе стороны не позднее 24 часов после приёмки и до передачи товара третьему лицу. При выводе для собственных или производственных нужд сведения подают в течение 3 рабочих дней со дня приёмки либо со дня составления первичного документа о выводе; для розничной продажи и отдельных товаров действуют специальные правила и даты начала.",
+      "basis": [
+        {
+          "act": "Постановление Правительства РФ от 15.12.2020 № 2099 (ред. от 18.08.2026 № 1017)",
+          "article": "Правила, п. 2, 83, 99¹; срок УПД изменён ПП РФ от 15.06.2026 № 745",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=607517287"
+        },
+        {
+          "act": "Постановление Правительства РФ от 15.06.2026 № 745",
+          "article": "изменения в Правила маркировки молочной продукции",
+          "url": "https://publication.pravo.gov.ru/document/0001202606150021"
+        },
+        {
+          "act": "Постановление Правительства РФ от 18.08.2026 № 1017",
+          "article": "изменения в некоторые акты Правительства РФ, включая Правила маркировки молочной продукции",
+          "url": "https://publication.pravo.gov.ru/document/0001202608180014"
+        }
+      ],
+      "deadline": "Подписание УПД с 01.09.2026 — не более 24 часов со дня приёмки и до передачи третьему лицу; вывод для собственных/производственных нужд — 3 рабочих дня со дня приёмки либо первичного документа о выводе",
+      "validity": {
+        "from": "2026-09-01"
+      },
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "56"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "markirovka.ru",
+        "url": "https://markirovka.ru/knowledge/tovarnye-gruppy/molochnaya-produkciya/dalneyshie-deystviya-posle-registratsii-horeca-moloko",
+        "recordId": "marking-milk",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.marking-water",
+      "kind": "obligation",
+      "title": "Передавать сведения о маркированной упакованной воде",
+      "summary": "Если заведение принимает маркированную упакованную воду, передайте сведения о приёмке по электронному УПД не позднее 3 рабочих дней и до передачи товара третьему лицу; при выводе для собственных или производственных нужд передайте сведения в течение 3 рабочих дней со дня приёмки либо со дня составления первичного документа о выводе. Продажа потребителю в заводской упаковке регулируется отдельно.",
+      "basis": [
+        {
+          "act": "Постановление Правительства РФ от 31.05.2021 № 841",
+          "article": "Правила, п. 2, 77, 91¹; в редакции ПП РФ от 01.06.2024 № 749",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=602194642"
+        }
+      ],
+      "deadline": "Электронный УПД — не более 3 рабочих дней со дня приёмки и до передачи третьему лицу; вывод для собственных/производственных нужд — 3 рабочих дня со дня приёмки либо первичного документа о выводе",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "56"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "markirovka.ru",
+        "url": "https://markirovka.ru/knowledge/tovarnye-gruppy/upakovannaya-voda/dalneyshie-deystviya-posle-registratsii-horeca-voda",
+        "recordId": "marking-water",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.marking-soft-drinks",
+      "kind": "obligation",
+      "title": "Передавать сведения о маркированных напитках и соках",
+      "summary": "Если заведение принимает маркированные безалкогольные напитки и соки, передайте сведения о приёмке по электронному УПД не более чем за 3 рабочих дня; при выводе для собственных или производственных нужд передайте сведения в течение 3 рабочих дней со дня приёмки либо со дня составления первичного документа о выводе. Для розничной продажи в упаковке действуют дополнительные правила.",
+      "basis": [
+        {
+          "act": "Постановление Правительства РФ от 31.05.2023 № 887",
+          "article": "Правила, п. 2, 82, 96¹; в редакции ПП РФ от 01.06.2024 № 749",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=605541857"
+        }
+      ],
+      "deadline": "Электронный УПД — не более 3 рабочих дней со дня приёмки; вывод для собственных/производственных нужд — 3 рабочих дня со дня приёмки либо первичного документа о выводе",
+      "condition": {
+        "type": "okved_prefix",
+        "prefix": "56"
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "markirovka.ru",
+        "url": "https://markirovka.ru/knowledge/tovarnye-gruppy/bezalcohol-napitki/dalneyshie-deystviya-posle-registratsii-po-bezalkogolnym-napitkam-horeca",
+        "recordId": "marking-soft-drinks",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    },
+    {
+      "contractVersion": 1,
+      "packId": "a-foodservice-tax-marking-fed",
+      "packVersion": 1,
+      "id": "a.fed.marking-beer-keg",
+      "kind": "obligation",
+      "title": "Сообщать о подключении кега маркированного пива и слабоалкогольных напитков",
+      "summary": "Заведение, продающее разливное пиво или слабоалкогольные напитки в розлив из маркированного кега, передаёт в систему маркировки сведения о подключении каждого кега к оборудованию не позднее следующего рабочего дня. Правило относится к розливу из кега; продажа в иной упаковке имеет другой порядок.",
+      "basis": [
+        {
+          "act": "Постановление Правительства РФ от 30.11.2022 № 2173",
+          "article": "Правила, п. 116 в редакции ПП РФ от 01.06.2024 № 746",
+          "url": "http://pravo.gov.ru/proxy/ips/?docbody=&nd=603565806"
+        }
+      ],
+      "deadline": "Не позднее следующего рабочего дня после подключения кега",
+      "condition": {
+        "type": "all",
+        "items": [
+          {
+            "type": "okved_prefix",
+            "prefix": "56"
+          },
+          {
+            "type": "fact_in",
+            "key": "sales.alcohol",
+            "values": ["beer", "strong"]
+          }
+        ]
+      },
+      "coverage": "partial",
+      "source": {
+        "system": "markirovka.ru",
+        "url": "https://markirovka.ru/knowledge/tovarnye-gruppy/pivo-pivniye-napitki/kak-peredat-v-sistemu-informatsiyu-ob-ispolzovanii-kega-dlya-razliva-pivo",
+        "recordId": "marking-beer-keg",
+        "retrievedAt": "2026-09-29T00:00:00Z",
+        "isModel": false
+      }
+    }
+  ]
+}

@@ -25,6 +25,7 @@ describe("запуск без токена MAX", () => {
     expect(packs).toEqual(
       expect.arrayContaining([
         "a-foodservice-fed",
+        "a-foodservice-tax-marking-fed",
         "a-foodservice-ru-16",
         "a-foodservice-opportunities-fed",
         "b-autoservice-fed",

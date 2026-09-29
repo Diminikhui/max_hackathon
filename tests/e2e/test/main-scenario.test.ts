@@ -75,27 +75,37 @@ describe("основной сценарий: ИНН → уточнения → �
 
     // 2. Перечень с записями «недостаточно данных» и кнопкой уточнения.
     const list = await chat.press("📋 Мой перечень");
-    expect(list.text).toContain("Недостаточно данных");
+    expect(list.text).toContain("✅ Применяется: 10");
+    expect(list.text).toContain("❔ Недостаточно данных: 21");
+    expect(list.text).toContain("⚠️ Требуется проверка: 13");
+    expect(list.text).toContain("⬜ Вне покрытия системы: 1");
+    expect(list.text).toContain("➖ Не применяется: 11");
     expect(list.buttons.map((button) => button.text)).toContain("❔ Уточнить данные");
 
-    // 3. Уточнение: два вопроса, ответ сопровождается ссылкой на первоисточник.
+    // 3. Уточнение: подключённый налоговый пакет сначала спрашивает режим, затем работников и алкоголь.
+    // Каждый ответ сопровождается ссылкой на первоисточник.
     const first = await chat.press("❔ Уточнить данные");
-    expect(first.text).toContain("Есть ли у вас работники");
-    const second = await chat.press("Да");
-    expect(second.text).toContain("Записали по вашим словам: есть работники.");
+    expect(first.text).toContain("Какой у вас налоговый режим?");
+    const second = await chat.press("ОСНО");
+    expect(second.text).toContain("Записали по вашим словам: ОСНО.");
     expect(second.text).toContain("Первоисточник:");
-    expect(second.text).toContain("Продаёте ли вы алкоголь?");
-    // С реальными пакетами у кафе есть и третий вопрос — про налоговый режим; его можно пропустить.
-    const third = await chat.press("Только пиво, сидр, медовуху");
-    expect(third.text).toContain("Записали по вашим словам: продаёте пиво, сидр или медовуху.");
-    expect(third.text).toContain("Какой у вас налоговый режим?");
-    const done = await chat.press("Пропустить");
-    expect(done.text).toContain("Без итогового статуса осталось записей");
+    expect(second.text).toContain("Есть ли у вас работники");
+    const third = await chat.press("Да");
+    expect(third.text).toContain("Записали по вашим словам: есть работники.");
+    expect(third.text).toContain("Первоисточник:");
+    expect(third.text).toContain("Продаёте ли вы алкоголь?");
+    const done = await chat.press("Только пиво, сидр, медовуху");
+    expect(done.text).toContain("Записали по вашим словам: продаёте пиво, сидр или медовуху.");
     expect(done.text).toContain("Ваш перечень");
+    expect(done.text).toContain("✅ Применяется: 13");
+    expect(done.text).toContain("❔ Недостаточно данных: 1");
+    expect(done.text).toContain("⚠️ Требуется проверка: 23");
+    expect(done.text).toContain("⬜ Вне покрытия системы: 1");
+    expect(done.text).toContain("➖ Не применяется: 18");
 
     // 4. Кнопка старого сообщения, которую бот не смог заменить (её сообщение неизвестно боту), не переписывает
     //    уже данный ответ. Быстрый повтор кнопки из только что заменённого сообщения игнорируется (см. ниже).
-    const staleButton = first.buttons.find((button) => button.text === "Нет");
+    const staleButton = first.buttons.find((button) => button.text === "Патент");
     const stale = await chat.pressPayload(staleButton?.payload as string);
     expect(stale?.text).toContain("Эта кнопка устарела");
 
