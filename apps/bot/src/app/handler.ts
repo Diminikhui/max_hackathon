@@ -11,6 +11,7 @@ import {
   demoChangeButton,
 } from "../flows/demo/index.js";
 import { createExamplesFlow, type ExampleCompany } from "../flows/examples/index.js";
+import { createExplainFlow, explainButton, type LlmProvider } from "../flows/explain/index.js";
 import {
   createOnboardingFlow,
   InMemoryOnboardingSessions,
@@ -84,6 +85,8 @@ export interface BotAppDeps {
   readonly directory?: ChatDirectory;
   /** Без демо кнопка «🧪 Показать пример изменения (модельное)» в меню не показывается. */
   readonly demo?: BotDemoDeps;
+  /** 2-22, флаг `BOT_FEATURES=explain`: кнопка «💬 Простым языком» на карточке. Без зависимости кнопки нет. */
+  readonly explain?: { readonly provider?: LlmProvider };
   /** Модельные профили K-28, доступные кнопками на шаге ввода ИНН. Без зависимости функция выключена. */
   readonly examples?: readonly ExampleCompany[];
 }
@@ -119,7 +122,11 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   const companyOf = (dialogId: string) => sessions.companyOf(dialogId);
 
   const { unrecognized, ...onboarding } = createOnboardingFlow({ profiles: deps.profiles, sessions });
-  const checklistFlow = createChecklistFlow({ checklist: deps.checklist, companyOf });
+  const checklistFlow = createChecklistFlow({
+    checklist: deps.checklist,
+    companyOf,
+    ...(deps.explain ? { cardButtons: (item) => [explainButton(item.requirement.id)] } : {}),
+  });
   const settingsFlow = createSettingsFlow({ settings: deps.settings, companyOf });
   const clarify = createClarifyFlow({
     checklist: deps.checklist,
@@ -130,6 +137,9 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   // Демо-сценарий запоминает чат синхронно и не ждёт записи, поэтому чат привязывается в `callback` до нажатия.
   const demo = deps.demo
     ? createDemoChangeFlow({ ...deps.demo, checklist: deps.checklist, companyOf, recipients: { remember: () => {} } })
+    : undefined;
+  const explain = deps.explain
+    ? createExplainFlow({ ...deps.explain, checklist: deps.checklist, companyOf, logger: deps.logger })
     : undefined;
   const examples = deps.examples ? createExamplesFlow(deps.examples) : undefined;
   const router = createDialogRouter<FlowReply>({ ...onboarding, ...checklistFlow, ...settingsFlow.handlers });
@@ -150,7 +160,7 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     return { reply: result, state: result.stateOverride ?? transition.state, route: transition.route };
   };
 
-  /** Кнопки вне машины диалога: уточнения `c:`, настройки `s:`, демо. `undefined` — payload не распознан. */
+  /** Кнопки вне машины диалога: уточнения `c:`, настройки `s:`, пересказ `explain:`, демо. `undefined` — payload не распознан. */
   const callback = async (
     dialogId: string,
     chatId: string,
@@ -170,6 +180,9 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
       const { transition, result } = await settingsFlow.handleAction({ router, dialogId, action });
       return { reply: result, state: result.stateOverride ?? transition.state, route: transition.route };
     }
+
+    const explained = explain ? await explain.handle(dialogId, payload) : undefined;
+    if (explained) return { reply: explained, state: explained.stateOverride ?? state };
 
     if (demo && payload === DEMO_CHANGE_CALLBACK_PAYLOAD) {
       // Нажатие делает этот чат получателем push компании до прогона контура уведомлений.
