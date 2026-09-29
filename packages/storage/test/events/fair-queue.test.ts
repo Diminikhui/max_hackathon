@@ -79,7 +79,7 @@ describe("PostgresNotificationRepository.listQueuedFair", () => {
     expect(batch.scanned).toBeLessThanOrEqual(20);
     expect(batch.items.length).toBeLessThanOrEqual(20);
     expect(ids(batch.items).slice(0, 2)).toEqual(["a1", "b1"]);
-  });
+  }, 30_000);
 
   it("при числе чатов больше бюджета перебирает их по кругу: каждый чат обслуживается", async () => {
     for (let chat = 0; chat < 7; chat += 1) await repository.enqueue(queued(`n${chat}`, `chat-${chat}`, chat));

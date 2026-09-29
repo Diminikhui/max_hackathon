@@ -1,6 +1,7 @@
 // 5-05. Цикл монитора: опрос источников каждые `pollIntervalMs`, полная перепроверка раз в `recheckIntervalMs`.
 // Время последней перепроверки хранится в памяти: после перезапуска перепроверка выполняется сразу —
-// пересчёт идемпотентен, поэтому лишний прогон безопасен. Запуск процесса — в K-30a.
+// пересчёт идемпотентен, поэтому лишний прогон безопасен. Контур пакетов правил K-30a вызывается монитором
+// внутри опроса и перепроверки (#295): отдельный runNotificationLoop в том же процессе не нужен.
 import type { MonitorRunReport, SourceMonitor } from "./monitor.js";
 
 export const DEFAULT_POLL_INTERVAL_MS = 15 * 60 * 1000;
@@ -34,6 +35,8 @@ export const runMonitorLoop = async (monitor: SourceMonitor, options: MonitorLoo
         lastRecheck = now();
         const rechecked = await monitor.recheckAll();
         options.onReport?.("recheck", rechecked);
+        // Контур пакетов правил упал — перепроверка пропущена, повторяем её на следующем тике.
+        if (rechecked.errors.some((error) => error.stage === "rulepacks")) lastRecheck = undefined;
       }
     } catch (error) {
       options.onError?.(error);

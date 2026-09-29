@@ -80,7 +80,7 @@ describe("сборка бота K-30b", () => {
 
     const menu = await onboard();
 
-    expect(app.stateOf(CHAT)).toBe("menu");
+    expect(await app.stateOf(CHAT)).toBe("menu");
     expect(menu.buttons.map((b) => b.text)).toContain("📋 Мой перечень");
     const companyId = (await services.repository.findByInn(KZN_INN))?.companyId;
     expect(companyId).toBeDefined();
@@ -92,7 +92,7 @@ describe("сборка бота K-30b", () => {
     await onboard();
 
     const list = await press("📋 Мой перечень");
-    expect(app.stateOf(CHAT)).toBe("requirement_list");
+    expect(await app.stateOf(CHAT)).toBe("requirement_list");
     const texts = list.buttons.map((b) => b.text);
     expect(texts).toContain("❔ Уточнить данные");
     expect(texts.at(-1)).toBe("🏠 Меню");
@@ -111,7 +111,7 @@ describe("сборка бота K-30b", () => {
     await onboard();
 
     await press("🔔 Уведомления");
-    expect(app.stateOf(CHAT)).toBe("notification_settings");
+    expect(await app.stateOf(CHAT)).toBe("notification_settings");
     const saved = await press("🔕 Отключить уведомления");
     expect(saved.text).toContain("Уведомления отключены");
 
@@ -128,7 +128,7 @@ describe("сборка бота K-30b", () => {
 
     expect(reply.text).toContain("Не понял сообщение");
     expect(reply.buttons.length).toBeGreaterThan(0);
-    expect(app.stateOf(CHAT)).toBe("menu");
+    expect(await app.stateOf(CHAT)).toBe("menu");
   });
 
   it("кнопки активны только у последнего сообщения: у прежнего они снимаются, нажатие подтверждается", async () => {

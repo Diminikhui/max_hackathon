@@ -1,0 +1,18 @@
+{
+  "name": "@max-hackathon/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Сквозные тесты основного сценария: настоящий процесс, HTTP webhook, модельный MAX.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@max-hackathon/bot": "workspace:*",
+    "@max-hackathon/domain": "workspace:*",
+    "@max-hackathon/storage": "workspace:*",
+    "@max-hackathon/worker": "workspace:*",
+    "vitest": "^5.0.1"
+  }
+}

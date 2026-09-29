@@ -2,7 +2,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import type { ChangeEvent, ChangeEventRepository, Id } from "@max-hackathon/domain";
 import { createPgliteClient, PostgresChangeEventRepository, runMigrations } from "@max-hackathon/storage";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { NpaProject } from "../../src/ingest/client/index.js";
 import {
   ChangeEventDocumentStore,
@@ -42,6 +42,18 @@ const incompleteProject: NpaProject = {
   publishedAt: "2026-09-27",
   sphereIds: [],
 };
+
+let db: PGlite;
+let client: ReturnType<typeof createPgliteClient>;
+
+beforeAll(async () => {
+  db = new PGlite();
+  client = createPgliteClient(db);
+  await runMigrations(client);
+});
+afterAll(async () => {
+  await db?.close();
+});
 
 describe("нормализация проектов НПА", () => {
   it("сохраняет источник, дату, ссылку и явно модельную отметку", () => {
@@ -118,33 +130,26 @@ describe("RegulationIngestJob", () => {
   });
 
   it("повтор сохраняет одну строку в постоянном PostgreSQL-хранилище K-10c", async () => {
-    const db = new PGlite();
-    try {
-      const client = createPgliteClient(db);
-      await runMigrations(client);
-      const store = new ChangeEventDocumentStore(new PostgresChangeEventRepository(client));
-      const job = new RegulationIngestJob({
-        source: { listNpa: async () => ({ items: [validProject], skipped: 0 }) },
-        store,
-        now: () => Date.parse("2026-09-27T10:00:00Z"),
-        isModel: true,
-      });
+    const store = new ChangeEventDocumentStore(new PostgresChangeEventRepository(client));
+    const job = new RegulationIngestJob({
+      source: { listNpa: async () => ({ items: [validProject], skipped: 0 }) },
+      store,
+      now: () => Date.parse("2026-09-27T10:00:00Z"),
+      isModel: true,
+    });
 
-      expect((await job.runOnce()).stored).toBe(1);
-      expect((await job.runOnce()).duplicates).toBe(1);
-      const { rows } = await client.query<{ count: number }>(
-        "SELECT count(*)::int AS count FROM change_events WHERE id = $1",
-        [documentEventId("900001")],
-      );
-      expect(rows[0]?.count).toBe(1);
-      await expect(store.get("900001")).resolves.toMatchObject({
-        source: { system: "regulation.gov.ru", isModel: true },
-        publishedAt: "2026-09-27T09:30:00.000Z",
-        url: "https://regulation.gov.ru/projects/900001",
-      });
-    } finally {
-      await db.close();
-    }
+    expect((await job.runOnce()).stored).toBe(1);
+    expect((await job.runOnce()).duplicates).toBe(1);
+    const { rows } = await client.query<{ count: number }>(
+      "SELECT count(*)::int AS count FROM change_events WHERE id = $1",
+      [documentEventId("900001")],
+    );
+    expect(rows[0]?.count).toBe(1);
+    await expect(store.get("900001")).resolves.toMatchObject({
+      source: { system: "regulation.gov.ru", isModel: true },
+      publishedAt: "2026-09-27T09:30:00.000Z",
+      url: "https://regulation.gov.ru/projects/900001",
+    });
   });
 });
 

@@ -36,6 +36,12 @@ export interface ProfileRecalculationOptions {
   evaluatedAt?: DateTime;
   asOf?: IsoDate;
   eventId?: (input: { companyId: Id; evaluatedAt: DateTime; changedFactKeys: readonly string[] }) => Id;
+  /**
+   * Внешняя причина пересчёта, о которой уже сообщили (#295): новая версия пакета правил, которую
+   * обработал контур уведомлений K-30a. Дельта снимка относится к этому событию: своё событие
+   * `profile_change` не создаётся и причина в журнал не пишется — её записывает владелец.
+   */
+  cause?: ChangeEvent;
 }
 
 export interface PendingRecalculationOperation {
@@ -190,8 +196,9 @@ export class ProfileRecalculationService {
       revision,
       targetDigest,
     });
-    const eventId = options.eventId?.({ companyId, evaluatedAt, changedFactKeys }) ?? defaultEventId;
-    const existingEvent = await this.#deps.events.get(eventId);
+    const eventId =
+      options.cause?.id ?? options.eventId?.({ companyId, evaluatedAt, changedFactKeys }) ?? defaultEventId;
+    const existingEvent = options.cause ?? (await this.#deps.events.get(eventId));
     const event: ChangeEvent = existingEvent ?? {
       contractVersion: CONTRACT_VERSION,
       id: eventId,
@@ -219,7 +226,8 @@ export class ProfileRecalculationService {
     lease: RecalculationLease,
     pending: PendingRecalculationOperation,
   ): Promise<void> {
-    await this.#deps.events.append(pending.event);
+    // Внешнюю причину (`cause`) записывает её владелец: для K-30a запись события — отметка «переход обработан».
+    if (pending.event.kind === "profile_change") await this.#deps.events.append(pending.event);
     const snapshot = sortResults(await this.#deps.applicability.listByCompany(companyId));
     if (snapshotDigest(snapshot) !== pending.targetDigest) {
       await this.#deps.applicability.replaceForCompany(companyId, pending.target);
