@@ -318,7 +318,7 @@ describe("SendQueueWorker", () => {
   it("retryAfterMs от отправителя ставит на паузу всю очередь", async () => {
     await repository.enqueue(queued("n1"));
     await repository.enqueue(queued("n2"));
-    const { sender, worker } = setup([{ ok: false, code: "max_rate_limited", retryable: true, retryAfterMs: 3000 }]);
+    const { sender, worker } = setup([{ ok: false, code: "RATE_LIMITED", retryable: true, retryAfterMs: 3000 }]);
     const first = await worker.processBatch();
     expect(first).toMatchObject({ retried: ["n1"], throttled: true, nextDelayMs: 3000 });
     clock.advance(2000);
