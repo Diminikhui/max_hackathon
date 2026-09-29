@@ -23,7 +23,8 @@
             "tax_regime",
             "fact_equals",
             "fact_in",
-            "fact_range"
+            "fact_range",
+            "entity_type"
           ]
         }
       },
@@ -196,6 +197,19 @@
           },
           "then": {
             "$ref": "#/$defs/FactRange"
+          }
+        },
+        {
+          "if": {
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "const": "entity_type"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/EntityType"
           }
         }
       ]
@@ -451,6 +465,25 @@
           "required": ["max"]
         }
       ]
+    },
+    "EntityType": {
+      "description": "Тип лица входит в in. Берётся не из фактов, а из поля профиля CompanyProfile.entityType.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "entity_type"
+        },
+        "in": {
+          "type": "array",
+          "items": {
+            "enum": ["legal_entity", "individual_entrepreneur"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["type", "in"],
+      "additionalProperties": false
     }
   }
 }

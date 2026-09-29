@@ -8,6 +8,8 @@ import { join } from "node:path";
 import { FixtureProfileSource, loadFixtureProfiles, MspProfileSource } from "@max-hackathon/adapters";
 import { type BotApp, type BotReplyPort, createBotApp } from "@max-hackathon/bot/dist/app/index.js";
 import { DEMO_PACK_FILE, loadDemoPack } from "@max-hackathon/bot/dist/flows/demo/index.js";
+import { selectExampleCompanies } from "@max-hackathon/bot/dist/flows/examples/index.js";
+import type { ExplainProviderChoice } from "@max-hackathon/bot/dist/flows/explain/index.js";
 import type { PendingProfile } from "@max-hackathon/bot/dist/flows/onboarding/index.js";
 import {
   createBotHttpServer,
@@ -61,6 +63,8 @@ export interface AssembleOptions {
   readonly realSource?: ConstructorParameters<typeof ProfileService>[0]["source"];
   readonly now?: () => Date;
   readonly root?: string;
+  /** 2-22: пересказ «Простым языком». Без него кнопки на карточке нет. */
+  readonly explain?: ExplainProviderChoice;
   readonly botFeatures?: readonly string[];
 }
 
@@ -131,6 +135,8 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     ...(options.botFeatures?.includes("whatif")
       ? { whatif: { delta: new ScenarioDeltaService({ profiles: profileRepository, requirements, clock }) } }
       : {}),
+    ...(options.explain ? { explain: { provider: options.explain.provider } } : {}),
+    ...(options.botFeatures?.includes("examples") ? { examples: selectExampleCompanies(modelCompanies) } : {}),
     demo: {
       pack: demoPack,
       requirements,
@@ -191,6 +197,14 @@ export const startApp = async (
     return { port: undefined, stop: () => db.close() };
   }
 
+  if (config.explain) {
+    // Имя провайдера и причина отката — без значения ключа.
+    logger.info("app.explain.enabled", "Plain-language retelling is enabled", {
+      provider: config.explain.provider.name,
+      ...(config.explain.fallbackReason ? { fallbackReason: config.explain.fallbackReason } : {}),
+    });
+  }
+
   const registry = options.registry ?? defaultMaxTransportRegistry;
   const transport = registry.forToken({
     token: config.max.token,
@@ -202,6 +216,7 @@ export const startApp = async (
     logger,
     reply: createMaxReplyPort(transport, logger),
     sender: new MaxMessageSender({ transport }),
+    ...(config.explain ? { explain: config.explain } : {}),
     ...(config.botFeatures ? { botFeatures: config.botFeatures } : {}),
     ...(options.realSource ? { realSource: options.realSource } : {}),
     ...(options.now ? { now: options.now } : {}),
