@@ -165,7 +165,10 @@ export const createDemoChangeFlow = (deps: DemoChangeFlowDeps): DemoChangeFlow =
     if (key === undefined) return "not_needed";
     const notification = await deps.notifications.findByIdempotencyKey(key);
     if (notification) {
-      if (notification.recipient.chatId === chatId) return "sent_here";
+      if (notification.recipient.chatId === chatId) {
+        // Уже доставленное раньше уведомление не «приходит»: иначе ответ обещает сообщение, которого не будет.
+        return notification.status === "sent" ? "sent_earlier" : "sent_here";
+      }
       // Та же компания в другом чате (второй проверяющий): контур второе уведомление не создаёт, поэтому ставим
       // копию для этого чата. Ключ копии свой, повторное нажатие здесь дубля не даёт.
       const copyKey = `${key}:chat:${chatId}`;

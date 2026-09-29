@@ -3,7 +3,13 @@
 // сборки процесса — apps/worker/src/main.ts, потому что контур уведомлений живёт в worker, а worker видит бота).
 import { createDialogRouter, DIALOG_STATES, type DialogEvent, type DialogState } from "../dialog/index.js";
 import { type BotButton, type ChecklistSource, createChecklistFlow, type FlowReply } from "../flows/checklist/index.js";
-import { type ClarifySkipStore, clarifyButton, createClarifyFlow, type FactDeclarer } from "../flows/clarify/index.js";
+import {
+  type ClarifySkipStore,
+  clarifyButton,
+  createClarifyFlow,
+  type FactDeclarer,
+  planClarification,
+} from "../flows/clarify/index.js";
 import { type ActionQueueSource, createDeadlinesFlow, deadlinesButton } from "../flows/deadlines/index.js";
 import {
   createDemoChangeFlow,
@@ -103,6 +109,10 @@ export interface BotApp {
   /** Сохранённое состояние диалога: для тестов и диагностики. */
   stateOf(dialogId: string): Promise<DialogState>;
 }
+
+const SUPERSEDED_LIMIT = 20;
+/** Нажатие из заменённого сообщения в течение этого срока считается быстрым повтором и игнорируется. */
+const DUPLICATE_PRESS_WINDOW_MS = 10_000;
 
 const OPEN_REQUIREMENTS = encodeButtonPayload({ type: "open_requirements" });
 
@@ -232,8 +242,10 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
       const button = clarifyButton();
       const companyId = await companyOf(dialogId);
       if (companyId !== undefined && "payload" in button && !hasPayload(reply.buttons, button.payload)) {
+        // Кнопка нужна, только если есть вопрос, который бот может задать: «недостаточно данных» само по себе
+        // не значит, что есть о чём спросить (остаток может ждать данных реестра, которые бот не спрашивает).
         const built = await deps.checklist.build(companyId);
-        if (built.status === "ok" && built.checklist.statusCounts.insufficient_data > 0) {
+        if (built.status === "ok" && planClarification(built.checklist).questions.length > 0) {
           return { ...reply, buttons: insertBeforeLast(reply.buttons, button) };
         }
       }
@@ -258,37 +270,65 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
 
   /** Последнее сообщение бота в каждом чате, у которого ещё есть кнопки. */
   const withKeyboard = new Map<string, SentMessage>();
+  /** Сообщения бота, которые только что заменены новыми, и когда (не больше `SUPERSEDED_LIMIT` на чат). */
+  const superseded = new Map<string, { messageId: string; at: number }[]>();
+
+  const markSuperseded = (chatId: string, messageId: string): void => {
+    const known = (superseded.get(chatId) ?? []).filter((item) => item.messageId !== messageId);
+    superseded.set(chatId, [...known, { messageId, at: Date.now() }].slice(-SUPERSEDED_LIMIT));
+  };
+
+  const isDuplicatePress = (chatId: string, messageId: string): boolean =>
+    (superseded.get(chatId) ?? []).some(
+      (item) => item.messageId === messageId && Date.now() - item.at <= DUPLICATE_PRESS_WINDOW_MS,
+    );
 
   const deliver = async (event: Parameters<InboundHandler>[0]["event"], reply: FlowReply): Promise<void> => {
     const { chatId } = event;
     const sent = await deps.reply.send(chatId, reply);
 
-    // Новое сообщение внизу чата доставлено: у предыдущего кнопки больше не нужны.
+    // Новое сообщение внизу чата доставлено: у предыдущего кнопки больше не нужны, а нажатия из него — лишние.
     const previous = withKeyboard.get(chatId);
     if (sent !== undefined && reply.buttons.length > 0) withKeyboard.set(chatId, sent);
     else if (sent !== undefined) withKeyboard.delete(chatId);
-    if (previous !== undefined && sent !== undefined && deps.reply.clearKeyboard) {
-      try {
-        await deps.reply.clearKeyboard(chatId, previous);
-      } catch (error) {
-        deps.logger.warn("bot.reply.clear_keyboard_failed", "Could not remove buttons of the previous message", {
-          error,
-        });
-      }
-    }
-
-    if (event.kind === "callback" && deps.reply.acknowledge) {
-      try {
-        await deps.reply.acknowledge(event.callbackId);
-      } catch (error) {
-        deps.logger.warn("bot.reply.acknowledge_failed", "Could not acknowledge the button press", { error });
+    if (previous !== undefined && sent !== undefined) {
+      markSuperseded(chatId, previous.messageId);
+      if (deps.reply.clearKeyboard) {
+        try {
+          await deps.reply.clearKeyboard(chatId, previous);
+        } catch (error) {
+          deps.logger.warn("bot.reply.clear_keyboard_failed", "Could not remove buttons of the previous message", {
+            error,
+          });
+        }
       }
     }
   };
 
-  const handle: InboundHandler = async (delivery) => {
+  /**
+   * Подтверждение нажатия уходит сразу, параллельно с обработкой: индикатор загрузки на кнопке гаснет, и пользователь
+   * не нажимает её повторно. Сбой не критичен.
+   */
+  const acknowledge = async (event: Parameters<InboundHandler>[0]["event"]): Promise<void> => {
+    if (event.kind !== "callback" || !deps.reply.acknowledge) return;
+    try {
+      await deps.reply.acknowledge(event.callbackId);
+    } catch (error) {
+      deps.logger.warn("bot.reply.acknowledge_failed", "Could not acknowledge the button press", { error });
+    }
+  };
+
+  const handleDelivery = async (delivery: Parameters<InboundHandler>[0]): Promise<void> => {
     const { event } = delivery;
     const dialogId = event.chatId;
+
+    // Быстрые повторные нажатия одной кнопки: первое уже заменило сообщение новым, остальные из него же — лишние.
+    // Нажатие из старого сообщения позже этого окна обрабатывается как обычно: его защищают сами сценарии.
+    if (event.kind === "callback" && event.messageId !== undefined && isDuplicatePress(event.chatId, event.messageId)) {
+      deps.logger.info("bot.callback.duplicate", "Repeated press of a button from a just replaced message ignored");
+      return;
+    }
+
     const state = await stateOf(dialogId);
 
     let outcome: Outcome;
@@ -303,6 +343,15 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     await states.saveState(dialogId, outcome.state);
     await directory.track(event.chatId, await companyOf(dialogId));
     await deliver(event, await decorate(dialogId, outcome));
+  };
+
+  const handle: InboundHandler = async (delivery) => {
+    const acknowledged = acknowledge(delivery.event);
+    try {
+      await handleDelivery(delivery);
+    } finally {
+      await acknowledged;
+    }
   };
 
   return { handle, directory, stateOf };
