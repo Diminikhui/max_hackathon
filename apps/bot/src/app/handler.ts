@@ -4,6 +4,7 @@
 import { createDialogRouter, DIALOG_STATES, type DialogEvent, type DialogState } from "../dialog/index.js";
 import { type BotButton, type ChecklistSource, createChecklistFlow, type FlowReply } from "../flows/checklist/index.js";
 import { type ClarifySkipStore, clarifyButton, createClarifyFlow, type FactDeclarer } from "../flows/clarify/index.js";
+import { type ActionQueueSource, createDeadlinesFlow, deadlinesButton } from "../flows/deadlines/index.js";
 import {
   createDemoChangeFlow,
   DEMO_CHANGE_CALLBACK_PAYLOAD,
@@ -83,6 +84,8 @@ export interface BotAppDeps {
   readonly directory?: ChatDirectory;
   /** Без демо кнопка «🧪 Показать пример изменения (модельное)» в меню не показывается. */
   readonly demo?: BotDemoDeps;
+  /** Без очереди действий кнопка «📅 Что и когда» и payload flow не подключаются. */
+  readonly deadlines?: { readonly queue: ActionQueueSource };
 }
 
 export interface BotApp {
@@ -128,6 +131,7 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   const demo = deps.demo
     ? createDemoChangeFlow({ ...deps.demo, checklist: deps.checklist, companyOf, recipients: { remember: () => {} } })
     : undefined;
+  const deadlines = deps.deadlines ? createDeadlinesFlow({ queue: deps.deadlines.queue, companyOf }) : undefined;
   const router = createDialogRouter<FlowReply>({ ...onboarding, ...checklistFlow, ...settingsFlow.handlers });
 
   const stateOf = async (dialogId: string): Promise<DialogState> => {
@@ -153,6 +157,9 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     state: DialogState,
     payload: string,
   ): Promise<Outcome | undefined> => {
+    const deadlineReply = await deadlines?.handle(dialogId, payload);
+    if (deadlineReply) return { reply: deadlineReply, state: deadlineReply.stateOverride ?? "menu" };
+
     const clarified = await clarify.handle(dialogId, payload);
     if (clarified) return { reply: clarified, state: clarified.stateOverride ?? state };
 
@@ -174,11 +181,17 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
 
   /** Кнопки, которые сценарии сами не добавляют: демо в меню, уточнение под перечнем с «недостаточно данных». */
   const decorate = async (dialogId: string, outcome: Outcome): Promise<FlowReply> => {
-    const { reply } = outcome;
+    let { reply } = outcome;
+    if (deadlines && outcome.state === "menu" && hasPayload(reply.buttons, OPEN_REQUIREMENTS)) {
+      const button = deadlinesButton();
+      if ("payload" in button && !hasPayload(reply.buttons, button.payload)) {
+        reply = { ...reply, buttons: [...reply.buttons, button] };
+      }
+    }
     if (demo && outcome.state === "menu" && hasPayload(reply.buttons, OPEN_REQUIREMENTS)) {
       const button = demoChangeButton();
       if ("payload" in button && !hasPayload(reply.buttons, button.payload)) {
-        return { ...reply, buttons: [...reply.buttons, button] };
+        reply = { ...reply, buttons: [...reply.buttons, button] };
       }
     }
     if (outcome.route === "show_requirement_list" && outcome.state === "requirement_list") {
