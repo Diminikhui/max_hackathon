@@ -145,7 +145,14 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6))
 
-  packages/security: {}
+  packages/security:
+    devDependencies:
+      '@max-hackathon/observability':
+        specifier: workspace:*
+        version: link:../observability
+      vitest:
+        specifier: ^5.0.1
+        version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6))
 
   packages/services:
     dependencies:

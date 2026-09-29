@@ -1,3 +1,5 @@
-// Проверка подписи initData, работа с секретами, минимизация персональных данных.
-// Пустой пакет из K-01a: содержимое добавляют потоки из docs/roadmap.md.
-export {};
+// Безопасность данных (K-32b): проверка initData, минимизация ПДн, сроки хранения, доступ к данным.
+export * from "./access.js";
+export * from "./init-data.js";
+export * from "./pii.js";
+export * from "./retention.js";
