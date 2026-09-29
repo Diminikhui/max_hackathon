@@ -30,6 +30,8 @@ export type InboundEvent =
       /** Нужен, чтобы ответить на нажатие через `POST /answers`. */
       readonly callbackId: string;
       readonly payload: string;
+      /** Сообщение, в котором нажата кнопка (`message.body.mid`): по нему отсекаются нажатия из устаревших сообщений. */
+      readonly messageId?: string;
       readonly occurredAt: string;
     };
 
