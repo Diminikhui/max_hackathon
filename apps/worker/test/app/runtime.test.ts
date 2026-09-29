@@ -90,7 +90,8 @@ const chat = (chatId: string) => {
     await receive({ kind: "text", text: inn, ...base() });
     return press("✅ Всё верно");
   };
-  return { press, pressPayload, onboard, last };
+  const send = (text: string) => receive({ kind: "text", text, ...base() });
+  return { press, pressPayload, onboard, send, last };
 };
 
 /** Прогон очереди отправки: сколько уведомлений ушло в модельный MAX. */
@@ -223,5 +224,38 @@ describe("граница модельных пакетов", () => {
     await checklist.build("model");
 
     expect(calls).toEqual([["a-foodservice-fed"], undefined]);
+  });
+});
+
+describe("модельная компания начинается с фикстуры", () => {
+  const KAZAN_CAFE_INN = "1600000011";
+  const EMPLOYEES_QUESTION = "Есть ли у вас работники";
+
+  it("ответы на уточнения прошлого проверяющего не переносятся: вопросы задаются заново", async () => {
+    const first = chat("6001");
+    await first.onboard(KAZAN_CAFE_INN);
+    await first.press("📋 Мой перечень");
+    expect((await first.press("❔ Уточнить данные")).text).toContain(EMPLOYEES_QUESTION);
+    expect((await first.press("Да")).text).toContain("по вашим словам");
+
+    const second = chat("6002");
+    await second.onboard(KAZAN_CAFE_INN);
+    await second.press("📋 Мой перечень");
+    expect((await second.press("❔ Уточнить данные")).text).toContain(EMPLOYEES_QUESTION);
+  });
+
+  it("повторный выбор той же компании в том же чате снова даёт вопросы", async () => {
+    const cafe = chat("6003");
+    await cafe.onboard(KAZAN_CAFE_INN);
+    await cafe.press("📋 Мой перечень");
+    await cafe.press("❔ Уточнить данные");
+    await cafe.press("Да");
+
+    await cafe.press("🏠 Меню");
+    await cafe.press("🔄 Другая компания");
+    await cafe.send(KAZAN_CAFE_INN);
+    await cafe.press("✅ Всё верно");
+    await cafe.press("📋 Мой перечень");
+    expect((await cafe.press("❔ Уточнить данные")).text).toContain(EMPLOYEES_QUESTION);
   });
 });

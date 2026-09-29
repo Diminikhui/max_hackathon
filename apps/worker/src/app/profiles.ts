@@ -1,5 +1,18 @@
 // K-30b. Источник профиля для бота: модельные ИНН K-28 — из фикстуры, остальные — из реестра МСП (K-12b).
-import type { CompanyProfile, FactValue, Id } from "@max-hackathon/domain";
+import type { CompanyProfile, FactValue, Id, ProfileRepository } from "@max-hackathon/domain";
+
+/**
+ * Хранилище для модельного `ProfileService`: сохранённый профиль по ИНН не подмешивается. Модельную компанию K-28
+ * выбирают все проверяющие, поэтому каждый выбор начинается с фикстуры: `save` заменяет факты профиля, и ответы на
+ * уточнения прошлого проверяющего не переносятся — вопросы задаются заново. Остальные методы — те же.
+ */
+export const freshModelProfiles = (repository: ProfileRepository): ProfileRepository => ({
+  get: (companyId) => repository.get(companyId),
+  findByInn: async () => undefined,
+  save: (profile) => repository.save(profile),
+  addFacts: (companyId, facts) => repository.addFacts(companyId, facts),
+  listCompanyIds: () => repository.listCompanyIds(),
+});
 
 /** Нужная боту часть `ProfileService` K-25b. */
 export interface ProfileServiceLike {
