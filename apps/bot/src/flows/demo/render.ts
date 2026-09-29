@@ -9,6 +9,7 @@ import {
 import { encodeButtonPayload } from "../../transport/index.js";
 import { homeButton } from "../checklist/index.js";
 import type { FlowReply } from "../checklist/types.js";
+import { requirementCardButton } from "./deep-link.js";
 
 /** Payload кнопки демо-триггера. Как и «Что проверяется» (K-34), обрабатывается вне машины диалога. */
 export const DEMO_CHANGE_CALLBACK_PAYLOAD = "demo_change";
@@ -119,12 +120,13 @@ export const renderDemoChange = (view: DemoChangeView): FlowReply => {
     "Это модельное изменение: заранее подготовленная версия пакета показывает, как работает уведомление. " +
       "Оно не является юридическим утверждением. Повторное нажатие показывает тот же результат и не создаёт дубль.",
   );
+  const firstConcern = concerning[0];
 
   return {
     text: composeText(lines, renderAutomaticProcessingNote(true)),
     sourceUrls: sources.urls,
     automated: true,
-    buttons: [homeButton()],
+    buttons: firstConcern ? [requirementCardButton(firstConcern.requirement.id), homeButton()] : [homeButton()],
   };
 };
 

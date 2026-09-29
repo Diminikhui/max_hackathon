@@ -26,9 +26,14 @@ export interface ChecklistSource {
   build(companyId: string): Promise<ChecklistOutcomeView>;
 }
 
-/** Ответ сценария: текст и кнопки. Отправляет его K-21b (`NotificationButton` → inline-клавиатура MAX). */
+/** Локальное расширение кнопок домена: MAX открывает связанное мини-приложение через `open_app`. */
+export type BotButton =
+  | NotificationButton
+  | { readonly text: string; readonly webApp: string; readonly payload: string };
+
+/** Ответ сценария: текст и кнопки. Отправляет его K-21b (кнопка → inline-клавиатура MAX). */
 export interface FlowReply extends RenderedMessage {
-  readonly buttons: NotificationButton[];
+  readonly buttons: BotButton[];
   /**
    * Состояние, которое нужно сохранить вместо `transition.state`. Задаётся, когда показанный экран не совпал с
    * переходом: запись из старой кнопки исчезла (показан перечень) или компания неизвестна (диалог начинается заново).

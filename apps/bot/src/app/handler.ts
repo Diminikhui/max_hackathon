@@ -1,9 +1,8 @@
 // K-30b. Сборка диалога: событие MAX (K-22a) → машина и сценарии (K-24a/b/c, K-09, K-29) → ответ в чат.
 // Здесь только связывание портов; сервисы профиля и перечня, хранилище и отправка передаются снаружи (точка
 // сборки процесса — apps/worker/src/main.ts, потому что контур уведомлений живёт в worker, а worker видит бота).
-import type { NotificationButton } from "@max-hackathon/domain";
 import { createDialogRouter, DIALOG_STATES, type DialogEvent, type DialogState } from "../dialog/index.js";
-import { type ChecklistSource, createChecklistFlow, type FlowReply } from "../flows/checklist/index.js";
+import { type BotButton, type ChecklistSource, createChecklistFlow, type FlowReply } from "../flows/checklist/index.js";
 import { type ClarifySkipStore, clarifyButton, createClarifyFlow, type FactDeclarer } from "../flows/clarify/index.js";
 import {
   createDemoChangeFlow,
@@ -95,10 +94,10 @@ export interface BotApp {
 
 const OPEN_REQUIREMENTS = encodeButtonPayload({ type: "open_requirements" });
 
-const hasPayload = (buttons: readonly NotificationButton[], payload: string): boolean =>
+const hasPayload = (buttons: readonly BotButton[], payload: string): boolean =>
   buttons.some((button) => "payload" in button && button.payload === payload);
 
-const insertBeforeLast = (buttons: readonly NotificationButton[], button: NotificationButton): NotificationButton[] =>
+const insertBeforeLast = (buttons: readonly BotButton[], button: BotButton): BotButton[] =>
   buttons.length === 0 ? [button] : [...buttons.slice(0, -1), button, ...buttons.slice(-1)];
 
 const prefixText = (reply: FlowReply, line: string): FlowReply => ({ ...reply, text: `${line}\n\n${reply.text}` });

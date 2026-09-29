@@ -1,8 +1,7 @@
 // K-30b. Тело сообщения MAX для ответа сценария: текст и inline-клавиатура.
 // Кнопки с короткой подписью (номера записей перечня) идут рядами до 7, остальные — по одной в ряд, чтобы длинные
 // подписи («📋 Мой перечень», «🧪 Показать пример изменения (модельное)») читались и на телефоне.
-import type { NotificationButton } from "@max-hackathon/domain";
-import type { FlowReply } from "../flows/checklist/index.js";
+import type { BotButton, FlowReply } from "../flows/checklist/index.js";
 
 /** Лимиты MAX Bot API (K-05c): кнопок в ряду callback — 7, рядов — 30. */
 const MAX_SHORT_PER_ROW = 7;
@@ -11,7 +10,8 @@ const SHORT_TEXT_LENGTH = 3;
 
 type MaxButton =
   | { readonly type: "callback"; readonly text: string; readonly payload: string }
-  | { readonly type: "link"; readonly text: string; readonly url: string };
+  | { readonly type: "link"; readonly text: string; readonly url: string }
+  | { readonly type: "open_app"; readonly text: string; readonly web_app: string; readonly payload: string };
 
 export interface MaxReplyBody {
   readonly text: string;
@@ -21,16 +21,18 @@ export interface MaxReplyBody {
   }[];
 }
 
-const toMaxButton = (button: NotificationButton): MaxButton =>
-  "url" in button
-    ? { type: "link", text: button.text, url: button.url }
-    : { type: "callback", text: button.text, payload: button.payload };
+const toMaxButton = (button: BotButton): MaxButton =>
+  "webApp" in button
+    ? { type: "open_app", text: button.text, web_app: button.webApp, payload: button.payload }
+    : "url" in button
+      ? { type: "link", text: button.text, url: button.url }
+      : { type: "callback", text: button.text, payload: button.payload };
 
 const isShort = (button: MaxButton): boolean =>
   button.type === "callback" && [...button.text].length <= SHORT_TEXT_LENGTH;
 
 /** Раскладка кнопок: подряд идущие короткие — в общий ряд, остальные — по одной. */
-export const layoutButtons = (buttons: readonly NotificationButton[]): MaxButton[][] => {
+export const layoutButtons = (buttons: readonly BotButton[]): MaxButton[][] => {
   const rows: MaxButton[][] = [];
   let shortRow: MaxButton[] = [];
   const flush = () => {

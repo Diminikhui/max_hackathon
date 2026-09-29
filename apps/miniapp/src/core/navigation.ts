@@ -45,13 +45,31 @@ const START_SCREENS: Readonly<Record<string, ScreenId>> = {
   settings: "settings",
 };
 
+const REQUIREMENT_START_PREFIX = "requirement_";
+
+/** Декодирует непрозрачный UTF-8 hex payload кнопки `open_app`; некорректные значения игнорируются. */
+export function requirementIdFromStartParam(startParam: string): string | undefined {
+  if (!startParam.startsWith(REQUIREMENT_START_PREFIX)) return undefined;
+  const encoded = startParam.slice(REQUIREMENT_START_PREFIX.length);
+  if (encoded.length === 0 || encoded.length % 2 !== 0 || !/^[0-9a-f]+$/.test(encoded)) return undefined;
+  try {
+    const bytes = Uint8Array.from(encoded.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16));
+    const requirementId = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    return requirementId.length > 0 ? requirementId : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Начальный стек по `start_param` deep link. Поддерживаются имена экранов (`profile`, `checklist`,
- * `settings`); неизвестное значение открывает главный экран. Разбор ссылок на конкретное требование — 2-10.
+ * `settings`) и непрозрачная ссылка на требование; неизвестное значение открывает главный экран.
  */
 export function initialStack(startParam: string | undefined): NavigationStack {
   const screen = startParam === undefined ? undefined : START_SCREENS[startParam];
-  return screen === undefined ? [HOME] : [HOME, { screen }];
+  if (screen !== undefined) return [HOME, { screen }];
+  const requirementId = startParam === undefined ? undefined : requirementIdFromStartParam(startParam);
+  return requirementId === undefined ? [HOME] : [HOME, { screen: "checklist", params: { requirementId } }];
 }
 
 function sameRoute(a: Route, b: Route): boolean {

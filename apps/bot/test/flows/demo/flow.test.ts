@@ -164,6 +164,11 @@ describe("демо-триггер K-29", () => {
     expect(reply.text).toContain("Текст сформирован автоматически");
     expect(reply.text).toContain("Модельные данные");
     expect(reply.automated).toBe(true);
+    expect(reply.buttons).toContainEqual({
+      text: "Открыть карточку",
+      webApp: "t214_hakaton_max_bot",
+      payload: "requirement_6d2e6e6577",
+    });
   });
 
   it("повторное нажатие даёт тот же ответ и не создаёт второе уведомление", async () => {
