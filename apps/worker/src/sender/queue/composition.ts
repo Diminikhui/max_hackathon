@@ -1,12 +1,13 @@
 // Composition root отправки в MAX (3-05, #247): один RateLimitedMaxTransport на MAX token, общий для
 // отправки сообщений, загрузок и служебных запросов, и воркер очереди поверх честной выборки хранилища.
+// Сообщения отправляет клиент K-21b (sender/max): кнопки, лимиты MAX, коды K-27 и Retry-After (#297).
 // Переменные окружения здесь не читаются: конфигурацию передаёт точка входа процесса (K-30a).
 
 import { createHash } from "node:crypto";
+import { MaxMessageSender } from "../max/client.js";
 import { MaxServiceClient, MaxUploadClient } from "./max-clients.js";
 import { type MaxFetch, RateLimitedMaxTransport } from "./max-transport.js";
 import type { TokenBucketOptions } from "./rate-limiter.js";
-import { MaxMessageSender } from "./sender.js";
 import { type SendQueueRepository, SendQueueWorker, type SendQueueWorkerOptions } from "./worker.js";
 
 export interface MaxTransportConfig {
@@ -66,7 +67,7 @@ export interface MaxSenderRuntime {
 export const createMaxSenderRuntime = (options: MaxSenderRuntimeOptions): MaxSenderRuntime => {
   const { max, repository, registry = defaultMaxTransportRegistry, now = Date.now, ...workerOptions } = options;
   const transport = registry.forToken({ now, ...max });
-  const sender = new MaxMessageSender(transport);
+  const sender = new MaxMessageSender({ transport, now });
   return {
     transport,
     sender,

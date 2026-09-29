@@ -1,7 +1,8 @@
 # MAX sender composition
 
 `RateLimitedMaxTransport` — единственная HTTP-граница этого модуля. Composition root обязан создать
-один экземпляр на MAX token и передать его в `MaxMessageSender`, upload- и service-клиенты. Эти клиенты
+один экземпляр на MAX token и передать его в `MaxMessageSender` (клиент K-21b, `sender/max`), upload- и
+service-клиенты. Эти клиенты
 не должны принимать `fetch` или callback запроса: каждый вызов `send`, `upload` или `service` резервирует
 один token общей квоты и выполняет ровно один HTTP-запрос.
 
@@ -11,5 +12,6 @@
 `notifications_queue_by_chat` с курсором по кругу, поэтому длинная очередь одного чата не загораживает другие.
 
 Сборка — `createMaxSenderRuntime` (`composition.ts`): берёт transport из `MaxTransportRegistry` (один на token
-в процессе) и создаёт на нём `MaxMessageSender`, `MaxUploadClient`, `MaxServiceClient` и воркер. Тест
+в процессе) и создаёт на нём `MaxMessageSender` K-21b (текст и inline-кнопки, проверка лимитов MAX, коды K-27,
+`Retry-After`), `MaxUploadClient`, `MaxServiceClient` и воркер. Отдельного упрощённого отправителя в очереди нет. Тест
 `composition.test.ts` проверяет, что `fetch` вызывается только в `max-transport.ts`.

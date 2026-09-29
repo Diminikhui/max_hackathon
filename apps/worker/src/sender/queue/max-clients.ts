@@ -1,4 +1,4 @@
-// Upload- и service-клиенты MAX Bot API. Как и MaxMessageSender, не принимают fetch: каждый вызов идёт
+// Upload- и service-клиенты MAX Bot API. Как и MaxMessageSender (sender/max), не принимают fetch: каждый вызов идёт
 // через общий MaxApiTransport и расходует токен той же квоты, что и отправка сообщений.
 
 import type { MaxApiRequest, MaxApiTransport } from "./max-transport.js";

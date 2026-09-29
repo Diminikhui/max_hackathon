@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_MAX_API_BUDGET, MaxMessageSender, RateLimitedMaxTransport } from "../../../src/sender/queue/index.js";
+import { MaxMessageSender } from "../../../src/sender/max/index.js";
+import { DEFAULT_MAX_API_BUDGET, RateLimitedMaxTransport } from "../../../src/sender/queue/index.js";
 import { queued } from "./support/fixtures.js";
+
+// Клиент K-21b принимает только числовой chat_id MAX; идентификатор модельный.
+const MODEL_RECIPIENT = { channel: "max_bot", chatId: "-900000000001" } as const;
 
 describe("RateLimitedMaxTransport", () => {
   it("делит один безопасный бюджет между send, upload и service запросами", async () => {
@@ -60,7 +64,9 @@ describe("RateLimitedMaxTransport", () => {
         return new Response(null, { status: 200 });
       },
     });
-    expect(await new MaxMessageSender(transport).send(queued("n1"))).toEqual({ ok: true });
+    expect(await new MaxMessageSender({ transport }).send(queued("n1", { recipient: MODEL_RECIPIENT }))).toEqual({
+      ok: true,
+    });
     expect(requests).toHaveLength(1);
   });
 
