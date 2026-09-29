@@ -13,10 +13,12 @@ const KZN_INN = "1600000011";
 
 const silent: TransportLogger = { info: () => {}, warn: () => {}, error: () => {} };
 
-const setup = (options: { readonly answerWorks?: boolean } = {}) => {
+const setup = (options: { readonly clearWorks?: boolean } = {}) => {
   const services = createK28Services();
   const settings = createMemorySettingsStore();
-  const sent: { chatId: string; reply: FlowReply; via: "send" | "answer" }[] = [];
+  const sent: { chatId: string; reply: FlowReply; messageId: string }[] = [];
+  const cleared: string[] = [];
+  const acknowledged: string[] = [];
   const app = createBotApp({
     profiles: services.profiles,
     checklist: services.checklist,
@@ -24,12 +26,16 @@ const setup = (options: { readonly answerWorks?: boolean } = {}) => {
     logger: silent,
     reply: {
       send: async (chatId, reply) => {
-        sent.push({ chatId, reply, via: "send" });
+        const messageId = `m${sent.length + 1}`;
+        sent.push({ chatId, reply, messageId });
+        return { messageId, text: reply.text };
       },
-      answer: async (_callbackId, reply) => {
-        if (options.answerWorks === false) return false;
-        sent.push({ chatId: CHAT, reply, via: "answer" });
-        return true;
+      clearKeyboard: async (_chatId, message) => {
+        if (options.clearWorks === false) throw new Error("MAX недоступен");
+        cleared.push(message.messageId);
+      },
+      acknowledge: async (callbackId) => {
+        acknowledged.push(callbackId);
       },
     },
   });
@@ -65,7 +71,7 @@ const setup = (options: { readonly answerWorks?: boolean } = {}) => {
     return press("✅ Всё верно");
   };
 
-  return { app, services, settings, sent, press, type, start, onboard, last };
+  return { app, services, settings, sent, cleared, acknowledged, press, type, start, onboard, last };
 };
 
 describe("сборка бота K-30b", () => {
@@ -125,14 +131,33 @@ describe("сборка бота K-30b", () => {
     expect(app.stateOf(CHAT)).toBe("menu");
   });
 
-  it("нажатие кнопки заменяет сообщение ответом на callback, при сбое — новым сообщением", async () => {
-    const works = setup();
-    await works.onboard();
-    expect(works.sent.at(-1)?.via).toBe("answer");
+  it("кнопки активны только у последнего сообщения: у прежнего они снимаются, нажатие подтверждается", async () => {
+    const { onboard, sent, cleared, acknowledged, press } = setup();
 
-    const broken = setup({ answerWorks: false });
-    await broken.onboard();
-    expect(broken.sent.at(-1)?.via).toBe("send");
+    await onboard();
+    // «Начать» → ИНН → «Всё верно»: на каждый ответ по одному новому сообщению, у прежних кнопки сняты.
+    expect(sent.map((item) => item.messageId)).toEqual(["m1", "m2", "m3"]);
+    expect(cleared).toEqual(["m1", "m2"]);
+    expect(acknowledged).toHaveLength(1);
+
+    await press("📋 Мой перечень");
+    expect(cleared).toEqual(["m1", "m2", "m3"]);
+  });
+
+  it("сообщение без кнопок не снимается: снимать нечего", async () => {
+    const { sent, cleared, type, start } = setup();
+    await start();
+    await type("не ИНН");
+    expect(sent).toHaveLength(2);
+    expect(cleared).toEqual(["m1"]);
+    await type("снова не ИНН");
+    expect(cleared).toEqual(["m1", "m2"]);
+  });
+
+  it("если MAX не смог снять кнопки, диалог продолжается", async () => {
+    const { onboard, sent } = setup({ clearWorks: false });
+    await onboard();
+    expect(sent).toHaveLength(3);
   });
 
   it("без демо-зависимостей кнопки демо в меню нет", async () => {

@@ -36,6 +36,7 @@ const assemble = async () => {
   const reply: BotReplyPort = {
     send: async (chatId, message) => {
       replies.push({ chatId, reply: message });
+      return { messageId: `m${replies.length}`, text: message.text };
     },
   };
   return assembleApp({

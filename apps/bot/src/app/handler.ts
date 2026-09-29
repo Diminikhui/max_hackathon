@@ -21,15 +21,24 @@ import { createSettingsFlow, decodeSettingsPayload, type NotificationSettingsSto
 import { encodeButtonPayload, type InboundHandler, type TransportLogger } from "../transport/index.js";
 import { DialogChatDirectory } from "./chat-directory.js";
 
+/** Сообщение бота, отправленное в чат: по нему у сообщения потом снимаются кнопки. */
+export interface SentMessage {
+  readonly messageId: string;
+  /** Текст нужен, чтобы при снятии кнопок MAX оставил его без изменений. */
+  readonly text: string;
+}
+
 /** Как ответ сценария попадает в чат. Реализация — транспорт MAX (worker) или модельная в тестах. */
 export interface BotReplyPort {
-  /** Отправить новое сообщение в чат. */
-  send(chatId: string, reply: FlowReply): Promise<void>;
+  /** Отправить новое сообщение внизу чата. `undefined` — MAX не вернул идентификатор, кнопки потом не снять. */
+  send(chatId: string, reply: FlowReply): Promise<SentMessage | undefined>;
   /**
-   * Ответить на нажатие кнопки, заменив нажатое сообщение (`POST /answers` с `message`). `false` — не получилось,
-   * тогда ответ уходит новым сообщением. Не задан — ответы всегда новыми сообщениями.
+   * Убрать кнопки у прежнего сообщения бота, текст оставить (`PUT /messages`). Правило чата: кнопки активны только
+   * у последнего сообщения бота, поэтому нажатие кнопки из старого сообщения невозможно. Сбой не критичен.
    */
-  answer?(callbackId: string, reply: FlowReply): Promise<boolean>;
+  clearKeyboard?(chatId: string, message: SentMessage): Promise<void>;
+  /** Подтвердить нажатие кнопки (`POST /answers`), чтобы клиент MAX не ждал ответа. Сбой не критичен. */
+  acknowledge?(callbackId: string): Promise<void>;
 }
 
 /** Демо-триггер K-29 без портов, которые даёт сборка бота. */
@@ -162,15 +171,34 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     return { ...home, reply: prefixText(home.reply, "Не понял сообщение. Выберите действие кнопками.") };
   };
 
+  /** Последнее сообщение бота в каждом чате, у которого ещё есть кнопки. */
+  const withKeyboard = new Map<string, SentMessage>();
+
   const deliver = async (event: Parameters<InboundHandler>[0]["event"], reply: FlowReply): Promise<void> => {
-    if (event.kind === "callback" && deps.reply.answer) {
+    const { chatId } = event;
+    const sent = await deps.reply.send(chatId, reply);
+
+    // Новое сообщение внизу чата доставлено: у предыдущего кнопки больше не нужны.
+    const previous = withKeyboard.get(chatId);
+    if (sent !== undefined && reply.buttons.length > 0) withKeyboard.set(chatId, sent);
+    else if (sent !== undefined) withKeyboard.delete(chatId);
+    if (previous !== undefined && sent !== undefined && deps.reply.clearKeyboard) {
       try {
-        if (await deps.reply.answer(event.callbackId, reply)) return;
+        await deps.reply.clearKeyboard(chatId, previous);
       } catch (error) {
-        deps.logger.warn("bot.reply.answer_failed", "Callback answer failed, sending a new message", { error });
+        deps.logger.warn("bot.reply.clear_keyboard_failed", "Could not remove buttons of the previous message", {
+          error,
+        });
       }
     }
-    await deps.reply.send(event.chatId, reply);
+
+    if (event.kind === "callback" && deps.reply.acknowledge) {
+      try {
+        await deps.reply.acknowledge(event.callbackId);
+      } catch (error) {
+        deps.logger.warn("bot.reply.acknowledge_failed", "Could not acknowledge the button press", { error });
+      }
+    }
   };
 
   const handle: InboundHandler = async (delivery) => {

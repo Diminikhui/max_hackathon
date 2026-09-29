@@ -5,5 +5,6 @@ export {
   type BotDemoDeps,
   type BotReplyPort,
   createBotApp,
+  type SentMessage,
 } from "./handler.js";
 export { buildReplyBody, layoutButtons, type MaxReplyBody } from "./keyboard.js";
