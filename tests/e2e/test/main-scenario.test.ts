@@ -75,7 +75,11 @@ describe("основной сценарий: ИНН → уточнения → �
 
     // 2. Перечень с записями «недостаточно данных» и кнопкой уточнения.
     const list = await chat.press("📋 Мой перечень");
-    expect(list.text).toContain("Недостаточно данных");
+    expect(list.text).toContain("✅ Применяется: 10");
+    expect(list.text).toContain("❔ Недостаточно данных: 21");
+    expect(list.text).toContain("⚠️ Требуется проверка: 13");
+    expect(list.text).toContain("⬜ Вне покрытия системы: 1");
+    expect(list.text).toContain("➖ Не применяется: 11");
     expect(list.buttons.map((button) => button.text)).toContain("❔ Уточнить данные");
 
     // 3. Уточнение: подключённый налоговый пакет сначала спрашивает режим, затем работников и алкоголь.
@@ -93,6 +97,11 @@ describe("основной сценарий: ИНН → уточнения → �
     const done = await chat.press("Только пиво, сидр, медовуху");
     expect(done.text).toContain("Записали по вашим словам: продаёте пиво, сидр или медовуху.");
     expect(done.text).toContain("Ваш перечень");
+    expect(done.text).toContain("✅ Применяется: 13");
+    expect(done.text).toContain("❔ Недостаточно данных: 1");
+    expect(done.text).toContain("⚠️ Требуется проверка: 23");
+    expect(done.text).toContain("⬜ Вне покрытия системы: 1");
+    expect(done.text).toContain("➖ Не применяется: 18");
 
     // 4. Кнопка старого сообщения, которую бот не смог заменить (её сообщение неизвестно боту), не переписывает
     //    уже данный ответ. Быстрый повтор кнопки из только что заменённого сообщения игнорируется (см. ниже).
