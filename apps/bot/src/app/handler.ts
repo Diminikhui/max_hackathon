@@ -10,6 +10,7 @@ import {
   type DemoChangeFlowDeps,
   demoChangeButton,
 } from "../flows/demo/index.js";
+import { createExamplesFlow, type ExampleCompany } from "../flows/examples/index.js";
 import { createExplainFlow, explainButton, type LlmProvider } from "../flows/explain/index.js";
 import {
   createOnboardingFlow,
@@ -86,6 +87,8 @@ export interface BotAppDeps {
   readonly demo?: BotDemoDeps;
   /** 2-22, флаг `BOT_FEATURES=explain`: кнопка «💬 Простым языком» на карточке. Без зависимости кнопки нет. */
   readonly explain?: { readonly provider?: LlmProvider };
+  /** Модельные профили K-28, доступные кнопками на шаге ввода ИНН. Без зависимости функция выключена. */
+  readonly examples?: readonly ExampleCompany[];
 }
 
 export interface BotApp {
@@ -138,6 +141,7 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   const explain = deps.explain
     ? createExplainFlow({ ...deps.explain, checklist: deps.checklist, companyOf, logger: deps.logger })
     : undefined;
+  const examples = deps.examples ? createExamplesFlow(deps.examples) : undefined;
   const router = createDialogRouter<FlowReply>({ ...onboarding, ...checklistFlow, ...settingsFlow.handlers });
 
   const stateOf = async (dialogId: string): Promise<DialogState> => {
@@ -163,6 +167,11 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     state: DialogState,
     payload: string,
   ): Promise<Outcome | undefined> => {
+    if (examples && state === "awaiting_inn") {
+      const event = examples.eventFor(payload);
+      if (event) return dispatch(dialogId, state, event);
+    }
+
     const clarified = await clarify.handle(dialogId, payload);
     if (clarified) return { reply: clarified, state: clarified.stateOverride ?? state };
 
@@ -187,7 +196,8 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
 
   /** Кнопки, которые сценарии сами не добавляют: демо в меню, уточнение под перечнем с «недостаточно данных». */
   const decorate = async (dialogId: string, outcome: Outcome): Promise<FlowReply> => {
-    const { reply } = outcome;
+    let { reply } = outcome;
+    if (examples && outcome.state === "awaiting_inn") reply = examples.decorate(reply);
     if (demo && outcome.state === "menu" && hasPayload(reply.buttons, OPEN_REQUIREMENTS)) {
       const button = demoChangeButton();
       if ("payload" in button && !hasPayload(reply.buttons, button.payload)) {
