@@ -19,6 +19,7 @@ import {
   type ProfileGateway,
 } from "../flows/onboarding/index.js";
 import { createSettingsFlow, decodeSettingsPayload, type NotificationSettingsStore } from "../flows/settings/index.js";
+import { createWhatIfFlow, type ScenarioDeltaSource, whatIfButton } from "../flows/whatif/index.js";
 import { encodeButtonPayload, type InboundHandler, type TransportLogger } from "../transport/index.js";
 import { type ChatDirectory, DialogChatDirectory } from "./chat-directory.js";
 
@@ -85,6 +86,8 @@ export interface BotAppDeps {
   readonly directory?: ChatDirectory;
   /** Без демо кнопка «🧪 Показать пример изменения (модельное)» в меню не показывается. */
   readonly demo?: BotDemoDeps;
+  /** Без сценарного сервиса кнопка «🔮 Что будет, если…» и payload flow не подключаются. */
+  readonly whatif?: { readonly delta: ScenarioDeltaSource };
   /** 2-22, флаг `BOT_FEATURES=explain`: кнопка «💬 Простым языком» на карточке. Без зависимости кнопки нет. */
   readonly explain?: { readonly provider?: LlmProvider };
   /** Модельные профили K-28, доступные кнопками на шаге ввода ИНН. Без зависимости функция выключена. */
@@ -138,6 +141,7 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   const demo = deps.demo
     ? createDemoChangeFlow({ ...deps.demo, checklist: deps.checklist, companyOf, recipients: { remember: () => {} } })
     : undefined;
+  const whatif = deps.whatif ? createWhatIfFlow({ delta: deps.whatif.delta, companyOf }) : undefined;
   const explain = deps.explain
     ? createExplainFlow({ ...deps.explain, checklist: deps.checklist, companyOf, logger: deps.logger })
     : undefined;
@@ -167,6 +171,8 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
     state: DialogState,
     payload: string,
   ): Promise<Outcome | undefined> => {
+    const scenario = await whatif?.handle(dialogId, payload);
+    if (scenario) return { reply: scenario, state: "menu" };
     if (examples && state === "awaiting_inn") {
       const event = examples.eventFor(payload);
       if (event) return dispatch(dialogId, state, event);
@@ -197,11 +203,17 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   /** Кнопки, которые сценарии сами не добавляют: демо в меню, уточнение под перечнем с «недостаточно данных». */
   const decorate = async (dialogId: string, outcome: Outcome): Promise<FlowReply> => {
     let { reply } = outcome;
+    if (whatif && outcome.state === "menu" && hasPayload(reply.buttons, OPEN_REQUIREMENTS)) {
+      const button = whatIfButton();
+      if ("payload" in button && !hasPayload(reply.buttons, button.payload)) {
+        reply = { ...reply, buttons: [...reply.buttons, button] };
+      }
+    }
     if (examples && outcome.state === "awaiting_inn") reply = examples.decorate(reply);
     if (demo && outcome.state === "menu" && hasPayload(reply.buttons, OPEN_REQUIREMENTS)) {
       const button = demoChangeButton();
       if ("payload" in button && !hasPayload(reply.buttons, button.payload)) {
-        return { ...reply, buttons: [...reply.buttons, button] };
+        reply = { ...reply, buttons: [...reply.buttons, button] };
       }
     }
     if (outcome.route === "show_requirement_list" && outcome.state === "requirement_list") {

@@ -19,7 +19,7 @@ import {
   type InboundDispatcher,
   type TransportLogger,
 } from "@max-hackathon/bot/dist/transport/index.js";
-import { ChecklistService, ProfileService } from "@max-hackathon/services";
+import { ChecklistService, ProfileService, ScenarioDeltaService } from "@max-hackathon/services";
 import {
   createPgClient,
   PostgresBotDialogRepository,
@@ -132,6 +132,9 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
     directory: recipients,
     logger,
     reply: options.reply,
+    ...(options.botFeatures?.includes("whatif")
+      ? { whatif: { delta: new ScenarioDeltaService({ profiles: profileRepository, requirements, clock }) } }
+      : {}),
     ...(options.explain ? { explain: { provider: options.explain.provider } } : {}),
     ...(options.botFeatures?.includes("examples") ? { examples: selectExampleCompanies(modelCompanies) } : {}),
     demo: {
