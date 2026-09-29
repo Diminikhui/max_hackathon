@@ -15,6 +15,7 @@ import {
   renderProfileCard,
   renderProfileNotFound,
   renderRequestInn,
+  renderSwitchCompany,
   renderWelcome,
 } from "./render.js";
 import type { OnboardingSessions, PendingProfile, ProfileGateway, ProfileLookupView } from "./types.js";
@@ -150,6 +151,7 @@ export const createOnboardingFlow = ({ profiles, sessions }: OnboardingFlowDeps)
   const requestInn = async ({ dialogId, event, transition }: DialogRouteContext): Promise<FlowReply> => {
     if (event.type === "edit_profile") await sessions.setPendingProfile(dialogId, undefined);
     if (transition.accepted && event.type === "start") return renderIntro();
+    if (transition.accepted && transition.previousState === "menu") return renderSwitchCompany();
     return renderRequestInn(transition.accepted ? undefined : "Сейчас нужен ИНН компании.");
   };
 
@@ -181,7 +183,12 @@ export const createOnboardingFlow = ({ profiles, sessions }: OnboardingFlowDeps)
   };
 
   return {
-    show_welcome: () => renderWelcome(),
+    // «В начало» при уже сохранённой компании (отмена смены компании) возвращает в меню к ней.
+    show_welcome: async ({ dialogId }) => {
+      if ((await sessions.companyOf(dialogId)) === undefined) return renderWelcome();
+      await sessions.setPendingProfile(dialogId, undefined);
+      return override(renderMenu("Компания не изменилась."), "menu");
+    },
     request_inn: requestInn,
     lookup_profile: lookupProfile,
     confirm_profile: confirmProfile,
