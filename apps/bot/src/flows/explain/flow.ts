@@ -1,4 +1,10 @@
-import { classifyDocument, type LlmProvider, type ProviderName, TemplateProvider } from "@max-hackathon/classifier";
+import {
+  classifyDocument,
+  type LlmProvider,
+  type LlmRequest,
+  type ProviderName,
+  TemplateProvider,
+} from "@max-hackathon/classifier";
 import {
   composeText,
   modelLabel,
@@ -24,6 +30,7 @@ import {
   looksTechnical,
   mentionsStatus,
   RETELL_SCHEMA,
+  RETELL_STATUS_RETRY_INSTRUCTION,
   type RetellDraft,
   type RetellInput,
   retellDocumentText,
@@ -70,17 +77,19 @@ export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
     const sourceUrl = item.requirement.basis[0]?.url;
     if (sourceUrl === undefined) return template;
     try {
-      const result = await classifyDocument<RetellDraft>(
-        {
-          id: input.requirementId,
-          title: input.title,
-          text: retellDocumentText(input),
-          sourceUrl,
-          isModel: item.requirement.source.isModel,
-        },
-        provider,
-        { responseSchema: RETELL_SCHEMA, template: () => ({ summary: template.summary, points: [] }), timeoutMs },
-      );
+      const document = {
+        id: input.requirementId,
+        title: input.title,
+        text: retellDocumentText(input),
+        sourceUrl,
+        isModel: item.requirement.source.isModel,
+      };
+      const profile = {
+        responseSchema: RETELL_SCHEMA,
+        template: () => ({ summary: template.summary, points: [] }),
+        timeoutMs,
+      };
+      const result = await classifyDocument<RetellDraft>(document, provider, profile);
       if (result.usedFallback) {
         deps.logger?.warn("bot.explain.fallback", "Model retelling failed, template shown", {
           provider: provider.name,
@@ -95,8 +104,28 @@ export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
         return template;
       }
       if (mentionsStatus(text)) {
+        const retryProvider: LlmProvider = {
+          name: provider.name,
+          generate: (request: LlmRequest) =>
+            provider.generate({ ...request, instruction: RETELL_STATUS_RETRY_INSTRUCTION }),
+        };
+        const retry = await classifyDocument<RetellDraft>(document, retryProvider, profile);
+        if (!retry.usedFallback) {
+          const retryText = composeRetell(retry.draft);
+          if (retry.draft.summary.trim() !== "" && !looksTechnical(retryText) && !mentionsStatus(retryText)) {
+            deps.logger?.info(
+              "bot.explain.status_retry_succeeded",
+              "Corrected model retelling passed the status guard",
+              {
+                provider: provider.name,
+              },
+            );
+            return { summary: retryText, provider: retry.provider };
+          }
+        }
         deps.logger?.warn("bot.explain.status_comment", "Model retelling commented on the status, template shown", {
           provider: provider.name,
+          retried: true,
         });
         return template;
       }

@@ -15,6 +15,8 @@ export interface LlmRequest {
   document: Readonly<DocumentInput>;
   /** Схема, которой должен соответствовать ответ. Провайдер может передать её модели. */
   responseSchema: Readonly<Record<string, unknown>>;
+  /** Доверенное дополнительное системное указание от вызывающего сценария; никогда не берётся из документа. */
+  instruction?: string;
 }
 
 export interface LlmProvider {
