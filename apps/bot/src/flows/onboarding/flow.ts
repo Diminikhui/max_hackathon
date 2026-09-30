@@ -5,6 +5,7 @@ import {
   type DialogState,
   transitionDialog,
 } from "../../dialog/index.js";
+import type { TransportLogger } from "../../transport/index.js";
 import type { FlowReply } from "../checklist/index.js";
 import {
   renderIntro,
@@ -23,6 +24,8 @@ import type { OnboardingSessions, PendingProfile, ProfileGateway, ProfileLookupV
 export interface OnboardingFlowDeps {
   readonly profiles: ProfileGateway;
   readonly sessions: OnboardingSessions;
+  /** Для исключений при поиске компании: без записи в журнал «источник недоступен» нечем объяснить (#370). */
+  readonly logger?: TransportLogger;
 }
 
 export interface OnboardingFlowHandlers {
@@ -60,12 +63,16 @@ const afterLookup = (event: DialogEvent): DialogState => transitionDialog("loadi
  * Обработчики маршрутов K-22b для онбординга: приветствие → ИНН → поиск (K-25b) → подтверждение → меню.
  * На любой ошибке пользователь получает объяснение и способ продолжить: ввести ИНН ещё раз или вернуться в начало.
  */
-export const createOnboardingFlow = ({ profiles, sessions }: OnboardingFlowDeps): OnboardingFlow => {
+export const createOnboardingFlow = ({ profiles, sessions, logger }: OnboardingFlowDeps): OnboardingFlow => {
   const lookup = async (inn: string): Promise<ProfileLookupView> => {
     try {
       return await profiles.lookup(inn);
-    } catch {
-      // Сервис сам не бросает на ошибках источника; исключение хранилища для пользователя выглядит так же.
+    } catch (error) {
+      // Сервис сам не бросает на ошибках источника; исключение хранилища для пользователя выглядит так же. В журнал
+      // идёт только имя класса ошибки: текст исключения базы может содержать ИНН (у ИП это персональные данные).
+      logger?.error("bot.onboarding.lookup_failed", "Company lookup threw, «source unavailable» shown", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
       return { status: "unavailable", inn, errorCode: "lookup_error", retryable: true, message: "" };
     }
   };

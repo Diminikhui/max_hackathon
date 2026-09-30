@@ -92,10 +92,10 @@ describe("loggedProfileSource", () => {
 });
 
 describe("MSP_BOT_LOOKUP", () => {
-  it("худший случай укладывается в 30 с таймаута webhook в nginx", () => {
+  it("худший случай ожидания ответа в чате — не больше 25 с", () => {
     const attempts = MSP_BOT_LOOKUP.retries + 1;
     const worstMs = attempts * MSP_BOT_LOOKUP.timeoutMs + MSP_BOT_LOOKUP.retries * MSP_BOT_LOOKUP.retryDelayMs;
-    expect(worstMs).toBeLessThan(30_000);
+    expect(worstMs).toBeLessThanOrEqual(25_000);
   });
 
   it("два обрыва подряд, третья попытка находит компанию", async () => {

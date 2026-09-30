@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { renderProfileCard } from "../../../src/flows/onboarding/index.js";
-import { encodeButtonPayload } from "../../../src/transport/index.js";
+import { type ProfileGateway, renderProfileCard } from "../../../src/flows/onboarding/index.js";
+import { encodeButtonPayload, type TransportLogger } from "../../../src/transport/index.js";
 import {
   CAFE_INN,
   KAZAN_CAFE_INN,
@@ -104,11 +104,37 @@ describe("ошибки онбординга не тупиковые", () => {
     assert.ok(reply.text.includes("не найдена"));
     // #370: объясняем источник (реестр МСП), не обещаем ручной ввод и не просим «проверить номер» дважды.
     assert.ok(reply.text.includes("реестре малого и среднего бизнеса"));
+    // Не путаем «нет в реестре МСП» с ошибкой в номере или с отсутствием компании.
+    assert.ok(reply.text.includes("Это не значит, что номер неверный или что компании нет"));
+    assert.ok(reply.text.includes("исключённых из реестра"));
     assert.ok(!reply.text.includes("вручную"));
     assert.equal(reply.text.split("Проверьте номер").length - 1, 1);
 
     await dialog.type(CAFE_INN);
     assert.equal(dialog.state, "confirming_profile");
+  });
+
+  it("исключение при поиске: пользователь видит «недоступен», в журнале имя ошибки без текста и ИНН (#370)", async () => {
+    const entries: { level: string; event: string; context?: Readonly<Record<string, unknown>> }[] = [];
+    const logger: TransportLogger = {
+      info: (event, _message, context) => entries.push({ level: "info", event, ...(context ? { context } : {}) }),
+      warn: (event, _message, context) => entries.push({ level: "warn", event, ...(context ? { context } : {}) }),
+      error: (event, _message, context) => entries.push({ level: "error", event, ...(context ? { context } : {}) }),
+    };
+    const profiles: ProfileGateway = {
+      ...modelProfileGateway(),
+      lookup: async () => {
+        throw new Error(`connection to database lost while reading ${CAFE_INN}`);
+      },
+    };
+    const dialog = createTestDialog(profiles, "idle", logger);
+    await dialog.start();
+
+    const reply = await dialog.type(CAFE_INN);
+    assert.ok(reply.text.includes("недоступен") || reply.text.includes("Не удалось получить данные"));
+    assert.equal(dialog.state, "awaiting_inn");
+    assert.deepEqual(entries, [{ level: "error", event: "bot.onboarding.lookup_failed", context: { error: "Error" } }]);
+    assert.ok(!JSON.stringify(entries).includes(CAFE_INN));
   });
 
   it("источник недоступен: просьба повторить, повтор проходит", async () => {
