@@ -46,6 +46,8 @@ export interface ExplainFlowDeps {
   readonly logger?: TransportLogger;
   /** Для тестов; по умолчанию 8 секунд. */
   readonly timeoutMs?: number;
+  /** Монотонные показания времени для общего бюджета первого запроса и повтора; переопределяется в тестах. */
+  readonly now?: () => number;
 }
 
 export interface ExplainFlow {
@@ -69,6 +71,7 @@ const retellLabel = (provider: ProviderName): string =>
 export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
   const provider = deps.provider ?? new TemplateProvider();
   const timeoutMs = deps.timeoutMs ?? EXPLAIN_TIMEOUT_MS;
+  const now = deps.now ?? (() => performance.now());
 
   const retell = async (input: RetellInput, item: ChecklistItemView): Promise<Retelling> => {
     const template: Retelling = { summary: templateRetell(input), provider: "template" };
@@ -84,6 +87,7 @@ export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
         sourceUrl,
         isModel: item.requirement.source.isModel,
       };
+      const deadline = now() + timeoutMs;
       const profile = {
         responseSchema: RETELL_SCHEMA,
         template: () => ({ summary: template.summary, points: [] }),
@@ -104,12 +108,24 @@ export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
         return template;
       }
       if (mentionsStatus(text)) {
+        const remainingMs = Math.floor(deadline - now());
+        if (remainingMs <= 0) {
+          deps.logger?.warn(
+            "bot.explain.status_comment",
+            "Model retelling commented on the status after the response deadline, template shown",
+            { provider: provider.name, retried: false },
+          );
+          return template;
+        }
         const retryProvider: LlmProvider = {
           name: provider.name,
           generate: (request: LlmRequest) =>
             provider.generate({ ...request, instruction: RETELL_STATUS_RETRY_INSTRUCTION }),
         };
-        const retry = await classifyDocument<RetellDraft>(document, retryProvider, profile);
+        const retry = await classifyDocument<RetellDraft>(document, retryProvider, {
+          ...profile,
+          timeoutMs: remainingMs,
+        });
         if (!retry.usedFallback) {
           const retryText = composeRetell(retry.draft);
           if (retry.draft.summary.trim() !== "" && !looksTechnical(retryText) && !mentionsStatus(retryText)) {

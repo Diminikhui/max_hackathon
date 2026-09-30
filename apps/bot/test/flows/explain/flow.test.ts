@@ -39,7 +39,7 @@ const fakeGigaChat = (reply: (request: LlmRequest) => unknown | Promise<unknown>
   return { provider, calls };
 };
 
-const setup = (explain?: { provider?: LlmProvider; timeoutMs?: number }) => {
+const setup = (explain?: { provider?: LlmProvider; timeoutMs?: number; now?: () => number }) => {
   const services = createK28Services();
   const warnings: string[] = [];
   const logger: TransportLogger = { info: () => {}, warn: (event) => warnings.push(event), error: () => {} };
@@ -206,6 +206,25 @@ describe("«Простым языком» (2-22)", () => {
     expect(calls[1]?.instruction).toBe(RETELL_STATUS_RETRY_INSTRUCTION);
     expect(calls[1]?.document).toEqual(calls[0]?.document);
     expect(calls[1]?.document.text).not.toContain("На самом деле");
+  });
+
+  it("не начинает повтор, если первый ответ исчерпал общий бюджет ожидания", async () => {
+    const { provider, calls } = fakeGigaChat(() => ({
+      summary: "Это к вам не применяется.",
+      points: [],
+    }));
+    const readings = [1_000, 1_008];
+    const { openCard, press, warnings } = setup({
+      provider,
+      timeoutMs: 8,
+      now: () => readings.shift() ?? 1_008,
+    });
+    await openCard();
+
+    const reply = await press(EXPLAIN);
+    expect(reply.text).toContain(TEMPLATE_LABEL);
+    expect(calls).toHaveLength(1);
+    expect(warnings).toContain("bot.explain.status_comment");
   });
 
   it("после второго ответа со статусным выводом останавливается и показывает шаблон", async () => {
