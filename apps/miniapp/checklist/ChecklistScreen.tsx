@@ -4,8 +4,15 @@ import { useApp } from "../src/core/AppContext";
 import { fetchChecklist } from "./api";
 import "./checklist.css";
 import { MODEL_CHECKLIST } from "./model";
-import { filterChecklist, formatDate, STATUS_META, sourceUrl } from "./status";
-import { CHECKLIST_STATUSES, type ChecklistFilter, type ChecklistItem, type CompanyChecklist } from "./types";
+import {
+  filterChecklist,
+  formatDate,
+  requirementDetails,
+  STATUS_META,
+  sourceUrl,
+  visibleStatusFilters,
+} from "./status";
+import type { ChecklistFilter, ChecklistItem, CompanyChecklist } from "./types";
 
 type LoadState =
   | { kind: "loading" }
@@ -106,7 +113,7 @@ function StatusFilters({
       <FilterButton active={value === "all"} count={total} onClick={() => onChange("all")}>
         Все
       </FilterButton>
-      {CHECKLIST_STATUSES.map((status) => (
+      {visibleStatusFilters(counts).map((status) => (
         <FilterButton key={status} active={value === status} count={counts[status]} onClick={() => onChange(status)}>
           {STATUS_META[status].shortLabel}
         </FilterButton>
@@ -151,16 +158,23 @@ function RequirementCard({
       <CellSimple
         title={item.requirement.title}
         subtitle={meta.label}
-        overline={item.requirement.deadline ? `Срок: ${item.requirement.deadline}` : undefined}
         showChevron
         onClick={onToggle}
         aria-expanded={expanded}
       />
       {expanded && (
-        <Flex direction="column" gap={10} className="requirement-card__details">
-          {item.requirement.summary && <Typography.Body>{item.requirement.summary}</Typography.Body>}
-          {item.applicability.statusReason && <Typography.Text>{item.applicability.statusReason}</Typography.Text>}
-          <Typography.Label>
+        <Flex direction="column" gap={14} className="requirement-card__details">
+          {requirementDetails(item).map((block) => (
+            <section key={block.label} className="requirement-card__block">
+              <Typography.Label className="requirement-card__label">{block.label}</Typography.Label>
+              {block.lines.map((line) => (
+                <Typography.Body key={line} className="requirement-card__text">
+                  {line}
+                </Typography.Body>
+              ))}
+            </section>
+          ))}
+          <Typography.Label className="requirement-card__label">
             Проверено {formatDate(item.applicability.evaluatedAt)} · источник получен{" "}
             {formatDate(item.requirement.source.retrievedAt)}
           </Typography.Label>

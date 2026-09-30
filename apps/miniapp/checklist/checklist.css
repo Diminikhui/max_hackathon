@@ -8,17 +8,16 @@
   border-radius: 12px;
   background: color-mix(in srgb, currentColor 7%, transparent);
 }
+/* Все фильтры видны сразу: переносятся на следующую строку, а не уходят за край. min-inline-size: 0 снимает
+   умолчание fieldset (min-content), из-за которого ряд распирал экран (#372). */
 .checklist-filters {
   display: flex;
+  flex-wrap: wrap;
+  min-inline-size: 0;
   border: 0;
   gap: 8px;
-  margin: 12px -16px;
-  padding: 0 16px 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.checklist-filters::-webkit-scrollbar {
-  display: none;
+  margin: 12px 0;
+  padding: 0;
 }
 .checklist-filters > button {
   flex: 0 0 auto;
@@ -41,7 +40,19 @@
   border-left-color: #8b9299;
 }
 .requirement-card__details {
-  padding: 0 16px 16px 20px;
+  padding: 4px 16px 16px 20px;
+}
+.requirement-card__block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.requirement-card__label {
+  opacity: 0.6;
+}
+.requirement-card__text {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 .checklist-state {
   display: flex;
@@ -53,10 +64,4 @@
   justify-content: center;
   gap: 16px;
   text-align: center;
-}
-@media (min-width: 641px) {
-  .checklist-filters {
-    flex-wrap: wrap;
-    overflow: visible;
-  }
 }
