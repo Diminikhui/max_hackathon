@@ -111,12 +111,20 @@ describe("GigaChatProvider", () => {
       { role: "system", content: "Модельные правила пересказа" },
       { role: "user", content: "Модельные данные" },
     ] as const;
-    const client = provider(transport.fetch, { prompt: () => messages });
+    const client = provider(transport.fetch, {
+      prompt: (_document, instruction) =>
+        instruction === undefined ? messages : [{ role: "system", content: instruction }, ...messages.slice(1)],
+    });
 
-    await client.generate({ document, responseSchema: REGULATORY_IMPACT_SCHEMA });
+    await client.generate({
+      document,
+      responseSchema: REGULATORY_IMPACT_SCHEMA,
+      instruction: "Модельная корректирующая инструкция",
+    });
 
     const body = JSON.parse(String(transport.calls[1]?.init?.body));
-    expect(body.messages).toEqual(messages);
+    expect(body.messages[0]).toEqual({ role: "system", content: "Модельная корректирующая инструкция" });
+    expect(body.messages[1]).toEqual(messages[1]);
     expect(JSON.stringify(body.messages)).not.toContain(CLASSIFICATION_SYSTEM_PROMPT);
   });
 

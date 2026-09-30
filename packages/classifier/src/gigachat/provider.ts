@@ -47,7 +47,7 @@ export interface GigaChatProviderOptions {
    * Сообщения для модели по документу. По умолчанию — промпт классификации K-19d. Другой сценарий (пересказ 2-22)
    * передаёт свой промпт с теми же правилами: системные инструкции и недоверенные данные — разными сообщениями.
    */
-  prompt?: (document: Readonly<DocumentInput>) => readonly ClassifierPromptMessage[];
+  prompt?: (document: Readonly<DocumentInput>, instruction?: string) => readonly ClassifierPromptMessage[];
 }
 
 interface AccessToken {
@@ -77,7 +77,10 @@ export class GigaChatProvider implements LlmProvider {
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly uuid: () => string;
   private readonly queueDeadlineMs: number;
-  private readonly prompt: (document: Readonly<DocumentInput>) => readonly ClassifierPromptMessage[];
+  private readonly prompt: (
+    document: Readonly<DocumentInput>,
+    instruction?: string,
+  ) => readonly ClassifierPromptMessage[];
 
   private accessToken: AccessToken | undefined;
   private tokenRequest: Promise<AccessToken> | undefined;
@@ -120,7 +123,7 @@ export class GigaChatProvider implements LlmProvider {
     assertSupportedSchema(request.responseSchema);
     const body = JSON.stringify({
       model: this.model,
-      messages: this.prompt(request.document),
+      messages: this.prompt(request.document, request.instruction),
       response_format: {
         type: "json_schema",
         schema: schemaForGigaChat(request.responseSchema),

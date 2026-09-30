@@ -1,4 +1,10 @@
-import { classifyDocument, type LlmProvider, type ProviderName, TemplateProvider } from "@max-hackathon/classifier";
+import {
+  classifyDocument,
+  type LlmProvider,
+  type LlmRequest,
+  type ProviderName,
+  TemplateProvider,
+} from "@max-hackathon/classifier";
 import {
   composeText,
   modelLabel,
@@ -24,6 +30,7 @@ import {
   looksTechnical,
   mentionsStatus,
   RETELL_SCHEMA,
+  RETELL_STATUS_RETRY_INSTRUCTION,
   type RetellDraft,
   type RetellInput,
   retellDocumentText,
@@ -39,6 +46,8 @@ export interface ExplainFlowDeps {
   readonly logger?: TransportLogger;
   /** Для тестов; по умолчанию 8 секунд. */
   readonly timeoutMs?: number;
+  /** Монотонные показания времени для общего бюджета первого запроса и повтора; переопределяется в тестах. */
+  readonly now?: () => number;
 }
 
 export interface ExplainFlow {
@@ -62,6 +71,7 @@ const retellLabel = (provider: ProviderName): string =>
 export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
   const provider = deps.provider ?? new TemplateProvider();
   const timeoutMs = deps.timeoutMs ?? EXPLAIN_TIMEOUT_MS;
+  const now = deps.now ?? (() => performance.now());
 
   const retell = async (input: RetellInput, item: ChecklistItemView): Promise<Retelling> => {
     const template: Retelling = { summary: templateRetell(input), provider: "template" };
@@ -70,17 +80,20 @@ export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
     const sourceUrl = item.requirement.basis[0]?.url;
     if (sourceUrl === undefined) return template;
     try {
-      const result = await classifyDocument<RetellDraft>(
-        {
-          id: input.requirementId,
-          title: input.title,
-          text: retellDocumentText(input),
-          sourceUrl,
-          isModel: item.requirement.source.isModel,
-        },
-        provider,
-        { responseSchema: RETELL_SCHEMA, template: () => ({ summary: template.summary, points: [] }), timeoutMs },
-      );
+      const document = {
+        id: input.requirementId,
+        title: input.title,
+        text: retellDocumentText(input),
+        sourceUrl,
+        isModel: item.requirement.source.isModel,
+      };
+      const deadline = now() + timeoutMs;
+      const profile = {
+        responseSchema: RETELL_SCHEMA,
+        template: () => ({ summary: template.summary, points: [] }),
+        timeoutMs,
+      };
+      const result = await classifyDocument<RetellDraft>(document, provider, profile);
       if (result.usedFallback) {
         deps.logger?.warn("bot.explain.fallback", "Model retelling failed, template shown", {
           provider: provider.name,
@@ -95,8 +108,40 @@ export const createExplainFlow = (deps: ExplainFlowDeps): ExplainFlow => {
         return template;
       }
       if (mentionsStatus(text)) {
+        const remainingMs = Math.floor(deadline - now());
+        if (remainingMs <= 0) {
+          deps.logger?.warn(
+            "bot.explain.status_comment",
+            "Model retelling commented on the status after the response deadline, template shown",
+            { provider: provider.name, retried: false },
+          );
+          return template;
+        }
+        const retryProvider: LlmProvider = {
+          name: provider.name,
+          generate: (request: LlmRequest) =>
+            provider.generate({ ...request, instruction: RETELL_STATUS_RETRY_INSTRUCTION }),
+        };
+        const retry = await classifyDocument<RetellDraft>(document, retryProvider, {
+          ...profile,
+          timeoutMs: remainingMs,
+        });
+        if (!retry.usedFallback) {
+          const retryText = composeRetell(retry.draft);
+          if (retry.draft.summary.trim() !== "" && !looksTechnical(retryText) && !mentionsStatus(retryText)) {
+            deps.logger?.info(
+              "bot.explain.status_retry_succeeded",
+              "Corrected model retelling passed the status guard",
+              {
+                provider: provider.name,
+              },
+            );
+            return { summary: retryText, provider: retry.provider };
+          }
+        }
         deps.logger?.warn("bot.explain.status_comment", "Model retelling commented on the status, template shown", {
           provider: provider.name,
+          retried: true,
         });
         return template;
       }
