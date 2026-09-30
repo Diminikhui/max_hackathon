@@ -9,8 +9,12 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
+/* width: 100% обязателен: с `margin: 0 auto` внутри колонки Panel блок иначе подстраивается под самую длинную
+   строку без переноса и выходит за экран телефона (#372). */
 .app-shell__content {
+  width: 100%;
   max-width: 640px;
+  box-sizing: border-box;
   margin: 0 auto;
   padding: 12px 0 24px;
 }
