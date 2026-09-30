@@ -97,7 +97,7 @@ export const modelProfileGateway = (options: { failConfirm?: number; alreadySave
       return {
         status: "not_found",
         inn: input,
-        message: "Компания с таким ИНН не найдена в источнике. Проверьте номер или заполните данные вручную.",
+        message: "Компания с таким ИНН не найдена в реестре малого и среднего бизнеса ФНС.",
       };
     },
     async confirm(profile: CompanyProfile): Promise<ProfileConfirmView> {

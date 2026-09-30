@@ -14,7 +14,12 @@ import {
   InMemoryOnboardingSessions,
   type ProfileGateway,
 } from "../../../../src/flows/onboarding/index.js";
-import { decodeButtonPayload, type InboundEvent, toDialogEvent } from "../../../../src/transport/index.js";
+import {
+  decodeButtonPayload,
+  type InboundEvent,
+  type TransportLogger,
+  toDialogEvent,
+} from "../../../../src/transport/index.js";
 import { okOutcome } from "../../checklist/support/model-checklist.js";
 
 const DIALOG_ID = "chat-1";
@@ -38,9 +43,9 @@ const assertNoDeadEnd = (state: string, reply: FlowReply): void => {
   }
 };
 
-export const createTestDialog = (profiles: ProfileGateway, initialState: string = "idle") => {
+export const createTestDialog = (profiles: ProfileGateway, initialState: string = "idle", logger?: TransportLogger) => {
   const sessions = new InMemoryOnboardingSessions();
-  const { unrecognized, ...onboarding } = createOnboardingFlow({ profiles, sessions });
+  const { unrecognized, ...onboarding } = createOnboardingFlow({ profiles, sessions, ...(logger ? { logger } : {}) });
   const checklist = createChecklistFlow({
     companyOf: (dialogId) => sessions.companyOf(dialogId),
     checklist: { build: async () => okOutcome() },

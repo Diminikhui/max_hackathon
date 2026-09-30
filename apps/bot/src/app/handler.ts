@@ -145,7 +145,11 @@ export const createBotApp = (deps: BotAppDeps): BotApp => {
   const states = deps.states ?? createMemoryDialogStateStore();
   const companyOf = (dialogId: string) => sessions.companyOf(dialogId);
 
-  const { unrecognized, ...onboarding } = createOnboardingFlow({ profiles: deps.profiles, sessions });
+  const { unrecognized, ...onboarding } = createOnboardingFlow({
+    profiles: deps.profiles,
+    sessions,
+    logger: deps.logger,
+  });
   const checklistFlow = createChecklistFlow({
     checklist: deps.checklist,
     companyOf,

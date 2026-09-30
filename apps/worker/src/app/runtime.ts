@@ -53,7 +53,7 @@ import {
 import type { AppConfig } from "./config.js";
 import { demoNotificationSink, modelProfilesOnly, onlyPack, UNCONSUMED_EVENTS } from "./demo.js";
 import { createMaxReplyPort } from "./max-reply.js";
-import { createProfileGateway, freshModelProfiles } from "./profiles.js";
+import { createProfileGateway, freshModelProfiles, loggedProfileSource, MSP_BOT_LOOKUP } from "./profiles.js";
 import { REPO_ROOT, seedRulepacks, withModelPackBoundary } from "./rulepacks.js";
 
 export interface AppAssembly {
@@ -102,7 +102,7 @@ export const assembleApp = async (options: AssembleOptions): Promise<AppAssembly
       clock,
     }),
     real: new ProfileService({
-      source: options.realSource ?? new MspProfileSource(),
+      source: loggedProfileSource(options.realSource ?? new MspProfileSource(MSP_BOT_LOOKUP), logger),
       repository: profileRepository,
       clock,
     }),

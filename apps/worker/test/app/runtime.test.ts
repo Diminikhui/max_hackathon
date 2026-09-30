@@ -7,9 +7,9 @@ import { DEMO_CHANGE_CALLBACK_PAYLOAD } from "@max-hackathon/bot/dist/flows/demo
 import { type InboundEvent, toDialogEvent } from "@max-hackathon/bot/dist/transport/index.js";
 import type { CompanyProfile, ProfileSource } from "@max-hackathon/domain";
 import { createPgliteClient, PostgresBotDialogRepository } from "@max-hackathon/storage";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { withModelPackBoundary } from "../../src/app/rulepacks.js";
-import { type AppAssembly, assembleApp } from "../../src/app/runtime.js";
+import { type AppAssembly, type AssembleOptions, assembleApp } from "../../src/app/runtime.js";
 import { FakeMessageSender } from "../../src/sender/queue/index.js";
 
 const NOW = new Date("2026-09-29T10:00:00.000Z");
@@ -31,7 +31,7 @@ let app: AppAssembly;
 let sender: FakeMessageSender;
 const replies: { chatId: string; reply: FlowReply }[] = [];
 
-const assemble = async () => {
+const assemble = async (overrides: Partial<AssembleOptions> = {}) => {
   sender = new FakeMessageSender();
   const reply: BotReplyPort = {
     send: async (chatId, message) => {
@@ -46,6 +46,7 @@ const assemble = async () => {
     logger: silent,
     realSource: noRealSource,
     now: () => NOW,
+    ...overrides,
   });
 };
 
@@ -91,7 +92,8 @@ const chat = (chatId: string) => {
     return press("✅ Всё верно");
   };
   const send = (text: string) => receive({ kind: "text", text, ...base() });
-  return { press, pressPayload, onboard, send, last };
+  const start = () => receive({ kind: "started", ...base() });
+  return { press, pressPayload, onboard, send, start, last };
 };
 
 /** Прогон очереди отправки: сколько уведомлений ушло в модельный MAX. */
@@ -275,5 +277,73 @@ describe("K-34: пояснение о покрытии над перечнем",
     const list = await cafe.press("📋 Мой перечень");
     expect(list.text).not.toContain("проверяемые направления");
     expect(list.text).not.toContain("вне покрытия — показаны только федеральные");
+  });
+});
+
+// #370: реальный источник (не K-28) подключён к боту с журналом и параметрами реестра МСП. Тесты идут через
+// `assembleApp`, поэтому падают, если эта проводка потеряется. ИНН синтетический: контрольная сумма верна, в K-28 его нет.
+describe("реальный источник профиля в сборке процесса (#370)", () => {
+  const REAL_INN = "7800000002";
+  type Entry = { level: string; event: string; context?: Readonly<Record<string, unknown>> };
+
+  const recordingLogger = () => {
+    const entries: Entry[] = [];
+    const push = (level: string) => (event: string, _message: string, context?: Readonly<Record<string, unknown>>) => {
+      entries.push({ level, event, ...(context ? { context } : {}) });
+    };
+    return { entries, logger: { info: push("info"), warn: push("warn"), error: push("error") } };
+  };
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("итог поиска попадает в журнал, ИНН в журнале нет, пользователь видит объяснение «не найдено»", async () => {
+    const { entries, logger } = recordingLogger();
+    app = await assemble({
+      logger,
+      realSource: {
+        info: { name: "msp", isModel: false },
+        lookupByInn: async () => ({ status: "not_found" }),
+      },
+    });
+
+    const user = chat("2001");
+    await user.start();
+    const reply = await user.send(REAL_INN);
+
+    expect(reply.text).toContain("не найдена в реестре малого и среднего бизнеса");
+    const lookups = entries.filter((entry) => entry.event === "profile.lookup");
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]).toMatchObject({ level: "info", context: { source: "msp", status: "not_found" } });
+    expect(JSON.stringify(entries)).not.toContain(REAL_INN);
+  });
+
+  it("без подставного источника бот обращается к реестру с двумя повторами: третья попытка находит компанию", async () => {
+    const { entries, logger } = recordingLogger();
+    let calls = 0;
+    vi.stubGlobal("fetch", async () => {
+      calls += 1;
+      if (calls < 3) throw new TypeError("fetch failed", { cause: { code: "UND_ERR_SOCKET" } });
+      return new Response(
+        JSON.stringify({ data: [{ inn: REAL_INN, is_active: 1, okved1: "56.10", regioncode: "78" }] }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    });
+    // `realSource: undefined` убирает подставной источник из `assemble`: бот собирает реестр МСП сам.
+    app = await assemble({ logger, realSource: undefined as never });
+
+    const user = chat("2002");
+    await user.start();
+    const reply = await user.send(REAL_INN);
+
+    // Прежняя настройка адаптера (один повтор) остановилась бы на второй попытке с ответом «недоступен».
+    expect(calls).toBe(3);
+    expect(reply.text).not.toContain("недоступен");
+    expect(reply.text).toContain(REAL_INN);
+    const lookups = entries.filter((entry) => entry.event === "profile.lookup");
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]).toMatchObject({ level: "info", context: { source: "msp", status: "found" } });
   });
 });
