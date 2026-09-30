@@ -102,7 +102,10 @@ describe("ошибки онбординга не тупиковые", () => {
     const reply = await dialog.type(MISSING_INN);
     assert.equal(dialog.state, "awaiting_inn");
     assert.ok(reply.text.includes("не найдена"));
-    assert.ok(reply.text.includes("отправьте ИНН ещё раз"));
+    // #370: объясняем источник (реестр МСП), не обещаем ручной ввод и не просим «проверить номер» дважды.
+    assert.ok(reply.text.includes("реестре малого и среднего бизнеса"));
+    assert.ok(!reply.text.includes("вручную"));
+    assert.equal(reply.text.split("Проверьте номер").length - 1, 1);
 
     await dialog.type(CAFE_INN);
     assert.equal(dialog.state, "confirming_profile");

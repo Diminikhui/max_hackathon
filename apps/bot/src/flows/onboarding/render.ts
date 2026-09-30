@@ -54,9 +54,13 @@ export const renderRequestInn = (notice?: string): FlowReply =>
 export const renderInvalidInn = (message: string): FlowReply =>
   reply([`⚠️ ${message}`, "", INN_HINT], [restartButton()]);
 
+/** Реальный источник бота — реестр МСП (K-12b): «не найдено» чаще значит «не МСП», чем ошибку в номере (#370). */
+const PROFILE_NOT_FOUND_HINT =
+  "Бот ищет компании в реестре малого и среднего бизнеса ФНС. Крупных компаний в нём нет, а новые появляются только после ежемесячного обновления реестра. Проверьте номер или отправьте ИНН другой компании.";
+
 export const renderProfileNotFound = (message?: string): FlowReply =>
   reply(
-    [`🔍 ${message ?? "Компания с таким ИНН не найдена в источнике."}`, "", "Проверьте номер и отправьте ИНН ещё раз."],
+    [`🔍 ${message ?? "Компания с таким ИНН не найдена в источнике."}`, "", PROFILE_NOT_FOUND_HINT],
     [restartButton()],
   );
 
